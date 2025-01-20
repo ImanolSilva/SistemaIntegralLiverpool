@@ -2,165 +2,322 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro de SKUs Escaneados - Página Protegida</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <!-- Bootstrap CSS -->
-  <link 
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
-    rel="stylesheet"
-  >
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
-  <link 
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
-  >
-  <!-- SweetAlert2 (opcional) -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Select2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-  <!-- SheetJS (Excel) -->
-  <script 
-    src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/shim.min.js"
-  ></script>
-  <script 
-    src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"
-  ></script>
+  <!-- Select2 Bootstrap 5 Tema Opcional -->
+  <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+  <!-- jQuery (Necesario para Select2) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Select2 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- SheetJS -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/shim.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
 
   <style>
-    /* Fuente base (opcional) */
+    /* Estilo general */
     body {
-      background-color: #f0f2f5;
+      font-family: 'Poppins', Arial, sans-serif;
+      background-color: #fdfdfd;
+      margin: 0;
+      padding: 0;
+      color: #333;
+      line-height: 1.6;
     }
+
     /* Encabezado */
     header {
-      background-color: #343a40;
-      color: #fff;
+      background-color: #e83e8c;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       position: sticky;
       top: 0;
-      z-index: 1030;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      padding: 0.5rem 1rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      z-index: 1000;
+      transition: background-color 0.3s ease;
     }
+
+    header.scrolled {
+      background-color: #d8337f;
+    }
+
     .header-title {
-      font-size: 1.5rem;
-      font-weight: bold;
+      font-size: 1.8rem;
+      font-weight: 700;
     }
+
     .btn-menu {
-      background-color: transparent;
-      border: none;
-      color: #fff;
       font-size: 1.5rem;
-    }
-    /* Offcanvas Lateral */
-    .offcanvas-start {
-      width: 250px;
-      background-color: #343a40;
-      color: #fff;
-    }
-    .offcanvas-header {
-      border-bottom: 1px solid #495057;
-    }
-    .offcanvas-title {
-      font-size: 1.25rem;
-      font-weight: bold;
-    }
-    .btn-close {
-      background-color: #fff;
-      opacity: 0.5;
-    }
-    .btn-close:hover {
-      opacity: 1;
-    }
-    .nav-link {
-      color: #adb5bd;
-      font-size: 1.1em;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #495057;
-    }
-    .nav-link:hover,
-    .nav-link.active {
-      background-color: #495057;
-      color: #fff;
-    }
-    .nav-link i {
-      margin-right: 0.5rem;
-    }
-
-    /* Contenedor centrado */
-    .main-container {
-      max-width: 900px;  /* Limita el ancho */
-      margin: 0 auto;    /* Centra horizontalmente */
-      padding: 1rem;     /* Espacio interior */
-    }
-
-    /* Sección de arrastrar y soltar */
-    #dropzone {
-      border: 2px dashed #6c757d;
-      border-radius: 5px;
-      padding: 20px;
-      text-align: center;
-      color: #6c757d;
+      background: transparent;
+      color: white;
+      border: none;
       cursor: pointer;
-      margin-bottom: 20px;
-      transition: background-color 0.2s ease;
     }
-    #dropzone:hover {
-      background-color: #e9ecef;
+
+    /* Botones */
+    .btn {
+      background-color: #e83e8c;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    #dropzone.dragover {
-      background-color: #e9ecef;
+
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
-    #dropzone i {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
+
+    .btn-danger {
+      background-color: #dc3545;
+    }
+
+    .btn-danger:hover {
+      background-color: #c82333;
+    }
+
+    /* Contenedor principal */
+    .main-container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.6s ease-in-out;
     }
 
     /* Tarjetas */
     .card {
-      margin-top: 30px;
       border: none;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    /* Botón hover */
-    .btn {
-      border-radius: 6px;
-      transition: box-shadow 0.2s ease;
-    }
-    .btn:hover {
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      border-radius: 16px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
     }
 
-    .input-icon {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      right: 15px;
-      color: #6c757d;
-      pointer-events: none;
-      font-size: 1.5em;
-    }
-    #skuInput {
-      padding-right: 2.5rem;
-    }
-    #resultado {
-      margin-top: 15px;
+    .card-body {
+      padding: 1.5rem;
     }
 
+    /* Formularios */
+    .form-control {
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      padding: 0.8rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .form-control:focus {
+      border-color: #e83e8c;
+      box-shadow: 0 0 6px rgba(232, 62, 140, 0.2);
+    }
+
+    .form-label {
+      font-size: 1rem;
+      color: #e83e8c;
+      font-weight: bold;
+    }
+
+    /* Área de carga de archivos */
+    #dropzone {
+      border: 2px dashed #e83e8c;
+      border-radius: 12px;
+      text-align: center;
+      padding: 2rem;
+      color: #e83e8c;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    #dropzone.dragover {
+      background-color: #fff5f7;
+      transform: scale(1.05);
+    }
+
+    #dropzone i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Menú lateral */
+    .offcanvas {
+      background-color: #e83e8c;
+      color: white;
+    }
+
+    .offcanvas-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .nav-link {
+      color: white;
+      font-size: 1.2rem;
+      padding: 0.8rem;
+      transition: background-color 0.3s ease;
+    }
+
+    .nav-link:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-close {
+      filter: brightness(0) invert(1);
+    }
+
+    /* Botones de acción */
+    #descargarBtn {
+      background-color: #28a745;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    #descargarBtn:hover {
+      background-color: #218838;
+      transform: translateY(-2px);
+    }
+
+    #borrarBtn {
+      background-color: #dc3545;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    #borrarBtn:hover {
+      background-color: #c82333;
+      transform: translateY(-2px);
+    }
+
+    /* Transiciones y animaciones */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-in-out;
+    }
+
+    /* Tablas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1.5rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.8rem;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #e83e8c;
+      color: white;
+    }
+
+    /* Diseño Responsivo */
+    @media (max-width: 768px) {
+      .header-title {
+        font-size: 1.5rem;
+      }
+      .btn {
+        padding: 0.7rem 1rem;
+      }
+      .main-container {
+        margin: 1rem;
+        padding: 1rem;
+      }
+      .nav-link {
+        font-size: 1rem;
+        padding: 0.6rem 1rem;
+      }
+    }
+
+    /* Estilos para los botones de iconos en la lista de archivos */
+    .list-group-item .btn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .list-group-item .btn i {
+      font-size: 1.2rem;
+    }
+
+    /* Asegurar que el nombre del archivo no se superponga con los botones */
+    .list-group-item div {
+      flex: 1;
+      text-align: left;
+      margin-right: 10px;
+      word-break: break-all; /* Para romper líneas largas */
+    }
+
+    /* Ajustes adicionales para mejorar la responsividad */
+    @media (max-width: 576px) {
+      .list-group-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .list-group-item div {
+        margin-bottom: 10px;
+      }
+
+      .list-group-item .btn {
+        width: 35px;
+        height: 35px;
+      }
+
+      .list-group-item .btn i {
+        font-size: 1rem;
+      }
+    }
+
+    /* Estilos para Input Groups */
+    .input-group .input-group-text {
+      background-color: #e83e8c; /* Color de fondo del icono */
+      color: white; /* Color del icono */
+    }
+
+    .input-group .input-group-text i {
+      font-size: 1.2rem;
+    }
   </style>
 </head>
 <body>
   <!-- Encabezado con botón de menú hamburguesa y botón de cerrar sesión -->
-  <header>
-    <div style="display: flex; align-items: center;">
+  <header class="d-flex justify-content-between align-items-center px-4 py-3">
+    <div class="d-flex align-items-center">
       <button 
-        class="btn-menu me-2"
+        class="btn-menu me-3"
         type="button"
         data-bs-toggle="offcanvas"
         data-bs-target="#menuLateral"
         aria-controls="menuLateral"
+        aria-label="Abrir menú lateral"
       >
         <i class="bi bi-list"></i>
       </button>
@@ -168,10 +325,11 @@
     </div>
     <!-- Botón de Cerrar Sesión -->
     <button 
-      class="btn btn-danger"
+      class="btn btn-danger d-flex align-items-center"
       id="logout-btn"
+      aria-label="Cerrar sesión"
     >
-      <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+      <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
     </button>
   </header>
 
@@ -195,31 +353,31 @@
       <!-- Contenido del menú lateral -->
       <nav class="nav flex-column">
         <a class="nav-link active" href="#">
-          <i class="bi bi-house-door-fill"></i> Inicio
+          <i class="bi bi-house-door-fill me-2"></i> Inicio
         </a>
         <a class="nav-link" href="#">
-          <i class="bi bi-upc-scan"></i> Registrar SKU
+          <i class="bi bi-upc-scan me-2"></i> Registrar SKU
         </a>
         <a class="nav-link" href="#">
-          <i class="bi bi-clock-history"></i> Historial
+          <i class="bi bi-clock-history me-2"></i> Historial
         </a>
         <a class="nav-link" href="#">
-          <i class="bi bi-gear-fill"></i> Configuración
+          <i class="bi bi-gear-fill me-2"></i> Configuración
         </a>
       </nav>
     </div>
   </div>
 
-  <!-- Contenedor centrado -->
+  <!-- Contenedor principal -->
   <div class="main-container">
-    <!-- SOLO ADMIN: subir archivos -->
+    <!-- SECCION REGISTRO DE ARCHIVOS (Solo Admins) -->
     <div class="row" id="adminUploadSection" style="display: none;">
       <div class="col-12">
         <h2 style="font-weight: 500; margin-bottom: 15px;">
-          <i class="bi bi-upload"></i> Cargar Archivo Excel (Solo Administrador)
+          <i class="bi bi-upload me-2"></i> Cargar Archivo Excel
         </h2>
         <div id="dropzone">
-          <i class="bi bi-upload"></i>
+          <i class="bi bi-cloud-upload"></i>
           <p>
             Arrastra y suelta el archivo aquí,<br>
             o haz clic para seleccionar uno.
@@ -231,19 +389,10 @@
             style="display: none;"
           >
         </div>
-        
-        <!-- Lista de archivos en tarjetas -->
-        <div 
-          id="adminFilesList"
-          style="display: none; margin-top: 20px;"
-        >
-          <h4 class="mb-3">Archivos Subidos</h4>
-          <div class="row" id="adminFilesContainer"></div>
-        </div>
       </div>
     </div>
 
-    <!-- USUARIOS O ADMIN: Elige un archivo subido -->
+    <!-- USUARIOS: Elige un archivo subido -->
     <div 
       class="row justify-content-center"
       id="userFilePickerSection"
@@ -253,13 +402,19 @@
         <div class="card shadow-sm">
           <div class="card-body text-center">
             <h5 class="mb-3" style="font-weight: 500;">
-              <i class="bi bi-folder-check"></i> Elige un archivo subido:
+              <i class="bi bi-folder-check me-2"></i> Elige un archivo subido:
             </h5>
-            <select class="form-select mb-3" id="fileSelect">
-              <option value="">-- Selecciona un archivo --</option>
-            </select>
-            <button class="btn btn-primary" id="loadFileBtn">
-              <i class="bi bi-play-circle"></i> Cargar Archivo Elegido
+            <button 
+              class="btn btn-primary mb-3" 
+              id="chooseFileBtn" 
+              data-bs-toggle="modal" 
+              data-bs-target="#fileSelectionModal"
+            >
+              <i class="bi bi-upload me-2"></i> Elegir Archivo
+            </button>
+            <p id="selectedFileName" class="text-muted">No se ha seleccionado ningún archivo.</p>
+            <button class="btn btn-success" id="loadFileBtn" disabled>
+              <i class="bi bi-play-circle me-2"></i> Cargar Archivo Elegido
             </button>
           </div>
         </div>
@@ -277,17 +432,18 @@
                   <label for="skuInput" class="form-label">
                     <i class="bi bi-upc me-2"></i> Ingresa el SKU:
                   </label>
-                  <div class="position-relative">
+                  <div class="input-group">
+                    <span class="input-group-text" id="sku-addon">
+                      <i class="bi bi-upc"></i>
+                    </span>
                     <input 
                       type="text"
                       class="form-control"
                       id="skuInput"
                       placeholder="Ejemplo: ABC12345"
+                      aria-describedby="sku-addon"
                       required
                     >
-                    <span class="input-icon">
-                      <i class="bi bi-upc"></i>
-                    </span>
                   </div>
                 </div>
                 <div class="d-grid">
@@ -295,17 +451,18 @@
                     type="submit"
                     class="btn btn-primary"
                   >
-                    <i class="bi bi-search"></i> Buscar y Registrar
+                    <i class="bi bi-search me-2"></i> Buscar y Registrar
                   </button>
                 </div>
               </form>
               <div id="resultado"></div>
               <div class="d-grid mt-3">
                 <button class="btn btn-success mb-2" id="descargarBtn" disabled>
-                  <i class="bi bi-download"></i> Descargar Registro Actualizado
+                  <i class="bi bi-download me-2"></i> Descargar Registro Actualizado
                 </button>
-                <button class="btn btn-danger" id="borrarBtn">
-                  <i class="bi bi-trash"></i> Borrar Datos Registrados
+                <!-- Botón para borrar datos (Solo Admins) -->
+                <button class="btn btn-danger" id="borrarBtn" style="display: none;">
+                  <i class="bi bi-trash me-2"></i> Borrar Datos Registrados
                 </button>
               </div>
             </div> <!-- card-body -->
@@ -315,18 +472,66 @@
     </div> <!-- seccionRegistro -->
   </div> <!-- .main-container -->
 
-  <!-- Bootstrap JS -->
+  <!-- Modal para Seleccionar Archivos -->
+  <div class="modal fade" id="fileSelectionModal" tabindex="-1" aria-labelledby="fileSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="fileSelectionModalLabel">Selecciona un Archivo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="fileListContainer" class="list-group">
+            <!-- Lista de archivos se agregará dinámicamente -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="confirmFileSelection" disabled>Seleccionar Archivo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Asignar Usuarios (Opcional) -->
+  <div class="modal fade" id="asignarUsuariosModal" tabindex="-1" aria-labelledby="asignarUsuariosModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="asignarUsuariosForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="asignarUsuariosModalLabel">Asignar Usuarios al Archivo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="usuariosSelect" class="form-label">Selecciona Usuarios:</label>
+              <select multiple class="form-select" id="usuariosSelect">
+                <!-- Opciones se cargarán dinámicamente -->
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle (Incluye Popper) -->
   <script 
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+    defer
   ></script>
 
   <!-- Firebase Scripts (Cargados antes de dashboard.js) -->
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-storage-compat.js" defer></script>
 
   <!-- Script JS para la página protegida -->
-  <script src="dashboard.js"></script>
+  <script src="dashboard.js" defer></script>
 </body>
 </html>
