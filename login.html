@@ -16,12 +16,13 @@
   <!-- Custom Styles (MISMO DISEÑO, SIN CAMBIOS) -->
   <style>
     body {
-      background-color: #fdfdfd;
+      background: linear-gradient(to right, #E6007E, #000000); /* Rosa degradado */
       font-family: 'Poppins', Arial, sans-serif;
     }
     .auth-container {
       max-width: 400px;
       width: 100%;
+      margin: 0 auto;
     }
     .card {
       border: none;
@@ -107,14 +108,6 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
-      100% {
-        transform: rotate(360deg);
-      }
-    }
 
     /* Alertas Personalizadas */
     .custom-alert {
@@ -141,6 +134,34 @@
       to {
         transform: translateY(0);
         opacity: 1;
+      }
+    }
+
+    /* Efecto Typewriter */
+    .typewriter-text {
+      color: #E6007E;
+      font-weight: bold;
+      font-size: 1.5rem;
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      border-right: 2px solid #E6007E; /* Simulando cursor de máquina de escribir */
+      width: 0;
+      animation: typing 3s steps(30) 1s forwards, blink 0.75s step-end infinite;
+    }
+
+    @keyframes typing {
+      from {
+        width: 0;
+      }
+      to {
+        width: 100%;
+      }
+    }
+
+    @keyframes blink {
+      50% {
+        border-color: transparent;
       }
     }
   </style>
@@ -172,11 +193,16 @@
     auth.languageCode = "es";
   </script>
 </head>
-<body>
+<body onload="checkAuthentication()">
   <div class="container d-flex justify-content-center align-items-center min-vh-100">
     <div class="auth-container animate__animated animate__fadeIn">
       <div class="card">
         <div class="card-body p-4">
+          <!-- Título con efecto typewriter -->
+          <h1 class="text-center mb-4">
+            <span class="typewriter-text">Bienvenido Sistema Liverpool</span>
+          </h1>
+
           <!-- Nav Tabs -->
           <ul class="nav nav-tabs justify-content-center mb-4" id="authTab" role="tablist">
             <li class="nav-item" role="presentation">

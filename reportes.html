@@ -2,18 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reportes</title>
+
+  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
   <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.15/dist/sweetalert2.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
   <style>
     body {
-      
-      
       font-family: 'Poppins', Arial, sans-serif;
-      background-color: #fdfdfd;
+      background: linear-gradient(to right, #E6007E, #000000); /* Rosa degradado */
       margin: 0;
       padding: 0;
       color: #333;
@@ -21,7 +23,7 @@
     }
 
     header {
-      background-color: #e83e8c;
+      background-color: #1c1217; /* Barra de menú rosa */
       color: white;
       padding: 15px 20px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -44,7 +46,7 @@
     }
 
     .btn {
-      background-color: #e83e8c;
+      background-color: #E6007E;
       color: white;
       border: none;
       padding: 0.8rem 1.5rem;
@@ -66,19 +68,9 @@
       background-color: #c82333;
     }
 
-    .main-container {
-      width: 100%;
-      max-width: 900px;
-      margin: 1rem auto;
-      padding: 1.5rem;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-      box-sizing: border-box;
-    }
-
+    /* Menú Lateral */
     .offcanvas {
-      background-color: #e83e8c;
+      background-color: #E6007E;
       color: white;
     }
 
@@ -98,12 +90,13 @@
       background-color: rgba(255, 255, 255, 0.2);
     }
 
+    /* Estilo de Dropzone */
     #dropzone {
-      border: 2px dashed #e83e8c;
+      border: 2px dashed #E6007E;
       border-radius: 12px;
       text-align: center;
       padding: 2rem;
-      color: #e83e8c;
+      color: #E6007E;
       cursor: pointer;
       transition: background-color 0.3s ease, transform 0.3s ease;
     }
@@ -118,11 +111,11 @@
       margin-bottom: 1rem;
     }
 
+    /* Ajustes de tabla */
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 1.5rem;
-      animation: fadeIn 1s ease-in-out;
     }
 
     th, td {
@@ -132,7 +125,7 @@
     }
 
     th {
-      background-color: #e83e8c;
+      background-color: #E6007E;
       color: white;
     }
 
@@ -140,31 +133,7 @@
       background-color: #f1f1f1;
     }
 
-    .rechazo-item {
-      background-color: #ffffff;
-      border: 1px solid #ddd;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 15px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .rechazo-item i {
-      color: #e83e8c;
-      margin-right: 15px;
-    }
-
-    .rechazo-item .details {
-      flex-grow: 1;
-    }
-
-    .rechazo-item .details strong {
-      color: #e83e8c;
-    }
-
+    /* Ajustes en pantallas pequeñas */
     @media (max-width: 768px) {
       .header-title {
         font-size: 1.5rem;
@@ -172,11 +141,9 @@
 
       .btn {
         padding: 0.7rem 1rem;
-      }
-
-      .main-container {
-        margin: 1rem;
-        padding: 1rem;
+        font-size: 0.9rem;
+        width: auto;  /* Botones más compactos en pantallas pequeñas */
+        margin-bottom: 10px;  /* Añade espacio entre los botones */
       }
 
       .nav-link {
@@ -188,45 +155,83 @@
         padding: 1.5rem;
       }
 
-      .rechazo-item {
-        flex-direction: column;
+      /* Menú hamburguesa */
+      .offcanvas-body {
+        padding: 0;
+      }
+
+      .offcanvas-nav {
+        display: block;
+        background-color: #E6007E;
+      }
+
+      .main-container {
+        margin: 1rem;
         padding: 1rem;
       }
 
-      .rechazo-item .details {
-        margin-top: 1rem;
+      #dropzone {
+        padding: 1rem;
       }
 
-      table th, table td {
-        padding: 0.8rem;
+      /* Ajuste en la posición de los botones */
+      #confirmFileSelection, #saveCommentsBtn, #downloadRechazosBtn {
+        width: 100%;
+        margin-top: 10px;
       }
-      body {
-    font-family: 'Poppins', sans-serif;
-  }
-  .icon-pink {
-    color: #d63384; /* Rosa de Bootstrap */
-  }
-  .accordion-item {
-    border-left: 5px solid #d63384 !important; /* Borde rosa a la izquierda */
-      table {
-        margin-top: 1rem;
+
+      /* Botón de cerrar sesión en pantallas pequeñas */
+      #logout-btn {
+        padding: 0.5rem 1rem;  /* Hacer que el botón no ocupe tanto espacio */
+        font-size: 0.9rem;
+        width: auto;  /* No ocupar toda la pantalla */
       }
+    }
+
+    /* Estilos para el menú de hamburguesa */
+    .navbar-toggler-icon {
+      background-color: transparent !important;
+      background-image: url('https://upload.wikimedia.org/wikipedia/commons/a/a7/Hamburger_icon.svg');
+      background-size: 30px;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .main-container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background-color: white;
+      border-radius: 16px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.6s ease-in-out;
     }
 
     @keyframes fadeIn {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(10px);
       }
       to {
         opacity: 1;
         transform: translateY(0);
       }
     }
-    }
   </style>
 </head>
 <body>
+  <header class="d-flex justify-content-between align-items-center px-4 py-3">
+    <div class="d-flex align-items-center">
+      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menú lateral">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="header-title">Reportes</div>
+    </div>
+    <button class="btn btn-danger d-flex align-items-center" id="logout-btn" aria-label="Cerrar sesión">
+      <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+    </button>
+  </header>
+
   <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
@@ -238,29 +243,20 @@
           <i class="bi bi-house-door-fill me-2"></i> Inicio
         </a>
         <a class="nav-link" href="index.html">
-          <i class="bi bi-upc-scan me-2"></i> Registrar SKU
+          <i class="bi bi-plus-circle me-2"></i> Registrar Saldos
         </a>
         <a class="nav-link" href="reportes.html">
-          <i class="bi bi-clock-history me-2"></i> Reportes
+          <i class="bi bi-file-earmark-text me-2"></i> Rechazos
         </a>
-        <a class="nav-link" href="#">
+        <a class="nav-link" href="inventarios.html">
+          <i class="bi bi-box me-2"></i> Inventarios
+        </a>
+        <a class="nav-link" href="configuracion.html">
           <i class="bi bi-gear-fill me-2"></i> Configuración
         </a>
       </nav>
     </div>
   </div>
-
-  <header class="d-flex justify-content-between align-items-center px-4 py-3">
-    <div class="d-flex align-items-center">
-      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menú lateral">
-        <i class="bi bi-list"></i>
-      </button>
-      <div class="header-title">Reportes</div>
-    </div>
-    <button class="btn btn-danger d-flex align-items-center" id="logout-btn" aria-label="Cerrar sesión del usuario actual">
-      <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
-    </button>
-  </header>
 
   <section class="container main-container">
     <h2><i class="bi bi-file-earmark-text me-2"></i>Lista de Reportes</h2>
@@ -287,24 +283,14 @@
     <button id="downloadRechazosBtn" class="btn btn-secondary" style="display:none;">
       Descargar Rechazos
     </button>
-    
-
   </section>
 
-<!-- Bootstrap JS Bundle -->
-<script 
-  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-</script>
-<!-- SweetAlert2 (opcional para alertas) -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Firebase SDKs (Auth, Storage, Firestore) -->
-<script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-
-<!-- XLSX library -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
 
   <script src="main.js" defer></script>
 </body>

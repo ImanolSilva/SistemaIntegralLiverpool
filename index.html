@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registro de SKUs Escaneados - Página Protegida</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
@@ -31,8 +32,8 @@
   <style>
     /* Estilo general */
     body {
+      background: linear-gradient(to right, #E6007E, #000000); /* Rosa degradado */
       font-family: 'Poppins', Arial, sans-serif;
-      background-color: #fdfdfd;
       margin: 0;
       padding: 0;
       color: #333;
@@ -41,17 +42,13 @@
 
     /* Encabezado */
     header {
-      background-color: #e83e8c;
+      background-color: #0f0c0e; /* Rosa */
       color: white;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       position: sticky;
       top: 0;
       z-index: 1000;
       transition: background-color 0.3s ease;
-    }
-
-    header.scrolled {
-      background-color: #d8337f;
     }
 
     .header-title {
@@ -69,7 +66,7 @@
 
     /* Botones */
     .btn {
-      background-color: #e83e8c;
+      background-color: #E6007E; /* Rosa */
       color: white;
       border: none;
       padding: 0.8rem 1.5rem;
@@ -84,7 +81,7 @@
     }
 
     .btn-danger {
-      background-color: #dc3545;
+      background-color: #dc3545; /* Rosa */
     }
 
     .btn-danger:hover {
@@ -123,23 +120,23 @@
     }
 
     .form-control:focus {
-      border-color: #e83e8c;
+      border-color: #E6007E; /* Rosa */
       box-shadow: 0 0 6px rgba(232, 62, 140, 0.2);
     }
 
     .form-label {
       font-size: 1rem;
-      color: #e83e8c;
+      color: #E6007E; /* Rosa */
       font-weight: bold;
     }
 
     /* Área de carga de archivos */
     #dropzone {
-      border: 2px dashed #e83e8c;
+      border: 2px dashed #E6007E; /* Rosa */
       border-radius: 12px;
       text-align: center;
       padding: 2rem;
-      color: #e83e8c;
+      color: #E6007E; /* Rosa */
       cursor: pointer;
       transition: background-color 0.3s ease, transform 0.3s ease;
     }
@@ -156,7 +153,7 @@
 
     /* Menú lateral */
     .offcanvas {
-      background-color: #e83e8c;
+      background-color: #E6007E; /* Rosa */
       color: white;
     }
 
@@ -231,7 +228,7 @@
     }
 
     th {
-      background-color: #e83e8c;
+      background-color: #E6007E; /* Rosa */
       color: white;
     }
 
@@ -298,13 +295,23 @@
 
     /* Estilos para Input Groups */
     .input-group .input-group-text {
-      background-color: #e83e8c; /* Color de fondo del icono */
+      background-color: #E6007E; /* Rosa */
       color: white; /* Color del icono */
     }
 
     .input-group .input-group-text i {
       font-size: 1.2rem;
     }
+
+    /* Botón Cerrar Sesión en pantallas pequeñas */
+    @media (max-width: 768px) {
+      #logout-btn {
+        width: auto;
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -321,7 +328,7 @@
       >
         <i class="bi bi-list"></i>
       </button>
-      <div class="header-title">Registro de SKUs Escaneados</div>
+      <div class="header-title">Saldos</div>
     </div>
     <!-- Botón de Cerrar Sesión -->
     <button 
@@ -352,16 +359,19 @@
     <div class="offcanvas-body p-0">
       <!-- Contenido del menú lateral -->
       <nav class="nav flex-column">
-        <a class="nav-link active" href="#">
+        <a class="nav-link active" href="/Inicio/index.html">
           <i class="bi bi-house-door-fill me-2"></i> Inicio
         </a>
-        <a class="nav-link" href="index.html">
-          <i class="bi bi-upc-scan me-2"></i> Registrar SKU
+        <a class="nav-link" href="../index.html">
+          <i class="bi bi-plus-circle me-2"></i> Registrar Saldos
         </a>
-        <a class="nav-link" href="reportes.html">
-          <i class="bi bi-clock-history me-2"></i> Reportes
+        <a class="nav-link" href="../reportes.html">
+          <i class="bi bi-file-earmark-text me-2"></i> Rechazos
         </a>
-        <a class="nav-link" href="#">
+        <a class="nav-link" href="inventarios.html">
+          <i class="bi bi-box me-2"></i> Inventarios
+        </a>
+        <a class="nav-link" href="configuracion.html">
           <i class="bi bi-gear-fill me-2"></i> Configuración
         </a>
       </nav>
@@ -494,30 +504,7 @@
   </div>
 
   <!-- Modal Asignar Usuarios (Opcional) -->
-  <div class="modal fade" id="asignarUsuariosModal" tabindex="-1" aria-labelledby="asignarUsuariosModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form id="asignarUsuariosForm">
-          <div class="modal-header">
-            <h5 class="modal-title" id="asignarUsuariosModalLabel">Asignar Usuarios al Archivo</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="usuariosSelect" class="form-label">Selecciona Usuarios:</label>
-              <select multiple class="form-select" id="usuariosSelect">
-                <!-- Opciones se cargarán dinámicamente -->
-              </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Bootstrap JS Bundle (Incluye Popper) -->
   <script 
