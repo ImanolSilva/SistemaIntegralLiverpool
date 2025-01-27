@@ -33,7 +33,7 @@
         hideLoadingModal();
         showCustomAlert("success", "Registro exitoso. ¡Bienvenido!");
         setTimeout(() => {
-          window.location.href = "Inicio.html"; // Redirigir al dashboard
+          window.location.href = "../Inicio.html"; // Redirigir al dashboard
         }, 1000);
       })
       .catch((error) => {
