@@ -20,7 +20,7 @@
         hideLoadingModal();
         showCustomAlert("success", "Inicio de sesión con Google exitoso. ¡Bienvenido!");
         setTimeout(() => {
-          window.location.href = "/Inicio.html";
+          window.location.href = "/index.html";
         }, 1000);
       })
       .catch((error) => {
