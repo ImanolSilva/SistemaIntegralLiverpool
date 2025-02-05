@@ -110,7 +110,7 @@ function loadDynamicImage(sku, seccion, containerId) {
 
 async function loadUsuariosFile() {
   try {
-    const response = await fetch("/ArchivosExcel/Usuarios.xlsx");
+    const response = await fetch("../ArchivosExcel/Usuarios.xlsx");
     if (!response.ok) throw new Error("No se encontró Usuarios.xlsx");
     const blob = await response.blob();
     const reader = new FileReader();
