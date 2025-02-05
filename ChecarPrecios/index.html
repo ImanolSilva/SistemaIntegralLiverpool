@@ -243,11 +243,20 @@
     </div>
     <div class="offcanvas-body p-0">
       <nav class="nav flex-column">
-        <a class="nav-link active" href="../index.html"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
-        <a class="nav-link" href="index.html"><i class="bi bi-plus-circle me-2"></i> Checar Precios</a>
-        <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-file-earmark-text me-2"></i> Rechazos</a>
-        <a class="nav-link" href=".../Inventarios/Inventarios.html"><i class="bi bi-box me-2"></i> Inventarios</a>
-        <a class="nav-link" href="./configuracion.html"><i class="bi bi-gear-fill me-2"></i> Configuración</a>
+  <!-- Asumiendo que el index.html de "Inicio" está en la raíz del sitio -->
+  <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
+        
+  <!-- Asumiendo que este archivo es el index.html en la carpeta de Checar Precios -->
+  <a class="nav-link active" href="index.html"><i class="bi bi-plus-circle me-2"></i> Checar Precios</a>
+  
+  <!-- Asumiendo que los reportes de Rechazos están en una subcarpeta de Checar Precios -->
+  <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-file-earmark-text me-2"></i> Rechazos</a>
+  
+  <!-- Ajustando para subir un nivel y luego entrar a la carpeta Inventarios -->
+  <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-box me-2"></i> Inventarios</a>
+  
+  <!-- Si configuración está en el mismo nivel que este archivo -->
+  <a class="nav-link" href="configuracion.html"><i class="bi bi-gear-fill me-2"></i> Configuración</a>
       </nav>
     </div>
   </div>
