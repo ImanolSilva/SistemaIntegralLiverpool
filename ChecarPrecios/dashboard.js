@@ -611,7 +611,7 @@ logoutButton.addEventListener("click", () => {
   auth.signOut()
     .then(() => {
       Swal.fire("Sesión cerrada", "Has cerrado sesión correctamente.", "success")
-        .then(() => { window.location.href = "/Login/login.html"; });
+        .then(() => { window.location.href = "../Login/login.html"; });
     })
     .catch((error) => {
       Swal.fire("Error al cerrar sesión", error.message, "error");
@@ -636,7 +636,7 @@ auth.onAuthStateChanged(async (user) => {
       text: "Debes iniciar sesión para acceder.",
       confirmButtonText: "Ir al Login"
     }).then(() => {
-      window.location.href = "/Login/login.html";
+      window.location.href = "../Login/login.html";
     });
   }
 });
