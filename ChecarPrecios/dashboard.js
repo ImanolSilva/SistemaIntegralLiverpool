@@ -459,12 +459,12 @@ skuForm.addEventListener('submit', async function (event) {
     `,
     icon: 'question',
     showCancelButton: true,
-    confirmButtonText: 'Sí, es correcto',
-    cancelButtonText: 'No, está mal'
+    confirmButtonText: 'Es correcto',
+    cancelButtonText: 'Está mal'
   });
 
   // Si el usuario confirma, se registra que el precio es correcto; de lo contrario, se registra como incorrecto
-  let sacarEtiquetas = confirmResult.isConfirmed ? 'NO' : 'SI';
+  let sacarEtiquetas = confirmResult.isConfirmed ? 'NO SACAR ETIQUETA' : 'SI SACAR ETIQUETA';
 
   // Registrar el SKU en la subcolección "prices_checked"
   await priceCheckRef.set({
