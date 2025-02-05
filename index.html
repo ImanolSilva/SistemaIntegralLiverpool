@@ -218,7 +218,7 @@
                     console.error("Error al cerrar sesión:", error);
                 });
             } else {
-                window.location.href = "/Login/login.html";
+                window.location.href = "Login/login.html";
             }
         }
 
@@ -231,6 +231,14 @@
                 authButton.textContent = "Acceder";
             }
         });
+        document.addEventListener('DOMContentLoaded', function() {
+    const authButton = document.getElementById("authButton");
+    if (authButton) {
+        authButton.addEventListener('click', handleAuthClick);
+    } else {
+        console.error('El botón de autenticación no fue encontrado en el DOM.');
+    }
+});
 
         AOS.init();
 
