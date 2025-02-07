@@ -21,7 +21,6 @@ const auth = firebase.auth();
 const adminUIDs = [
   "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
   "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
-  // Agrega más UID si es necesario
 ];
 
 // ========== LISTA DE JEFES ==========
@@ -40,7 +39,7 @@ const bosses = [
   "Sergio Lopez",
   "Xareni Espindola Perez",
   "Yanet Matas Manzano",
-  "Yazmin Corral"
+  "Deportes"
 ];
 
 // ========== ELEMENTOS DEL DOM ==========

@@ -33,10 +33,12 @@ const AppState = {
 
 // Lista actualizada de UIDs de administradores
 const ADMIN_UIDS = [
-  "V3gs0U4nKVeIZHvXEfIiNLXq2Sy1",
   "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
   "OaieQ6cGi7TnW0nbxvlk2oyLaER2"
 ];
+
+// Objeto para almacenar los temporizadores de auto-guardado para cada comentario (por fila)
+const autoSaveTimers = {};
 
 /*****************************************************
  *  ========== FUNCIONES AUXILIARES ==========
@@ -49,6 +51,7 @@ function showAlert(icon, title, text) {
 function setUIForRole(isAdmin) {
   const dropzone = document.getElementById("dropzone");
   const downloadRechazosBtn = document.getElementById("downloadRechazosBtn");
+  // Se muestra el dropzone solo para administradores
   dropzone.style.display = isAdmin ? "block" : "none";
   if (downloadRechazosBtn) {
     downloadRechazosBtn.style.display = isAdmin ? "inline-block" : "none";
@@ -64,6 +67,10 @@ function fixEncoding(str) {
   }
 }
 
+/**
+ * Función para cargar la imagen dinámicamente.
+ * Muestra un mensaje temporal si la imagen se carga correctamente.
+ */
 function loadDynamicImage(sku, seccion, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -94,6 +101,13 @@ function loadDynamicImage(sku, seccion, containerId) {
   imgElement.onload = function() {
     this.style.display = "block";
     fallbackElement.style.display = "none";
+    // Mensaje de éxito temporal
+    const successMsg = document.createElement("div");
+    successMsg.textContent = "Imagen cargada correctamente";
+    successMsg.style.color = "green";
+    successMsg.style.fontSize = "0.9rem";
+    container.appendChild(successMsg);
+    setTimeout(() => successMsg.remove(), 3000);
   };
 
   imgElement.onerror = function() {
@@ -151,6 +165,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const selectedFileName = document.getElementById("selectedFileName").textContent;
     if (selectedFileName && AppState.selectedFileData) {
       showAlert("success", "Archivo Confirmado", `El archivo seleccionado es: ${selectedFileName}`);
+      // Al confirmar, ocultar el área de arrastrar/subir archivo
+      document.getElementById("dropzone").style.display = "none";
       if (AppState.isAdmin) {
         loadRechazosFile();
       } else {
@@ -161,8 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Ya no será necesaria la acción del botón "Guardar comentarios" si se usa auto-guardado;
+  // sin embargo, se mantiene para guardar todos los cambios de golpe (sin recargar la página)
   saveCommentsBtn.addEventListener("click", saveAllComments);
 
+  /* Evento para hacer clic sobre el dropzone (solo administradores):
+     Se crea un input de tipo file; al seleccionar el archivo, se remueve el dropzone para evitar clics accidentales. */
   dropzone.addEventListener("click", () => {
     if (!AppState.isAdmin) return;
     const fileInput = document.createElement("input");
@@ -170,7 +190,10 @@ document.addEventListener("DOMContentLoaded", () => {
     fileInput.accept = ".xlsx, .xls";
     fileInput.addEventListener("change", (e) => {
       const file = e.target.files[0];
-      handleFileUpload(file);
+      if (file) {
+        dropzone.remove();
+        handleFileUpload(file);
+      }
     });
     fileInput.click();
   });
@@ -184,12 +207,15 @@ document.addEventListener("DOMContentLoaded", () => {
     dropzone.classList.remove("dragover");
   });
 
+  /* Evento para el drop (arrastrar y soltar) en el dropzone:
+     Se remueve el dropzone al soltar el archivo. */
   dropzone.addEventListener("drop", (event) => {
     event.preventDefault();
     dropzone.classList.remove("dragover");
     if (!AppState.isAdmin) return;
     const file = event.dataTransfer.files[0];
     if (file) {
+      dropzone.remove();
       handleFileUpload(file);
     }
   });
@@ -316,10 +342,13 @@ async function handleFileUpload(file) {
       await downloadPreviousFile();
       await showAlert("info", "Subiendo...", "El archivo se está subiendo.");
       await deletePreviousFile();
+      // Esperar 2 segundos para asegurar que la eliminación se haya procesado
+      await new Promise(resolve => setTimeout(resolve, 2000));
       const fileRef = storage.ref(`uploads/rechazos.xlsx`);
       await fileRef.put(file);
       await loadFilesFromFirebase();
-      window.location.reload();
+      // No se recarga la página, se muestra mensaje de éxito
+      showAlert("success", "Guardado", "El archivo se guardó correctamente.");
     } catch (error) {
       console.error("Error en handleFileUpload:", error);
       showAlert("error", "Error", "No se pudo subir el archivo.");
@@ -330,6 +359,10 @@ async function handleFileUpload(file) {
 /*****************************************************
  *  ========== FUNCIONES PARA CAPTURAR Y SUBIR FOTO ==========
  *****************************************************/
+
+/**
+ * Abre el input para capturar foto.
+ */
 function capturePhoto(rowIndex) {
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -347,6 +380,9 @@ function capturePhoto(rowIndex) {
   document.body.removeChild(fileInput);
 }
 
+/**
+ * Sube la foto y verifica que se haya cargado correctamente.
+ */
 async function uploadPhoto(file, rowIndex) {
   try {
     const remision = AppState.rechazosGlobal[rowIndex].Remisión || "sinRemision";
@@ -355,22 +391,34 @@ async function uploadPhoto(file, rowIndex) {
     const storageRef = storage.ref(filename);
     const snapshot = await storageRef.put(file);
     const downloadURL = await snapshot.ref.getDownloadURL();
+    
+    // Verificar que la imagen se cargue correctamente
+    await verifyImage(downloadURL);
+
     AppState.rechazosGlobal[rowIndex].Fotos = downloadURL;
     updatePhotoPreview(rowIndex, downloadURL);
     showAlert("success", "Foto guardada", "La foto se ha guardado correctamente.");
   } catch (error) {
-    console.error("Error al subir la foto:", error);
-    showAlert("error", "Error", "No se pudo subir la foto.");
+    console.error("Error al subir/verificar la foto:", error);
+    showAlert("error", "Error", "No se pudo subir o verificar la foto correctamente.");
   }
 }
 
-function deletePhoto(rowIndex) {
-  // Se actualiza el estado para borrar la URL de la foto y se actualiza la previsualización
-  AppState.rechazosGlobal[rowIndex].Fotos = "";
-  updatePhotoPreview(rowIndex, "");
-  showAlert("success", "Foto eliminada", "La foto se ha eliminado correctamente.");
+/**
+ * Verifica que una imagen se cargue correctamente usando un objeto Image.
+ */
+function verifyImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => reject(new Error("La imagen no se pudo cargar correctamente."));
+    img.src = url;
+  });
 }
 
+/**
+ * Actualiza la previsualización de la foto en el registro.
+ */
 function updatePhotoPreview(rowIndex, url) {
   const previewContainer = document.getElementById(`evidencia-preview-${rowIndex}`);
   if (previewContainer) {
@@ -596,6 +644,7 @@ function renderRechazos(rechazosFiltrados) {
     const textareaClass = comentarios.trim() !== ""
       ? "form-control comentario-input has-comment"
       : "form-control comentario-input";
+    // Contenedor de imagen con id único (usando sku e índice)
     body.innerHTML = `
       <div class="mb-2 text-muted">
         <i class="bi bi-calendar2 icon-pink"></i> <strong>Fecha:</strong> ${fecha}
@@ -614,7 +663,7 @@ function renderRechazos(rechazosFiltrados) {
         <i class="bi bi-person-gear icon-pink"></i>
         <strong>Jefatura:</strong> ${jefatura}
       </p>
-      <div class="text-center mb-3" id="imgContainer-${sku}">
+      <div class="text-center mb-3" id="imgContainer-${sku}-${i}">
         <!-- Imagen del SKU -->
       </div>
       <div class="text-center mb-3">
@@ -655,10 +704,15 @@ function renderRechazos(rechazosFiltrados) {
     accordionItem.appendChild(collapseDiv);
     accordion.appendChild(accordionItem);
     rechazosContainer.appendChild(accordion);
-    loadDynamicImage(sku, seccion, `imgContainer-${sku}`);
+    // Cargar imagen en contenedor único
+    loadDynamicImage(sku, seccion, `imgContainer-${sku}-${i}`);
   });
 }
 
+/*****************************************************
+ *  ========== AUTO-GUARDADO DE COMENTARIOS ==========
+ *****************************************************/
+/* Se agrega en el evento "input" para cada comentario un debounce de 2 segundos */
 document.addEventListener("input", (e) => {
   if (e.target && e.target.classList.contains("comentario-input")) {
     const rowIndex = e.target.getAttribute("data-row-index");
@@ -680,9 +734,34 @@ document.addEventListener("input", (e) => {
         headerButton.classList.remove("has-comment-header");
       }
     }
+    // Debounce: si ya hay un temporizador para este row, se limpia
+    if (autoSaveTimers[rowIndex]) {
+      clearTimeout(autoSaveTimers[rowIndex]);
+    }
+    // Establece un temporizador de 2 segundos para auto-guardar
+    autoSaveTimers[rowIndex] = setTimeout(() => {
+      autoSaveComment(rowIndex);
+    }, 2000);
   }
 });
 
+/**
+ * Función que se llama después de 2 segundos sin escribir para guardar todos los comentarios.
+ * Se utiliza la función saveAllComments modificada para no recargar la página.
+ */
+async function autoSaveComment(rowIndex) {
+  try {
+    await saveAllComments(false); // false indica que no se recargará la página
+    // Opcional: mostrar un pequeño mensaje junto al textarea o en algún contenedor
+    console.log(`Comentario de la fila ${rowIndex} guardado automáticamente.`);
+  } catch (error) {
+    console.error("Error en auto-guardado:", error);
+  }
+}
+
+/*****************************************************
+ *  ========== EVENTOS DE CLIC ==========
+ *****************************************************/
 document.addEventListener("click", (e) => {
   if (e.target && (e.target.classList.contains("agregar-foto-btn") || e.target.classList.contains("cambiar-foto-btn"))) {
     const rowIndex = parseInt(e.target.getAttribute("data-row-index"));
@@ -694,6 +773,9 @@ document.addEventListener("click", (e) => {
   }
 });
 
+/*****************************************************
+ *  ========== FUNCIONES PARA DESCARGAR/ELIMINAR ARCHIVOS ==========
+ *****************************************************/
 async function downloadRechazosFile() {
   if (!AppState.isAdmin) return;
   try {
@@ -716,7 +798,14 @@ async function downloadRechazosFile() {
   }
 }
 
-async function saveAllComments() {
+/*****************************************************
+ *  ========== GUARDAR COMENTARIOS (sin recargar la página) ==========
+ *****************************************************/
+/**
+ * Modificada para recibir un parámetro (reload) que indica si se recarga la página.
+ * Si reload es true se recarga; en esta versión se llamará con false para auto-guardado.
+ */
+async function saveAllComments(reload = true) {
   try {
     await showAlert("info", "Guardando cambios...", "Por favor espera");
     const storageRef = storage.ref("uploads/");
@@ -744,7 +833,7 @@ async function saveAllComments() {
             comentariosEditados[fila.Remisión] = fila.Comentarios || "";
           }
         });
-        // Fusionar cambios: Actualizamos Comentarios y Fotos usando el valor de AppState (incluso si es cadena vacía)
+        // Fusionar cambios: Actualizar Comentarios y Fotos usando los datos de AppState
         actualRechazos = actualRechazos.map(row => {
           if (row.Remisión && comentariosEditados.hasOwnProperty(row.Remisión)) {
             const updated = AppState.rechazosGlobal.find(f => f.Remisión === row.Remisión);
@@ -762,8 +851,11 @@ async function saveAllComments() {
         const newBlob = new Blob([wbout], { type: "application/octet-stream" });
         await archivoRechazos.delete();
         await storage.ref("uploads/rechazos.xlsx").put(newBlob);
-        showAlert("success", "Éxito", "Los comentarios se han guardado correctamente.")
-          .then(() => window.location.reload());
+        // Mostrar confirmación sin recargar la página
+        await showAlert("success", "Guardado", "Los cambios se han guardado correctamente.");
+        if (reload) {
+          window.location.reload();
+        }
       } catch (error) {
         console.error("Error al actualizar comentarios:", error);
         showAlert("error", "Error", "No se pudo actualizar el archivo con comentarios.");
