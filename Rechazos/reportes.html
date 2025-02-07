@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <meta name="google-adsense-account" content="ca-pub-5171112765202119">
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -220,6 +221,69 @@
       background-color: #5c636a;
       transform: translateY(-2px);
     }
+    /* Animación para fade-in */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Estilos para el dropzone */
+.dropzone-style {
+  border: 2px dashed #007bff;
+  background-color: #f8f9fa;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.dropzone-style p {
+  font-size: 1.1rem;
+  color: #007bff;
+  margin: 0;
+}
+
+.dropzone-dragover {
+  transform: scale(1.05);
+  background-color: #e2e6ea;
+}
+
+/* Efecto hover para las tarjetas (cards) */
+.card {
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* Botones con efectos */
+.btn {
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+  transform: scale(1.03);
+}
+
+/* Estilo para badges */
+.badge {
+  font-size: 0.9rem;
+  padding: 5px 8px;
+}
+
+/* Transición para botones en acciones */
+.btn-outline-secondary,
+.btn-outline-danger,
+.btn-outline-primary {
+  transition: border-color 0.3s ease, color 0.3s ease;
+}
+
 
     /* Responsividad */
     @media (max-width: 576px) {

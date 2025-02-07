@@ -26,24 +26,24 @@ const AppState = {
   relacionesData: null,         // Data de "relaciones.xlsx"
   usuariosData: [],             // Data de "Usuarios.xlsx"
   allRechazosEnExcel: [],       // Todas las filas de "rechazos.xlsx"
-  rechazosGlobal: [],           // Filas filtradas para el usuario
-  selectedFileData: null,       // Archivo "rechazos" seleccionado
-  isAdmin: false                // Indica si el usuario es admin
+  rechazosGlobal: [],           // Filas filtradas para el usuario (para el accordion)
+  selectedFileData: null,       // Objeto { name, ref } del archivo "rechazos.xlsx" activo
+  isAdmin: false,               // Indica si el usuario es admin
+  fileVersion: "1"              // Versión del archivo (para control de concurrencia)
 };
 
-// Lista actualizada de UIDs de administradores
+// Lista de UIDs de administradores
 const ADMIN_UIDS = [
   "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
   "OaieQ6cGi7TnW0nbxvlk2oyLaER2"
 ];
 
-// Objeto para almacenar los temporizadores de auto-guardado para cada comentario (por fila)
+// Objeto para almacenar temporizadores de auto-guardado (por fila)
 const autoSaveTimers = {};
 
 /*****************************************************
  *  ========== FUNCIONES AUXILIARES ==========
  *****************************************************/
- 
 function showAlert(icon, title, text) {
   return Swal.fire({ icon, title, text });
 }
@@ -51,8 +51,9 @@ function showAlert(icon, title, text) {
 function setUIForRole(isAdmin) {
   const dropzone = document.getElementById("dropzone");
   const downloadRechazosBtn = document.getElementById("downloadRechazosBtn");
-  // Se muestra el dropzone solo para administradores
-  dropzone.style.display = isAdmin ? "block" : "none";
+  if (dropzone) {
+    dropzone.style.display = isAdmin ? "block" : "none";
+  }
   if (downloadRechazosBtn) {
     downloadRechazosBtn.style.display = isAdmin ? "inline-block" : "none";
   }
@@ -68,8 +69,7 @@ function fixEncoding(str) {
 }
 
 /**
- * Función para cargar la imagen dinámicamente.
- * Muestra un mensaje temporal si la imagen se carga correctamente.
+ * Carga la imagen de forma dinámica en el contenedor indicado.
  */
 function loadDynamicImage(sku, seccion, containerId) {
   const container = document.getElementById(containerId);
@@ -101,7 +101,6 @@ function loadDynamicImage(sku, seccion, containerId) {
   imgElement.onload = function() {
     this.style.display = "block";
     fallbackElement.style.display = "none";
-    // Mensaje de éxito temporal
     const successMsg = document.createElement("div");
     successMsg.textContent = "Imagen cargada correctamente";
     successMsg.style.color = "green";
@@ -122,6 +121,9 @@ function loadDynamicImage(sku, seccion, containerId) {
   };
 }
 
+/**
+ * Carga Usuarios.xlsx y almacena la información en AppState.usuariosData.
+ */
 async function loadUsuariosFile() {
   try {
     const response = await fetch("../ArchivosExcel/Usuarios.xlsx");
@@ -149,6 +151,7 @@ async function loadUsuariosFile() {
  *  ========== EVENTOS DOMContentLoaded ==========
  *****************************************************/
 document.addEventListener("DOMContentLoaded", () => {
+  // Se espera que en el HTML existan los elementos con id: "logout-btn", "confirmFileSelection", "dropzone", "saveCommentsBtn", "downloadRechazosBtn", "correoUsuario"
   const logoutButton = document.getElementById("logout-btn");
   const confirmFileSelection = document.getElementById("confirmFileSelection");
   const dropzone = document.getElementById("dropzone");
@@ -162,11 +165,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   confirmFileSelection.addEventListener("click", () => {
-    const selectedFileName = document.getElementById("selectedFileName").textContent;
+    const selectedFileNameElem = document.getElementById("selectedFileName");
+    if (!selectedFileNameElem) return;
+    const selectedFileName = selectedFileNameElem.textContent;
     if (selectedFileName && AppState.selectedFileData) {
       showAlert("success", "Archivo Confirmado", `El archivo seleccionado es: ${selectedFileName}`);
-      // Al confirmar, ocultar el área de arrastrar/subir archivo
-      document.getElementById("dropzone").style.display = "none";
+      const dropzoneElement = document.getElementById("dropzone");
+      if (dropzoneElement) {
+        dropzoneElement.style.display = "none";
+      }
       if (AppState.isAdmin) {
         loadRechazosFile();
       } else {
@@ -177,48 +184,61 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Ya no será necesaria la acción del botón "Guardar comentarios" si se usa auto-guardado;
-  // sin embargo, se mantiene para guardar todos los cambios de golpe (sin recargar la página)
+  // Botón para guardar cambios (agregué un icono en el HTML, por ejemplo: <i class="bi bi-save"></i> Guardar cambios)
   saveCommentsBtn.addEventListener("click", saveAllComments);
 
-  /* Evento para hacer clic sobre el dropzone (solo administradores):
-     Se crea un input de tipo file; al seleccionar el archivo, se remueve el dropzone para evitar clics accidentales. */
-  dropzone.addEventListener("click", () => {
-    if (!AppState.isAdmin) return;
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".xlsx, .xls";
-    fileInput.addEventListener("change", (e) => {
-      const file = e.target.files[0];
+  /* Eventos para el dropzone (solo para administradores) */
+  if (dropzone) {
+    // Se agrega un icono de subida junto con el mensaje
+    dropzone.classList.add("dropzone-style");
+    dropzone.innerHTML = `<i class="bi bi-cloud-upload-fill" style="font-size: 2rem; color: #007bff;"></i>
+                          <p>Arrastra y suelta el archivo aquí o haz clic para seleccionarlo.</p>`;
+
+    dropzone.addEventListener("click", () => {
+      if (!AppState.isAdmin) return;
+      checkExistingFile().then(exists => {
+        if (exists) {
+          showAlert("warning", "Archivo existente", "Ya hay un archivo cargado. Elimina el archivo actual para poder subir uno nuevo.");
+        } else {
+          const fileInput = document.createElement("input");
+          fileInput.type = "file";
+          fileInput.accept = ".xlsx, .xls";
+          fileInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              handleFileUpload(file);
+            }
+          });
+          fileInput.click();
+        }
+      });
+    });
+
+    dropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      dropzone.classList.add("dropzone-dragover");
+    });
+
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dropzone-dragover");
+    });
+
+    dropzone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      dropzone.classList.remove("dropzone-dragover");
+      if (!AppState.isAdmin) return;
+      const file = event.dataTransfer.files[0];
       if (file) {
-        dropzone.remove();
-        handleFileUpload(file);
+        checkExistingFile().then(exists => {
+          if (exists) {
+            showAlert("warning", "Archivo existente", "Ya hay un archivo cargado. Elimina el archivo actual para poder subir uno nuevo.");
+          } else {
+            handleFileUpload(file);
+          }
+        });
       }
     });
-    fileInput.click();
-  });
-
-  dropzone.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    dropzone.classList.add("dragover");
-  });
-
-  dropzone.addEventListener("dragleave", () => {
-    dropzone.classList.remove("dragover");
-  });
-
-  /* Evento para el drop (arrastrar y soltar) en el dropzone:
-     Se remueve el dropzone al soltar el archivo. */
-  dropzone.addEventListener("drop", (event) => {
-    event.preventDefault();
-    dropzone.classList.remove("dragover");
-    if (!AppState.isAdmin) return;
-    const file = event.dataTransfer.files[0];
-    if (file) {
-      dropzone.remove();
-      handleFileUpload(file);
-    }
-  });
+  }
 
   if (downloadRechazosBtn) {
     downloadRechazosBtn.addEventListener("click", downloadRechazosFile);
@@ -226,112 +246,294 @@ document.addEventListener("DOMContentLoaded", () => {
 
   auth.onAuthStateChanged(async (user) => {
     if (user) {
-      document.getElementById("correoUsuario").innerText = user.email;
+      const correoElem = document.getElementById("correoUsuario");
+      if (correoElem) correoElem.innerText = user.email;
       AppState.isAdmin = ADMIN_UIDS.includes(user.uid);
       console.log(`El usuario actual es ${AppState.isAdmin ? "ADMIN" : "USUARIO normal"}`);
       setUIForRole(AppState.isAdmin);
       await loadUsuariosFile();
       await loadFilesFromFirebase();
     } else {
-      document.getElementById("correoUsuario").innerText = "No hay usuario logueado";
+      const correoElem = document.getElementById("correoUsuario");
+      if (correoElem) correoElem.innerText = "No hay usuario logueado";
       window.location.href = "../Login/login.html";
     }
   });
 });
 
 /*****************************************************
- *  ========== FUNCIONES PARA MANEJO DE ARCHIVOS ==========
+ *  ========== MANEJO DE ARCHIVOS EN FIREBASE ==========
  *****************************************************/
+
+/**
+ * Verifica si ya existe un archivo "rechazos.xlsx" en Firebase.
+ */
+async function checkExistingFile() {
+  try {
+    const storageRef = storage.ref("uploads");
+    const fileList = await storageRef.listAll();
+    const existingFile = fileList.items.find(item => item.name.toLowerCase() === "rechazos.xlsx");
+    return !!existingFile;
+  } catch (error) {
+    console.error("Error al verificar archivo existente:", error);
+    return false;
+  }
+}
+
 async function loadFilesFromFirebase() {
   try {
-    await showAlert("info", "Cargando archivos...", "Recuperando archivos de Firebase Storage");
+    await showAlert("info", "Cargando archivos...", "Recuperando archivo de Firebase Storage");
     const storageRef = storage.ref("uploads");
     const fileList = await storageRef.listAll();
     const files = [];
     fileList.items.forEach(item => {
-      if (item.name.toLowerCase().includes("rechazos")) {
-        const cleanName = item.name.replace(/^\d+/g, "").replace(/_/g, " ").replace(".xlsx", "");
-        files.push({ name: cleanName, ref: item });
+      if (item.name.toLowerCase() === "rechazos.xlsx") {
+        files.push({ name: item.name, ref: item });
       }
     });
     if (files.length > 0) {
       renderFileSelectOptions(files);
-      showAlert("success", "Archivos cargados", "Se encontraron archivos 'rechazos' en Firebase");
+      if (AppState.isAdmin) {
+        renderFilesManagement(files);
+      }
+      try {
+        const metadata = await files[0].ref.getMetadata();
+        AppState.fileVersion = (metadata.customMetadata && metadata.customMetadata.version) || "1";
+      } catch (err) {
+        AppState.fileVersion = "1";
+      }
+      showAlert("success", "Archivo cargado", "Se encontró el archivo 'rechazos.xlsx' en Firebase");
     } else {
-      showAlert("warning", "Sin archivos", "No se encontraron archivos de 'rechazos' en Firebase");
+      showAlert("warning", "Sin archivo", "No se encontró ningún archivo 'rechazos.xlsx' en Firebase");
     }
   } catch (error) {
     console.error("Error al listar archivos:", error);
-    showAlert("error", "Error", "Hubo un problema al cargar archivos de Firebase");
+    showAlert("error", "Error", "Hubo un problema al cargar el archivo de Firebase");
   }
 }
 
-function renderFileSelectOptions(files) {
+/**
+ * Renderiza la lista de archivos para selección mostrando el estado asignado.
+ */
+async function renderFileSelectOptions(files) {
   const fileListContainer = document.getElementById("fileListContainer");
   fileListContainer.innerHTML = "";
-  files.forEach(file => {
-    const fileItem = document.createElement("div");
-    fileItem.className = "list-group-item d-flex justify-content-between";
+  
+  // Usamos tarjetas (cards) con efecto fade-in
+  files.forEach(async file => {
+    const card = document.createElement("div");
+    card.className = "card mb-2 shadow-sm fade-in";
+    
+    const cardBody = document.createElement("div");
+    cardBody.className = "card-body d-flex justify-content-between align-items-center";
+    
     const fileInfo = document.createElement("div");
-    fileInfo.textContent = file.name;
+    // Se agrega un icono de archivo Excel
+    fileInfo.innerHTML = `<i class="bi bi-file-earmark-excel me-2" style="color: #28a745;"></i>${file.name}`;
+    
+    // Obtener metadata y estado
+    let metadata, estado = "";
+    try {
+      metadata = await file.ref.getMetadata();
+      estado = (metadata.customMetadata && metadata.customMetadata.estado) || "";
+    } catch (error) {
+      console.error("Error al obtener metadata para", file.name, error);
+    }
+    
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.style.marginLeft = "10px";
+    if (estado === "trabajar") {
+      badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>A trabajar`;
+      badge.style.backgroundColor = "green";
+    } else if (estado === "paso") {
+      badge.innerHTML = `<i class="bi bi-info-circle me-1"></i>Ya pasó`;
+      badge.style.backgroundColor = "orange";
+    } else {
+      badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin estado`;
+      badge.style.backgroundColor = "gray";
+    }
+    fileInfo.appendChild(badge);
+    
     const selectBtn = document.createElement("button");
-    selectBtn.className = "btn btn-primary btn-sm";
-    selectBtn.textContent = "Seleccionar";
+    selectBtn.className = "btn btn-sm btn-primary";
+    selectBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>Seleccionar`;
     selectBtn.addEventListener("click", () => {
       document.getElementById("selectedFileName").textContent = `Seleccionado: ${file.name}`;
       document.getElementById("confirmFileSelection").disabled = false;
       AppState.selectedFileData = file;
     });
-    fileItem.appendChild(fileInfo);
-    fileItem.appendChild(selectBtn);
-    fileListContainer.appendChild(fileItem);
+    
+    cardBody.appendChild(fileInfo);
+    cardBody.appendChild(selectBtn);
+    card.appendChild(cardBody);
+    fileListContainer.appendChild(card);
   });
 }
 
-async function downloadPreviousFile() {
+/**
+ * Panel de administración: muestra el archivo "rechazos.xlsx" en una tarjeta con controles.
+ */
+async function renderFilesManagement(files) {
+  let managementContainer = document.getElementById("filesManagementContainer");
+  if (!managementContainer) {
+    managementContainer = document.createElement("div");
+    managementContainer.id = "filesManagementContainer";
+    const fileListContainer = document.getElementById("fileListContainer");
+    fileListContainer.parentNode.insertBefore(managementContainer, fileListContainer.nextSibling);
+  }
+  managementContainer.innerHTML = "<h3 class='mb-3'>Administración del Archivo 'Rechazos'</h3>";
+  
+  const file = files[0]; // Sólo existe un archivo
+  let metadata;
   try {
-    const storageRef = storage.ref("uploads");
-    const fileList = await storageRef.listAll();
-    const existingFile = fileList.items.find(item =>
-      item.name.toLowerCase().includes("rechazos")
-    );
-    if (existingFile) {
-      const url = await existingFile.getDownloadURL();
+    metadata = await file.ref.getMetadata();
+  } catch (err) {
+    console.error("Error al obtener metadata del archivo", file.name, err);
+    metadata = {};
+  }
+  const estado = (metadata.customMetadata && metadata.customMetadata.estado) || "";
+  
+  const card = document.createElement("div");
+  card.className = "card mb-3 shadow-sm fade-in";
+  
+  const cardBody = document.createElement("div");
+  cardBody.className = "card-body d-flex flex-column";
+  
+  const headerRow = document.createElement("div");
+  headerRow.className = "d-flex justify-content-between align-items-center mb-2";
+  const nameEl = document.createElement("h5");
+  nameEl.className = "card-title mb-0";
+  // Se agrega un icono de Excel en el título
+  nameEl.innerHTML = `<i class="bi bi-file-earmark-excel me-2" style="color: #28a745;"></i>${file.name}`;
+  headerRow.appendChild(nameEl);
+  
+  const badge = document.createElement("span");
+  badge.className = "badge";
+  if (estado === "trabajar") {
+    badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>A trabajar`;
+    badge.style.backgroundColor = "green";
+  } else if (estado === "paso") {
+    badge.innerHTML = `<i class="bi bi-info-circle me-1"></i>Ya pasó`;
+    badge.style.backgroundColor = "orange";
+  } else {
+    badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin estado`;
+    badge.style.backgroundColor = "gray";
+  }
+  headerRow.appendChild(badge);
+  cardBody.appendChild(headerRow);
+  
+  // Selector de estado
+  const stateRow = document.createElement("div");
+  stateRow.className = "mb-2";
+  const label = document.createElement("label");
+  label.className = "form-label me-2";
+  label.innerHTML = `<i class="bi bi-toggle-off me-1"></i>Estado:`;
+  const selectEstado = document.createElement("select");
+  selectEstado.className = "form-select d-inline-block";
+  selectEstado.style.width = "150px";
+  const options = [
+    { value: "", text: "Sin estado" },
+    { value: "trabajar", text: "A trabajar" },
+    { value: "paso", text: "Ya pasó" }
+  ];
+  options.forEach(opt => {
+    const optionEl = document.createElement("option");
+    optionEl.value = opt.value;
+    optionEl.textContent = opt.text;
+    if (opt.value === estado) {
+      optionEl.selected = true;
+    }
+    selectEstado.appendChild(optionEl);
+  });
+  selectEstado.addEventListener("change", async (e) => {
+    const newEstado = e.target.value;
+    try {
+      await file.ref.updateMetadata({
+        customMetadata: { estado: newEstado, version: AppState.fileVersion }
+      });
+      showAlert("success", "Actualizado", `Estado actualizado a ${newEstado || "Sin estado"}`);
+      if (newEstado === "trabajar") {
+        badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>A trabajar`;
+        badge.style.backgroundColor = "green";
+      } else if (newEstado === "paso") {
+        badge.innerHTML = `<i class="bi bi-info-circle me-1"></i>Ya pasó`;
+        badge.style.backgroundColor = "orange";
+      } else {
+        badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin estado`;
+        badge.style.backgroundColor = "gray";
+      }
+    } catch (error) {
+      console.error("Error actualizando estado:", error);
+      showAlert("error", "Error", "No se pudo actualizar el estado del archivo.");
+    }
+  });
+  stateRow.appendChild(label);
+  stateRow.appendChild(selectEstado);
+  cardBody.appendChild(stateRow);
+  
+  // Botones de acción: Descargar y Eliminar
+  const actionRow = document.createElement("div");
+  actionRow.className = "d-flex justify-content-end";
+  const downloadBtn = document.createElement("button");
+  downloadBtn.className = "btn btn-sm btn-outline-secondary me-2";
+  downloadBtn.innerHTML = `<i class="bi bi-download me-1"></i>Descargar`;
+  downloadBtn.addEventListener("click", async () => {
+    try {
+      const url = await file.ref.getDownloadURL();
       const link = document.createElement("a");
       link.href = url;
-      link.download = existingFile.name;
+      link.download = file.name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      await showAlert("success", "Archivo Descargado", "El archivo anterior ha sido descargado.");
+    } catch (error) {
+      console.error("Error al descargar el archivo:", error);
+      showAlert("error", "Error", "No se pudo descargar el archivo.");
     }
-  } catch (error) {
-    console.error("Error al descargar archivo previo:", error);
-    showAlert("error", "Error", "No se pudo descargar el archivo anterior.");
-  }
+  });
+  const deleteBtn = document.createElement("button");
+  deleteBtn.className = "btn btn-sm btn-outline-danger";
+  deleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i>Eliminar`;
+  deleteBtn.addEventListener("click", async () => {
+    const result = await Swal.fire({
+      title: "¿Estás seguro?",
+      text: "El archivo se eliminará de forma permanente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
+    });
+    if (result.isConfirmed) {
+      try {
+        await file.ref.delete();
+        showAlert("success", "Eliminado", "El archivo se eliminó correctamente.");
+        loadFilesFromFirebase();
+      } catch (error) {
+        console.error("Error al eliminar el archivo:", error);
+        showAlert("error", "Error", "No se pudo eliminar el archivo.");
+      }
+    }
+  });
+  actionRow.appendChild(downloadBtn);
+  actionRow.appendChild(deleteBtn);
+  cardBody.appendChild(actionRow);
+  card.appendChild(cardBody);
+  managementContainer.appendChild(card);
 }
 
-async function deletePreviousFile() {
-  try {
-    const storageRef = storage.ref("uploads");
-    const fileList = await storageRef.listAll();
-    const existingFile = fileList.items.find(item =>
-      item.name.toLowerCase().includes("rechazos")
-    );
-    if (existingFile) {
-      await existingFile.delete();
-      console.log("Archivo previo eliminado.");
-    }
-  } catch (error) {
-    console.error("Error al eliminar archivo previo:", error);
-  }
-}
-
+/*****************************************************
+ *  ========== SUBIR ARCHIVO (SI NO HAY EXISTENTE) ==========
+ *****************************************************/
 async function handleFileUpload(file) {
   if (!file || !AppState.isAdmin) return;
+  const exists = await checkExistingFile();
+  if (exists) {
+    return showAlert("warning", "Archivo existente", "Ya hay un archivo cargado. Elimina el archivo actual para poder subir uno nuevo.");
+  }
   const result = await Swal.fire({
     title: "¿Estás seguro?",
-    text: "Esto descargará y eliminará el archivo 'rechazos' anterior.",
+    text: "Se subirá el archivo y se usará como único archivo de trabajo.",
     icon: "warning",
     showCancelButton: true,
     confirmButtonText: "Sí, subir",
@@ -339,15 +541,10 @@ async function handleFileUpload(file) {
   });
   if (result.isConfirmed) {
     try {
-      await downloadPreviousFile();
       await showAlert("info", "Subiendo...", "El archivo se está subiendo.");
-      await deletePreviousFile();
-      // Esperar 2 segundos para asegurar que la eliminación se haya procesado
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const fileRef = storage.ref(`uploads/rechazos.xlsx`);
-      await fileRef.put(file);
+      const fileRef = storage.ref("uploads/rechazos.xlsx");
+      await fileRef.put(file, { customMetadata: { version: "1" } });
       await loadFilesFromFirebase();
-      // No se recarga la página, se muestra mensaje de éxito
       showAlert("success", "Guardado", "El archivo se guardó correctamente.");
     } catch (error) {
       console.error("Error en handleFileUpload:", error);
@@ -357,12 +554,8 @@ async function handleFileUpload(file) {
 }
 
 /*****************************************************
- *  ========== FUNCIONES PARA CAPTURAR Y SUBIR FOTO ==========
+ *  ========== CAPTURAR Y SUBIR FOTO ==========
  *****************************************************/
-
-/**
- * Abre el input para capturar foto.
- */
 function capturePhoto(rowIndex) {
   const fileInput = document.createElement("input");
   fileInput.type = "file";
@@ -380,9 +573,6 @@ function capturePhoto(rowIndex) {
   document.body.removeChild(fileInput);
 }
 
-/**
- * Sube la foto y verifica que se haya cargado correctamente.
- */
 async function uploadPhoto(file, rowIndex) {
   try {
     const remision = AppState.rechazosGlobal[rowIndex].Remisión || "sinRemision";
@@ -391,10 +581,7 @@ async function uploadPhoto(file, rowIndex) {
     const storageRef = storage.ref(filename);
     const snapshot = await storageRef.put(file);
     const downloadURL = await snapshot.ref.getDownloadURL();
-    
-    // Verificar que la imagen se cargue correctamente
     await verifyImage(downloadURL);
-
     AppState.rechazosGlobal[rowIndex].Fotos = downloadURL;
     updatePhotoPreview(rowIndex, downloadURL);
     showAlert("success", "Foto guardada", "La foto se ha guardado correctamente.");
@@ -404,9 +591,6 @@ async function uploadPhoto(file, rowIndex) {
   }
 }
 
-/**
- * Verifica que una imagen se cargue correctamente usando un objeto Image.
- */
 function verifyImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -416,17 +600,14 @@ function verifyImage(url) {
   });
 }
 
-/**
- * Actualiza la previsualización de la foto en el registro.
- */
 function updatePhotoPreview(rowIndex, url) {
   const previewContainer = document.getElementById(`evidencia-preview-${rowIndex}`);
   if (previewContainer) {
     if (url.trim() !== "") {
       previewContainer.innerHTML = `
-        <img src="${url}" alt="Evidencia" class="img-fluid" style="max-width:200px;">
+        <img src="${url}" alt="Evidencia" class="img-fluid mb-2" style="max-width:200px;">
         <div class="mt-2">
-          <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn" data-row-index="${rowIndex}">
+          <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2" data-row-index="${rowIndex}">
             <i class="bi bi-camera"></i> Cambiar Foto
           </button>
           <button class="btn btn-sm btn-outline-danger eliminar-foto-btn" data-row-index="${rowIndex}">
@@ -445,7 +626,7 @@ function updatePhotoPreview(rowIndex, url) {
 }
 
 /*****************************************************
- *  ========== FUNCIONES PARA MANEJO DE ARCHIVOS EXCEL ==========
+ *  ========== MANEJO DE ARCHIVOS EXCEL ==========
  *****************************************************/
 async function loadRelacionesFile() {
   const filePath = "../ArchivosExcel/relaciones.xlsx";
@@ -506,8 +687,7 @@ async function loadRechazosFile(secciones) {
       const workbook = XLSX.read(data, { type: "binary" });
       const sheet = workbook.Sheets["Rechazos"];
       if (!sheet) {
-        showAlert("error", "Error", "No existe la hoja 'Rechazos' en el Excel");
-        return;
+        return showAlert("error", "Error", "No existe la hoja 'Rechazos' en el Excel");
       }
       AppState.allRechazosEnExcel = XLSX.utils.sheet_to_json(sheet, { defval: "" });
       let rechazosFiltrados = AppState.allRechazosEnExcel;
@@ -531,7 +711,7 @@ async function loadRechazosFile(secciones) {
 }
 
 /*****************************************************
- *  ========== FUNCIONES PARA FILTRAR POR JEFE (ADMIN) ==========
+ *  ========== FILTRAR POR JEFE (ADMIN) ==========
  *****************************************************/
 function renderBossFilter(allRechazos) {
   let container = document.getElementById("bossFilterContainer");
@@ -580,13 +760,13 @@ function renderRechazos(rechazosFiltrados) {
   if (AppState.rechazosGlobal.length === 0) {
     rechazosContainer.innerHTML = `
       <div class="alert alert-warning">
-        <i class="bi bi-exclamation-triangle-fill icon-pink"></i>
+        <i class="bi bi-exclamation-triangle-fill"></i>
         No se encontraron rechazos para la selección actual.
       </div>`;
     return;
   }
   const accordion = document.createElement("div");
-  accordion.className = "accordion";
+  accordion.className = "accordion fade-in";
   accordion.id = "rechazosAccordion";
   AppState.rechazosGlobal.forEach((rechazo, i) => {
     const fecha = fixEncoding(rechazo["Fecha y Hora de Asignación"] || "");
@@ -614,7 +794,7 @@ function renderRechazos(rechazosFiltrados) {
     const evidencia = fixEncoding(rechazo["Fotos"] || "");
     const headingId = `heading-${i}`;
     const collapseId = `collapse-${i}`;
-    const headerButtonClass = `accordion-button collapsed gap-2 ${comentarios.trim() !== "" ? "has-comment-header" : ""}`;
+    const headerButtonClass = `accordion-button collapsed ${comentarios.trim() !== "" ? "has-comment-header" : ""}`;
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item mb-2";
     const header = document.createElement("h2");
@@ -629,7 +809,7 @@ function renderRechazos(rechazosFiltrados) {
         aria-expanded="false"
         aria-controls="${collapseId}"
       >
-        <i class="bi bi-file-earmark-text icon-pink"></i>
+        <i class="bi bi-file-earmark-text me-2"></i>
         <strong>Remisión:</strong> ${remision}
       </button>
     `;
@@ -644,38 +824,41 @@ function renderRechazos(rechazosFiltrados) {
     const textareaClass = comentarios.trim() !== ""
       ? "form-control comentario-input has-comment"
       : "form-control comentario-input";
-    // Contenedor de imagen con id único (usando sku e índice)
     body.innerHTML = `
       <div class="mb-2 text-muted">
-        <i class="bi bi-calendar2 icon-pink"></i> <strong>Fecha:</strong> ${fecha}
+        <i class="bi bi-calendar2 me-1"></i> <strong>Fecha:</strong> ${fecha}
       </div>
-      <p class="mb-2">
-        <i class="bi bi-diagram-2 icon-pink"></i>
+      <p>
+        <i class="bi bi-diagram-2 me-1"></i>
         <strong>Sección:</strong> ${seccion} <br>
-        <i class="bi bi-tags icon-pink"></i>
+        <i class="bi bi-tags me-1"></i>
         <strong>SKU:</strong> ${sku} <br>
-        <i class="bi bi-card-text icon-pink"></i>
+        <i class="bi bi-card-text me-1"></i>
         <strong>Descripción SKU:</strong> ${descripcionSku} <br>
-        <i class="bi bi-box-seam icon-pink"></i>
+        <i class="bi bi-box-seam me-1"></i>
         <strong>Piezas:</strong> ${piezas} <br>
-        <i class="bi bi-person icon-pink"></i>
+        <i class="bi bi-person me-1"></i>
         <strong>Usuario de Rechazo:</strong> ${usuarioName} <br>
-        <i class="bi bi-person-gear icon-pink"></i>
+        <i class="bi bi-person-gear me-1"></i>
         <strong>Jefatura:</strong> ${jefatura}
       </p>
       <div class="text-center mb-3" id="imgContainer-${sku}-${i}">
         <!-- Imagen del SKU -->
       </div>
       <div class="text-center mb-3">
-        <a href="${searchUrl}" target="_blank" class="btn btn-outline-secondary">Buscar en Liverpool</a>
-        <a href="${googleSearchUrl}" target="_blank" class="btn btn-outline-danger">Buscar en Google</a>
+        <a href="${searchUrl}" target="_blank" class="btn btn-outline-secondary btn-sm me-2">
+          <i class="bi bi-search"></i> Buscar en Liverpool
+        </a>
+        <a href="${googleSearchUrl}" target="_blank" class="btn btn-outline-danger btn-sm">
+          <i class="bi bi-google"></i> Buscar en Google
+        </a>
       </div>
       <div id="evidencia-preview-${rechazo._rowIndex}" class="text-center mb-3">
         ${evidencia.trim() !== "" 
           ? `
-            <img src="${evidencia}" alt="Evidencia" class="img-fluid" style="max-width:200px;">
-            <div class="mt-2">
-              <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn" data-row-index="${rechazo._rowIndex}">
+            <img src="${evidencia}" alt="Evidencia" class="img-fluid mb-2" style="max-width:200px;">
+            <div>
+              <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2" data-row-index="${rechazo._rowIndex}">
                 <i class="bi bi-camera"></i> Cambiar Foto
               </button>
               <button class="btn btn-sm btn-outline-danger eliminar-foto-btn" data-row-index="${rechazo._rowIndex}">
@@ -689,7 +872,7 @@ function renderRechazos(rechazosFiltrados) {
         }
       </div>
       <label for="comentario-${rechazo._rowIndex}" class="form-label fw-semibold">
-        <i class="bi bi-chat-left-dots icon-pink me-1"></i>
+        <i class="bi bi-chat-left-dots me-1"></i>
         Comentarios:
       </label>
       <textarea
@@ -704,7 +887,6 @@ function renderRechazos(rechazosFiltrados) {
     accordionItem.appendChild(collapseDiv);
     accordion.appendChild(accordionItem);
     rechazosContainer.appendChild(accordion);
-    // Cargar imagen en contenedor único
     loadDynamicImage(sku, seccion, `imgContainer-${sku}-${i}`);
   });
 }
@@ -712,7 +894,6 @@ function renderRechazos(rechazosFiltrados) {
 /*****************************************************
  *  ========== AUTO-GUARDADO DE COMENTARIOS ==========
  *****************************************************/
-/* Se agrega en el evento "input" para cada comentario un debounce de 2 segundos */
 document.addEventListener("input", (e) => {
   if (e.target && e.target.classList.contains("comentario-input")) {
     const rowIndex = e.target.getAttribute("data-row-index");
@@ -721,38 +902,23 @@ document.addEventListener("input", (e) => {
       AppState.rechazosGlobal[rowIndex].Comentarios = newComment;
       console.log(`Nuevo comentario para rowIndex=${rowIndex}: ${newComment}`);
     }
-    if (newComment.trim() !== "") {
-      e.target.classList.add("has-comment");
-    } else {
-      e.target.classList.remove("has-comment");
-    }
+    e.target.classList.toggle("has-comment", newComment.trim() !== "");
     const headerButton = document.querySelector(`#heading-${rowIndex} button`);
     if (headerButton) {
-      if (newComment.trim() !== "") {
-        headerButton.classList.add("has-comment-header");
-      } else {
-        headerButton.classList.remove("has-comment-header");
-      }
+      headerButton.classList.toggle("has-comment-header", newComment.trim() !== "");
     }
-    // Debounce: si ya hay un temporizador para este row, se limpia
     if (autoSaveTimers[rowIndex]) {
       clearTimeout(autoSaveTimers[rowIndex]);
     }
-    // Establece un temporizador de 2 segundos para auto-guardar
     autoSaveTimers[rowIndex] = setTimeout(() => {
       autoSaveComment(rowIndex);
     }, 2000);
   }
 });
 
-/**
- * Función que se llama después de 2 segundos sin escribir para guardar todos los comentarios.
- * Se utiliza la función saveAllComments modificada para no recargar la página.
- */
 async function autoSaveComment(rowIndex) {
   try {
-    await saveAllComments(false); // false indica que no se recargará la página
-    // Opcional: mostrar un pequeño mensaje junto al textarea o en algún contenedor
+    await saveAllComments(); // Guarda sin recargar la página
     console.log(`Comentario de la fila ${rowIndex} guardado automáticamente.`);
   } catch (error) {
     console.error("Error en auto-guardado:", error);
@@ -769,26 +935,27 @@ document.addEventListener("click", (e) => {
   }
   if (e.target && e.target.classList.contains("eliminar-foto-btn")) {
     const rowIndex = parseInt(e.target.getAttribute("data-row-index"));
-    deletePhoto(rowIndex);
+    console.log(`Se solicita eliminar la foto de la fila ${rowIndex}`);
+    // Aquí podrías implementar deletePhoto(rowIndex)
   }
 });
 
 /*****************************************************
- *  ========== FUNCIONES PARA DESCARGAR/ELIMINAR ARCHIVOS ==========
+ *  ========== DESCARGAR ARCHIVO ==========
  *****************************************************/
 async function downloadRechazosFile() {
   if (!AppState.isAdmin) return;
   try {
     const storageRef = storage.ref("uploads/");
     const fileList = await storageRef.listAll();
-    const archivoRechazos = fileList.items.find(item => item.name.toLowerCase().includes("rechazos"));
+    const archivoRechazos = fileList.items.find(item => item.name.toLowerCase() === "rechazos.xlsx");
     if (!archivoRechazos) {
-      return showAlert("error", "Archivo no encontrado", "No se encontró 'rechazos' en Firebase.");
+      return showAlert("error", "Archivo no encontrado", "No se encontró 'rechazos.xlsx' en Firebase.");
     }
     const url = await archivoRechazos.getDownloadURL();
     const link = document.createElement("a");
     link.href = url;
-    link.download = "rechazos.xlsx"; 
+    link.download = archivoRechazos.name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -799,22 +966,23 @@ async function downloadRechazosFile() {
 }
 
 /*****************************************************
- *  ========== GUARDAR COMENTARIOS (sin recargar la página) ==========
+ *  ========== GUARDAR COMENTARIOS (SIN RECARGAR) ==========
  *****************************************************/
-/**
- * Modificada para recibir un parámetro (reload) que indica si se recarga la página.
- * Si reload es true se recarga; en esta versión se llamará con false para auto-guardado.
- */
-async function saveAllComments(reload = true) {
+async function saveAllComments() {
   try {
     await showAlert("info", "Guardando cambios...", "Por favor espera");
-    const storageRef = storage.ref("uploads/");
-    const fileList = await storageRef.listAll();
-    const archivoRechazos = fileList.items.find(item => item.name.toLowerCase().includes("rechazos"));
-    if (!archivoRechazos) {
-      return showAlert("error", "Archivo no encontrado", "No se encontró 'rechazos' en Firebase.");
+    const fileRef = AppState.selectedFileData.ref;
+    if (!fileRef) {
+      return showAlert("error", "Archivo no encontrado", "No se encontró el archivo seleccionado en Firebase.");
     }
-    const url = await archivoRechazos.getDownloadURL();
+    // Control de concurrencia: verificamos la versión
+    const metadata = await fileRef.getMetadata();
+    const currentVersion = (metadata.customMetadata && metadata.customMetadata.version) || "1";
+    if (currentVersion !== AppState.fileVersion) {
+      return showAlert("error", "Conflicto", "El archivo ha sido modificado por otro usuario. Recargue la información antes de guardar sus cambios.");
+    }
+    
+    const url = await fileRef.getDownloadURL();
     const response = await fetch(url);
     const blob = await response.blob();
     const reader = new FileReader();
@@ -833,7 +1001,6 @@ async function saveAllComments(reload = true) {
             comentariosEditados[fila.Remisión] = fila.Comentarios || "";
           }
         });
-        // Fusionar cambios: Actualizar Comentarios y Fotos usando los datos de AppState
         actualRechazos = actualRechazos.map(row => {
           if (row.Remisión && comentariosEditados.hasOwnProperty(row.Remisión)) {
             const updated = AppState.rechazosGlobal.find(f => f.Remisión === row.Remisión);
@@ -849,12 +1016,17 @@ async function saveAllComments(reload = true) {
         workbook.Sheets["Rechazos"] = newSheet;
         const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const newBlob = new Blob([wbout], { type: "application/octet-stream" });
-        await archivoRechazos.delete();
-        await storage.ref("uploads/rechazos.xlsx").put(newBlob);
-        // Mostrar confirmación sin recargar la página
-        await showAlert("success", "Guardado", "Los cambios se han guardado correctamente.");
-        if (reload) {
-          window.location.reload();
+        // Incrementamos la versión
+        const newVersion = (parseInt(currentVersion) + 1).toString();
+        await fileRef.delete();
+        const newFileRef = storage.ref("uploads/rechazos.xlsx");
+        await newFileRef.put(newBlob, { customMetadata: { ...metadata.customMetadata, version: newVersion } });
+        AppState.selectedFileData = { name: "rechazos.xlsx", ref: newFileRef };
+        AppState.fileVersion = newVersion;
+        showAlert("success", "Guardado", "Los cambios se han guardado correctamente.");
+        loadFilesFromFirebase();
+        if (AppState.isAdmin) {
+          loadRechazosFile();
         }
       } catch (error) {
         console.error("Error al actualizar comentarios:", error);
