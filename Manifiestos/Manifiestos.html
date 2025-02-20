@@ -413,24 +413,21 @@
 
     // ========== CONFIGURACIÓN DE FIREBASE ==========
     const firebaseConfig = {
-      apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
-      authDomain: "loginliverpool.firebaseapp.com",
-      projectId: "loginliverpool",
-      storageBucket: "loginliverpool.appspot.com",
-      messagingSenderId: "704223815941",
-      appId: "1:704223815941:web:c871525230fb61caf96f6c",
-      measurementId: "G-QFEPQ4TSPY"
-    };
+  apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+  authDomain: "loginliverpool.firebaseapp.com",
+  projectId: "loginliverpool",
+  storageBucket: "loginliverpool.appspot.com",
+  messagingSenderId: "704223815941",
+  appId: "1:704223815941:web:c871525230fb61caf96f6c",
+  measurementId: "G-QFEPQ4TSPY",
+};
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
     const db = firebase.firestore();
     const auth = firebase.auth();
 
     // Lista de administradores
-    const adminUIDs = [
-      "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
-      "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
-    ];
+    const adminUIDs = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2","doxhVo1D3aYQqqkqgRgfJ4qcKcU2"];
     auth.onAuthStateChanged(user => {
       if (user && adminUIDs.includes(user.uid)) {
         document.getElementById('adminUploadSection').style.display = 'block';
@@ -491,6 +488,8 @@
           uploadFileBtn.disabled = true;
           document.getElementById('selectedFileToWork').textContent = selectedFile.name;
           document.getElementById('adminUploadSection').style.display = 'none';
+          
+          // Obtener URL y cargar archivo
           storage.ref('excelFiles/' + selectedFile.name).getDownloadURL().then(url => {
             window.selectedFileURL = url;
             loadFile();
@@ -509,7 +508,14 @@
             const workbook = XLSX.read(data, {type: 'array'});
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convertir a JSON (usa por defecto la 1ra fila como encabezados)
             excelData = XLSX.utils.sheet_to_json(worksheet);
+
+            // ============= DEBUG: IMPRIME LA PRIMERA FILA =============
+            // Con esto sabrás cómo se llama realmente tu columna de sección
+            console.log("Primera fila leída:", excelData[0]);
+            
             showToast('success', 'Archivo cargado correctamente.');
             document.getElementById('referenceScanSection').style.display = 'block';
           })
@@ -630,10 +636,10 @@
         else if(SCANNER < SAP) diffText = "FALTAN";
         else if(SCANNER > SAP) diffText = "MERCANCIA DE MAS";
 
-        let seccionVal = row.SECCION || row.Seccion || row['SECCIÓN'] || "";
+        // Solo usamos row.SECCION, asumiendo el encabezado se llama SECCION
         return {
           FECHA: row.FECHA || "",
-          SECCION: seccionVal,
+          SECCION: row.SECCION || "",
           MANIFIESTO: row.MANIFIESTO || "",
           CONTENEDOR: row.CONTENEDOR || "",
           SKU: row.SKU || "",
@@ -747,7 +753,7 @@
       document.getElementById('scanEntrySection').style.display = 'block';
     }
 
-    // ========== Revisar contenedor completo o no ==========
+    // ========== Revisa contenedor completo o no ==========
     function checkContainerCompleteness(records) {
       let missingSkus = [];
       let extraSkus = [];
@@ -789,107 +795,101 @@
 
     // ========== Mostrar detalles del contenedor ==========
     function mostrarDetallesContenedor(registros) {
-  const containerDetails = document.getElementById('containerDetails');
-  containerDetails.innerHTML = "";
+      const containerDetails = document.getElementById('containerDetails');
+      containerDetails.innerHTML = "";
 
-  const table = document.createElement('table');
-  table.className = 'table table-bordered table-striped table-hover';
-  table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Sección</th>
-        <th>Manifiesto</th>
-        <th>Contenedor</th>
-        <th>SKU</th>
-        <th>Europeo</th>
-        <th>Descripción</th>
-        <th>SAP</th>
-        <th>SCANNER</th>
-        <th>Diferencia</th>
-      </tr>
-    </thead>
-  `;
-  
-  const tbody = document.createElement('tbody');
-  
-  registros.forEach(reg => {
-    const SAPval = reg.SAP || 0;
-    const SCANNERval = reg.SCANNER || 0;
+      const table = document.createElement('table');
+      table.className = 'table table-bordered table-striped table-hover';
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Sección</th>
+            <th>Manifiesto</th>
+            <th>Contenedor</th>
+            <th>SKU</th>
+            <th>Europeo</th>
+            <th>Descripción</th>
+            <th>SAP</th>
+            <th>SCANNER</th>
+            <th>Diferencia</th>
+          </tr>
+        </thead>
+      `;
+      
+      const tbody = document.createElement('tbody');
+      
+      registros.forEach(reg => {
+        const SAPval = reg.SAP || 0;
+        const SCANNERval = reg.SCANNER || 0;
 
-    // Captar el campo SECCION (usa únicamente reg.SECCION)
-    const seccionVal = reg.SECCION || "";
-    
-    // Determinar texto de diferencia
-    let diffText = "";
-    if (SCANNERval === 0 || SCANNERval < SAPval) {
-      diffText = "FALTAN";
-    } else if (SCANNERval === SAPval) {
-      diffText = "OK";
-    } else if (SCANNERval > SAPval) {
-      diffText = "MERCANCIA DE MAS";
+        // =========== AQUÍ se usa SOLO reg.SECCION ===========
+        const seccionVal = reg.SECCION || "";  
+
+        let diffText = "";
+        if (SCANNERval === 0 || SCANNERval < SAPval) {
+          diffText = "FALTAN";
+        } else if (SCANNERval === SAPval) {
+          diffText = "OK";
+        } else if (SCANNERval > SAPval) {
+          diffText = "MERCANCIA DE MAS";
+        }
+        let diffColor = (SCANNERval === 0 || SCANNERval < SAPval)
+          ? "var(--rosa-principal)"
+          : (SCANNERval === SAPval) ? "var(--verde-vivo)" : "var(--rosa-secundario)";
+
+        const idx = excelData.findIndex(r =>
+          r.SKU === reg.SKU && r.CONTENEDOR === reg.CONTENEDOR
+        );
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${reg.FECHA || ''}</td>
+          <td>${seccionVal}</td>
+          <td>${reg.MANIFIESTO || ''}</td>
+          <td>${reg.CONTENEDOR || ''}</td>
+          <td>${reg.SKU || ''}</td>
+          <td>${reg.EUROPEO || ''}</td>
+          <td>${reg.DESCRIPCION || ''}</td>
+          <td>${SAPval}</td>
+          <td>
+            <input type="text" class="form-control scanner-input"
+                   value="${SCANNERval || ''}"
+                   data-index="${idx}"
+                   style="max-width:80px;">
+          </td>
+          <td style="background-color: ${diffColor};
+                     color: var(--blanco);
+                     font-weight: bold;
+                     text-align:center;">
+            ${diffText}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      
+      table.appendChild(tbody);
+      containerDetails.appendChild(table);
+
+      // Listeners para actualizar SCANNER al salir del input
+      const scannerInputs = document.querySelectorAll('.scanner-input');
+      scannerInputs.forEach(input => {
+        input.addEventListener('blur', function() {
+          let newVal = parseInt(this.value) || 0;
+          let index = this.dataset.index;
+          if (index !== undefined && excelData[index] !== undefined) {
+            excelData[index].SCANNER = newVal;
+
+            let cont = excelData[index].CONTENEDOR;
+            currentContainerRecords = excelData.filter(r => r.CONTENEDOR === cont);
+            actualizarArchivoEnStorage();
+            mostrarDetallesContenedor(currentContainerRecords);
+
+            showToast('success', 'SCANNER actualizado.');
+          }
+        });
+      });
     }
-
-    // Color de celda según diferencia
-    let diffColor = (SCANNERval === 0 || SCANNERval < SAPval)
-      ? "var(--rosa-principal)"
-      : (SCANNERval === SAPval) ? "var(--verde-vivo)" : "var(--rosa-secundario)";
-
-    // Buscar el índice exacto en excelData
-    const idx = excelData.findIndex(r =>
-      r.SKU === reg.SKU && r.CONTENEDOR === reg.CONTENEDOR
-    );
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${reg.FECHA || ''}</td>
-      <td>${seccionVal}</td>
-      <td>${reg.MANIFIESTO || ''}</td>
-      <td>${reg.CONTENEDOR || ''}</td>
-      <td>${reg.SKU || ''}</td>
-      <td>${reg.EUROPEO || ''}</td>
-      <td>${reg.DESCRIPCION || ''}</td>
-      <td>${SAPval}</td>
-      <td>
-        <input type="text" class="form-control scanner-input"
-               value="${SCANNERval || ''}"
-               data-index="${idx}"
-               style="max-width:80px;">
-      </td>
-      <td style="background-color: ${diffColor};
-                 color: var(--blanco);
-                 font-weight: bold;
-                 text-align:center;">
-        ${diffText}
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-  
-  table.appendChild(tbody);
-  containerDetails.appendChild(table);
-
-  // Listeners para actualizar SCANNER al salir del input
-  const scannerInputs = document.querySelectorAll('.scanner-input');
-  scannerInputs.forEach(input => {
-    input.addEventListener('blur', function() {
-      let newVal = parseInt(this.value) || 0;
-      let index = this.dataset.index;
-      if (index !== undefined && excelData[index] !== undefined) {
-        // Actualiza en excelData
-        excelData[index].SCANNER = newVal;
-
-        // Vuelve a renderizar la tabla del contenedor actual
-        let cont = excelData[index].CONTENEDOR;
-        currentContainerRecords = excelData.filter(r => r.CONTENEDOR === cont);
-        actualizarArchivoEnStorage();
-        mostrarDetallesContenedor(currentContainerRecords);
-
-        showToast('success', 'SCANNER actualizado.');
-      }
-    });
-  });
-}
 
     // ========== Actualizar archivo en Storage ==========
     function actualizarArchivoEnStorage() {
@@ -938,8 +938,7 @@
       }
       registro.SCANNER = (registro.SCANNER || 0) + 1;
       let idx = excelData.findIndex(r =>
-        r.SKU === registro.SKU &&
-        r.CONTENEDOR === registro.CONTENEDOR
+        r.SKU === registro.SKU && r.CONTENEDOR === registro.CONTENEDOR
       );
       if (idx !== -1) {
         excelData[idx].SCANNER = registro.SCANNER;
@@ -977,7 +976,10 @@
       let contenedoresMap = {};
       excelData.forEach(r => {
         let cont = r.CONTENEDOR || "SIN_CONTENEDOR";
-        let seccion = r.SECCION || r.Seccion || r['SECCIÓN'] || "Sin Sección";
+
+        // Usar SOLO r.SECCION
+        let seccion = r.SECCION || "Sin Sección";
+
         if (!contenedoresMap[cont]) {
           contenedoresMap[cont] = { 
             seccion: seccion,
