@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manifestar Mercancía - Control en Tiempo Real</title>
+  
+  <!-- Fuentes, Bootstrap, Bootstrap Icons, SweetAlert2 y AOS -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+
+  <style>
+    /* VARIABLES DE COLOR */
+    :root {
+      --rosa-principal: #E6007E;
+      --rosa-secundario: #F8BBD0;
+      --negro: #000000;
+      --blanco: #ffffff;
+      --gris-oscuro: #333333;
+      --gris-claro: #f8f9fa;
+      --verde-vivo: #66BB6A;
+    }
+
+    /* ESTILO GENERAL */
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      background: linear-gradient(to right, var(--rosa-principal), var(--negro));
+      margin: 0;
+      padding: 0;
+      color: var(--gris-oscuro);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+      padding: 10px 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .btn-menu {
+      font-size: 1.5rem;
+      background: transparent;
+      color: var(--blanco);
+      border: none;
+      cursor: pointer;
+    }
+    #logout-btn {
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
+      background-color: #c82333;
+      border: none;
+      color: var(--blanco);
+    }
+    #logout-btn:hover {
+      background-color: #a71d2a;
+    }
+
+    /* OFFCANVAS – MENÚ LATERAL */
+    .offcanvas {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+    }
+    .offcanvas-header {
+      padding: 1rem;
+    }
+    .offcanvas-body {
+      padding: 0;
+    }
+    .offcanvas-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .offcanvas-body p-0 nav nav ul.navbar-nav {
+      margin: 0;
+      padding: 0;
+    }
+    .navbar-nav .nav-link {
+      color: var(--blanco);
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      transition: background-color 0.3s ease;
+      display: block;
+      text-decoration: none;
+    }
+    .navbar-nav .nav-link:hover {
+      background-color: var(--rosa-secundario);
+      color: var(--gris-oscuro);
+    }
+
+    /* CONTENEDOR PRINCIPAL */
+    .main-container {
+      max-width: 1000px;
+      margin: 3rem auto;
+      padding: 2rem 3rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      position: relative;
+      overflow: hidden;
+      animation: containerSlide 0.8s ease-out both;
+    }
+    @keyframes containerSlide {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .main-container::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(230,0,126,0.15) 0%, transparent 70%);
+      animation: rotateBackground 10s linear infinite;
+      z-index: 0;
+    }
+    @keyframes rotateBackground {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .main-container > * {
+      position: relative;
+      z-index: 1;
+    }
+    .main-container h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--rosa-principal);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* DROPZONE */
+    #dropzone {
+      border: 2px dashed var(--rosa-principal);
+      border-radius: 12px;
+      background-color: #f1f8ff;
+      padding: 2rem;
+      text-align: center;
+      color: var(--rosa-principal);
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+      margin-bottom: 2rem;
+    }
+    #dropzone:hover {
+      background-color: #e0f0ff;
+      transform: scale(1.02);
+    }
+
+    /* BOTONES DE ACCIÓN */
+    .action-btn {
+      font-size: 1.2rem;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+    }
+    
+    /* TABLAS RESPONSIVAS Y MEJORADAS */
+    .table-responsive {
+      overflow-x: auto;
+      width: 100%;
+    }
+    .table thead th {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+      text-align: center;
+      vertical-align: middle;
+      border: 1px solid #ddd;
+    }
+    .table tbody td {
+      vertical-align: middle;
+      border: 1px solid #ddd;
+    }
+    .table-hover tbody tr:hover {
+      background-color: #fce4ec; /* un suave rosa-claro */
+    }
+
+    /* TABLA PERSONALIZADA PARA ANÁLISIS GLOBAL (SIN TRUNCAR TEXTO) */
+    .table-global-analysis {
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      background-color: #fff;
+      width: 100%;
+    }
+    .table-global-analysis th,
+    .table-global-analysis td {
+      white-space: normal;        /* Permitir multilinea */
+      word-wrap: break-word;      /* Ajustar texto en múltiples líneas */
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      vertical-align: middle;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .table-global-analysis thead th {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+    }
+    .table-global-analysis tbody tr:hover {
+      background-color: #fce4ec;
+    }
+
+    /* RESPONSIVIDAD */
+    @media (max-width: 576px) {
+      .main-container {
+        padding: 1.5rem;
+      }
+      .main-container h2 {
+        font-size: 2rem;
+      }
+      #logout-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="d-flex justify-content-between align-items-center px-4 py-3">
+    <div class="d-flex align-items-center">
+      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="header-title">Manifestar Mercancía</div>
+    </div>
+    <button class="btn btn-danger d-flex align-items-center" id="logout-btn" aria-label="Cerrar sesión">
+      <i class="bi bi-power"></i>
+    </button>
+  </header>
+
+  <!-- MENÚ LATERAL (OFFCANVAS) -->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
+      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+      <nav class="nav flex-column">
+        <nav>
+          <ul class="navbar-nav ms-auto">
+            <a class="nav-link active" href="../index.html"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
+            <a class="nav-link" href="manifestar.html"><i class="bi bi-box-seam me-2"></i> Manifestar</a>
+            <a class="nav-link" href="reportes.html"><i class="bi bi-file-earmark-text me-2"></i> Reportes</a>
+            <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-box me-2"></i> Inventarios</a>
+            <a class="nav-link" href="../configuracion.html"><i class="bi bi-gear-fill me-2"></i> Configuración</a>
+          </ul>
+        </nav>
+      </nav>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <section class="container main-container" data-aos="fade-up" data-aos-duration="1000">
+    <!-- Sección de Carga de Archivos (Solo Admins) -->
+    <div id="adminUploadSection" data-aos="zoom-in" style="display: none;">
+      <div class="card mb-4">
+        <div class="card-header text-center">
+          <h2 class="h4" style="color: var(--rosa-principal);">
+            <i class="bi bi-upload me-1"></i> Subir Archivo
+          </h2>
+        </div>
+        <div class="card-body text-center">
+          <p>Arrastra y suelta o haz clic para seleccionar.</p>
+          <div id="dropzone">
+            <i class="bi bi-cloud-upload"></i>
+            <p>Arrastra aquí</p>
+            <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+          </div>
+          <p id="selectedFileName" class="text-muted"></p>
+          <button id="uploadFileBtn" class="btn btn-primary action-btn" disabled>
+            <i class="bi bi-upload me-1"></i> Subir
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección para Seleccionar (o Cambiar) Archivo -->
+    <div id="fileSelectionSection" data-aos="zoom-in" class="mb-4">
+      <div class="card mb-4">
+        <div class="card-header text-center">
+          <h2 class="h4" style="color: var(--rosa-principal);">
+            <i class="bi bi-folder-check me-1"></i> Elegir Archivo
+          </h2>
+        </div>
+        <div class="card-body text-center">
+          <p>
+            Archivo seleccionado: <strong id="selectedFileToWork"></strong>
+            <button id="deleteFileBtn" class="btn btn-danger btn-sm ms-2" title="Eliminar">
+              <i class="bi bi-trash"></i>
+            </button>
+          </p>
+          <div class="d-grid gap-2">
+            <button id="chooseUploadedFileBtn" class="btn btn-primary action-btn">
+              <i class="bi bi-folder-plus me-1"></i> Elegir
+            </button>
+            <button id="downloadFileBtn" class="btn btn-secondary action-btn">
+              <i class="bi bi-download me-1"></i> Descargar
+            </button>
+            <!-- NUEVO BOTÓN: ANÁLISIS GLOBAL DEL ARCHIVO -->
+            <button id="btnAnalisisGlobal" class="btn btn-success action-btn">
+              <i class="bi bi-bar-chart-line me-1"></i> Análisis
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección para Escanear Referencia -->
+    <div id="referenceScanSection" data-aos="fade-up" style="display: none;" class="mb-4">
+      <div class="card mb-4">
+        <div class="card-header text-center">
+          <h2 class="h4" style="color: var(--rosa-principal);">
+            <i class="bi bi-upc-scan me-1"></i> Escanear Referencia
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <input type="text" id="inputReferencia" class="form-control" placeholder="Ej: CONT123 o ART456">
+            </div>
+            <div class="col-md-4">
+              <button id="btnBuscarReferencia" class="btn btn-primary action-btn w-100">
+                <i class="bi bi-search me-1"></i> Buscar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de Resultados del Contenedor -->
+    <div id="containerResultsSection" data-aos="fade-up" style="display: none;" class="mb-4">
+      <div class="card mb-4">
+        <div class="card-header text-center">
+          <h2 class="h4" style="color: var(--rosa-principal);">
+            <i class="bi bi-box-seam me-1"></i> Detalles del Contenedor
+          </h2>
+        </div>
+        <div id="containerDetails" class="card-body table-responsive">
+          <!-- Aquí se mostrarán los registros filtrados -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección de Registro de Escaneo -->
+    <div id="scanEntrySection" data-aos="fade-up" style="display: none;" class="mb-4">
+      <div class="card mb-4">
+        <div class="card-header text-center">
+          <h2 class="h4" style="color: var(--rosa-principal);">
+            <i class="bi bi-upc me-1"></i> Registro de Escaneo
+          </h2>
+        </div>
+        <div class="card-body">
+          <input type="text" id="inputScanCode" class="form-control" placeholder="Escanee el código aquí" autofocus>
+          <small class="text-muted d-block mt-2">
+            Presione Enter o, al detectar 10+ dígitos, se acumula automáticamente. También se puede editar manualmente.
+          </small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCRIPTS (Bootstrap, SweetAlert2, Firebase, SheetJS, AOS) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script>
+    AOS.init();
+
+    function showToast(icon, title) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: icon,
+        title: title,
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+          toast.addEventListener('mouseenter', Swal.stopTimer);
+          toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+      });
+    }
+
+    // ========== CONFIGURACIÓN DE FIREBASE ==========
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+      authDomain: "loginliverpool.firebaseapp.com",
+      projectId: "loginliverpool",
+      storageBucket: "loginliverpool.appspot.com",
+      messagingSenderId: "704223815941",
+      appId: "1:704223815941:web:c871525230fb61caf96f6c",
+      measurementId: "G-QFEPQ4TSPY"
+    };
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Lista de administradores
+    const adminUIDs = [
+      "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
+      "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
+    ];
+    auth.onAuthStateChanged(user => {
+      if (user && adminUIDs.includes(user.uid)) {
+        document.getElementById('adminUploadSection').style.display = 'block';
+      } else {
+        document.getElementById('adminUploadSection').style.display = 'none';
+      }
+    });
+
+    // ========== Variables globales ==========
+    let selectedFile = null;
+    let excelData = [];
+    window.selectedFileURL = null;
+    let currentContainerRecords = [];
+
+    // ========== Manejo del Drop Zone ==========
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const uploadFileBtn = document.getElementById('uploadFileBtn');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        selectedFile = e.target.files[0];
+        selectedFileName.textContent = selectedFile.name;
+        uploadFileBtn.disabled = false;
+      }
+    });
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        selectedFile = e.dataTransfer.files[0];
+        selectedFileName.textContent = selectedFile.name;
+        uploadFileBtn.disabled = false;
+      }
+    });
+    uploadFileBtn.addEventListener('click', () => {
+      if (!selectedFile) {
+        showToast('error', 'No se ha seleccionado ningún archivo.');
+        return;
+      }
+      const storageRef = storage.ref().child('excelFiles/' + selectedFile.name);
+      const uploadTask = storageRef.put(selectedFile);
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Progreso: ' + progress + '%');
+        }, 
+        (error) => {
+          console.error('Error en la subida:', error);
+          showToast('error', 'Error al subir el archivo.');
+        }, 
+        () => {
+          showToast('success', 'Archivo subido correctamente.');
+          uploadFileBtn.disabled = true;
+          document.getElementById('selectedFileToWork').textContent = selectedFile.name;
+          document.getElementById('adminUploadSection').style.display = 'none';
+          storage.ref('excelFiles/' + selectedFile.name).getDownloadURL().then(url => {
+            window.selectedFileURL = url;
+            loadFile();
+          });
+          selectedFile = null;
+        }
+      );
+    });
+
+    // ========== Cargar el archivo Excel ==========
+    function loadFile() {
+      if (window.selectedFileURL) {
+        fetch(window.selectedFileURL)
+          .then(response => response.arrayBuffer())
+          .then(data => {
+            const workbook = XLSX.read(data, {type: 'array'});
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            excelData = XLSX.utils.sheet_to_json(worksheet);
+            showToast('success', 'Archivo cargado correctamente.');
+            document.getElementById('referenceScanSection').style.display = 'block';
+          })
+          .catch(error => {
+            console.error('Error cargando archivo:', error);
+            showToast('error', 'No se pudo cargar el archivo desde el servidor.');
+          });
+      }
+    }
+
+    // ========== Botón para seleccionar archivo (SweetAlert2) ==========
+    document.getElementById('chooseUploadedFileBtn').addEventListener('click', () => {
+      storage.ref('excelFiles').listAll().then((result) => {
+        if(result.items.length === 0) {
+          showToast('info', 'No hay archivos subidos.');
+          return;
+        }
+        let html = `
+          <div style="max-height: 350px; overflow-y: auto;">
+            <p class="text-muted mb-2">
+              <i class="bi bi-info-circle me-1"></i> Selecciona un archivo de la lista o bórralo si no lo necesitas.
+            </p>
+            <ul class="list-group">
+        `;
+        result.items.forEach((item, index) => {
+          html += `
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-file-index="${index}">
+              <span><i class="bi bi-file-earmark-excel me-2"></i>${item.name}</span>
+              <button class="btn btn-sm btn-danger delete-file-btn" data-file-index="${index}" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </li>
+          `;
+        });
+        html += `</ul></div>`;
+        
+        Swal.fire({
+          title: '<strong><i class="bi bi-folder2-open me-2"></i>Elegir Archivo</strong>',
+          html: html,
+          showConfirmButton: false,
+          showCloseButton: true,
+          didOpen: () => {
+            const listItems = Swal.getPopup().querySelectorAll('li');
+            listItems.forEach((li, index) => {
+              li.addEventListener('click', (e) => {
+                if(e.target.closest('.delete-file-btn')) return;
+                const selectedRef = result.items[index];
+                selectedRef.getDownloadURL().then(url => {
+                  document.getElementById('selectedFileToWork').textContent = selectedRef.name;
+                  window.selectedFileURL = url;
+                  selectedFile = null;
+                  document.getElementById('adminUploadSection').style.display = 'none';
+                  Swal.close();
+                  loadFile();
+                });
+              });
+            });
+            const deleteButtons = Swal.getPopup().querySelectorAll('.delete-file-btn');
+            deleteButtons.forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = btn.dataset.fileIndex;
+                const itemToDelete = result.items[idx];
+                itemToDelete.delete().then(() => {
+                  showToast('success', 'Archivo eliminado.');
+                  btn.parentElement.remove();
+                }).catch((error) => {
+                  console.error("Error al eliminar archivo:", error);
+                  showToast('error', 'No se pudo eliminar el archivo.');
+                });
+              });
+            });
+          }
+        });
+      }).catch((error) => {
+         console.error("Error listando archivos:", error);
+         showToast('error', 'No se pudieron listar los archivos.');
+      });
+    });
+
+    // ========== Botón para eliminar archivo ==========
+    document.getElementById('deleteFileBtn').addEventListener('click', () => {
+      const filename = document.getElementById('selectedFileToWork').textContent;
+      if (!filename) {
+        showToast('error', 'No hay archivo cargado para eliminar.');
+        return;
+      }
+      storage.ref('excelFiles/' + filename).delete().then(() => {
+        showToast('success', 'Archivo eliminado correctamente.');
+        document.getElementById('selectedFileToWork').textContent = "";
+        excelData = [];
+        currentContainerRecords = [];
+        document.getElementById('containerResultsSection').style.display = 'none';
+        document.getElementById('scanEntrySection').style.display = 'none';
+        document.getElementById('adminUploadSection').style.display = 'block';
+      }).catch((error) => {
+        console.error("Error al eliminar archivo:", error);
+        if(error.code === "storage/object-not-found"){
+          showToast('info', 'Archivo no existe.');
+        } else {
+          showToast('error', 'No se pudo eliminar el archivo.');
+        }
+      });
+    });
+
+    // ========== Botón para descargar archivo ==========
+    document.getElementById('downloadFileBtn').addEventListener('click', () => {
+      const filename = document.getElementById('selectedFileToWork').textContent;
+      if (!filename) {
+        showToast('error', 'No hay archivo cargado para descargar.');
+        return;
+      }
+      let exportData = excelData.map(row => {
+        let diffText = "";
+        let SCANNER = row.SCANNER || 0;
+        let SAP = row.SAP || 0;
+        if(SCANNER === SAP && SCANNER !== 0) diffText = "OK";
+        else if(SCANNER < SAP) diffText = "FALTAN";
+        else if(SCANNER > SAP) diffText = "MERCANCIA DE MAS";
+
+        let seccionVal = row.SECCION || row.Seccion || row['SECCIÓN'] || "";
+        return {
+          FECHA: row.FECHA || "",
+          SECCION: seccionVal,
+          MANIFIESTO: row.MANIFIESTO || "",
+          CONTENEDOR: row.CONTENEDOR || "",
+          SKU: row.SKU || "",
+          EUROPEO: row.EUROPEO || "",
+          DESCRIPCION: row.DESCRIPCION || "",
+          SAP: row.SAP || "",
+          SCANNER: row.SCANNER || "",
+          Diferencia: diffText || "SIN ESCANEOS AUN"
+        };
+      });
+      let newSheet = XLSX.utils.json_to_sheet(exportData, {
+        header: ["FECHA","SECCION","MANIFIESTO","CONTENEDOR","SKU","EUROPEO","DESCRIPCION","SAP","SCANNER","Diferencia"]
+      });
+      let range = XLSX.utils.decode_range(newSheet["!ref"]);
+      for(let C = range.s.c; C <= range.e.c; ++C) {
+        let cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+        if(newSheet[cellAddress]) {
+          newSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: "E6007E" } },
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            alignment: { horizontal: "center" },
+            border: {
+              top: { style: "thin", color: { auto: 1 } },
+              right: { style: "thin", color: { auto: 1 } },
+              bottom: { style: "thin", color: { auto: 1 } },
+              left: { style: "thin", color: { auto: 1 } }
+            }
+          };
+        }
+      }
+      let newWorkbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Sheet1");
+      let wbout = XLSX.write(newWorkbook, {bookType: 'xlsx', type: 'array', cellStyles: true});
+      let blob = new Blob([wbout], {type: "application/octet-stream"});
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // ========== Buscar referencia ==========
+    document.getElementById('btnBuscarReferencia').addEventListener('click', () => {
+      const referencia = document.getElementById('inputReferencia').value.trim();
+      if (!referencia) {
+        showToast('error', 'Ingrese una referencia.');
+        return;
+      }
+      if (!excelData.length) {
+        showToast('error', 'No se han cargado datos del archivo.');
+        return;
+      }
+
+      // Verificar contenedor anterior
+      if (currentContainerRecords.length > 0) {
+        let { incomplete, msg } = checkContainerCompleteness(currentContainerRecords);
+        if (incomplete) {
+          Swal.fire({
+            icon: 'warning',
+            title: '<i class="bi bi-exclamation-triangle-fill me-1"></i> Contenedor Incompleto',
+            html: msg,
+            confirmButtonText: 'Continuar',
+            showCancelButton: true,
+            cancelButtonText: 'Cancelar'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              doSearchContainer(referencia);
+            }
+          });
+        } else {
+          Swal.fire({
+            icon: 'success',
+            title: '<i class="bi bi-check-circle-fill me-1"></i> Contenedor Completo',
+            html: '<p>El contenedor anterior está completo.</p><p>¿Deseas buscar otro?</p>',
+            confirmButtonText: 'Continuar',
+            showCancelButton: true,
+            cancelButtonText: 'Cancelar'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              doSearchContainer(referencia);
+            }
+          });
+        }
+      } else {
+        doSearchContainer(referencia);
+      }
+    });
+
+    function doSearchContainer(referencia) {
+      let registrosContenedor = excelData.filter(row => String(row.CONTENEDOR).trim() === referencia);
+      if (registrosContenedor.length === 0) {
+        const posibleRegistro = excelData.find(row => 
+          String(row.SKU).trim() === referencia || String(row.EUROPEO).trim() === referencia
+        );
+        if (posibleRegistro) {
+          registrosContenedor = excelData.filter(row =>
+            String(row.CONTENEDOR).trim() === String(posibleRegistro.CONTENEDOR).trim()
+          );
+        }
+      }
+      if (registrosContenedor.length === 0) {
+        showToast('info', 'No se encontró contenedor relacionado.');
+        return;
+      }
+      currentContainerRecords = registrosContenedor;
+      mostrarDetallesContenedor(currentContainerRecords);
+      document.getElementById('containerResultsSection').style.display = 'block';
+      document.getElementById('scanEntrySection').style.display = 'block';
+    }
+
+    // ========== Revisar contenedor completo o no ==========
+    function checkContainerCompleteness(records) {
+      let missingSkus = [];
+      let extraSkus = [];
+      let totalCount = records.length;
+      let scannedOK = 0;
+      records.forEach(r => {
+        let SAP = r.SAP || 0;
+        let SCANNER = r.SCANNER || 0;
+        if (SCANNER === 0 || SCANNER < SAP) {
+          missingSkus.push(`${r.SKU} (Faltan ${SAP - SCANNER} uds)`);
+        } else if (SCANNER > SAP) {
+          extraSkus.push(`${r.SKU} (Sobran ${SCANNER - SAP} uds)`);
+        } else if (SCANNER === SAP && SCANNER !== 0) {
+          scannedOK++;
+        }
+      });
+      let incomplete = (missingSkus.length > 0 || extraSkus.length > 0);
+      let msg = `
+        <p>Este contenedor tiene <strong>${totalCount}</strong> SKUs:</p>
+        <ul class="list-group text-start mb-3">
+          <li class="list-group-item">Completos: <strong>${scannedOK}</strong></li>
+          <li class="list-group-item">Faltantes: <strong>${missingSkus.length}</strong></li>
+          <li class="list-group-item">Excedentes: <strong>${extraSkus.length}</strong></li>
+        </ul>
+      `;
+      if (missingSkus.length > 0) {
+        msg += `<div class="mt-2"><strong>Faltantes:</strong><ul>`;
+        missingSkus.forEach(sku => { msg += `<li>${sku}</li>`; });
+        msg += `</ul></div>`;
+      }
+      if (extraSkus.length > 0) {
+        msg += `<div class="mt-2"><strong>Excedentes:</strong><ul>`;
+        extraSkus.forEach(sku => { msg += `<li>${sku}</li>`; });
+        msg += `</ul></div>`;
+      }
+      msg += `<p class="mt-3">¿Deseas buscar otro contenedor de todos modos?</p>`;
+      return { incomplete, msg };
+    }
+
+    // ========== Mostrar detalles del contenedor ==========
+    function mostrarDetallesContenedor(registros) {
+  const containerDetails = document.getElementById('containerDetails');
+  containerDetails.innerHTML = "";
+
+  const table = document.createElement('table');
+  table.className = 'table table-bordered table-striped table-hover';
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Sección</th>
+        <th>Manifiesto</th>
+        <th>Contenedor</th>
+        <th>SKU</th>
+        <th>Europeo</th>
+        <th>Descripción</th>
+        <th>SAP</th>
+        <th>SCANNER</th>
+        <th>Diferencia</th>
+      </tr>
+    </thead>
+  `;
+  
+  const tbody = document.createElement('tbody');
+  
+  registros.forEach(reg => {
+    const SAPval = reg.SAP || 0;
+    const SCANNERval = reg.SCANNER || 0;
+
+    // Captar el campo SECCION (usa únicamente reg.SECCION)
+    const seccionVal = reg.SECCION || "";
+    
+    // Determinar texto de diferencia
+    let diffText = "";
+    if (SCANNERval === 0 || SCANNERval < SAPval) {
+      diffText = "FALTAN";
+    } else if (SCANNERval === SAPval) {
+      diffText = "OK";
+    } else if (SCANNERval > SAPval) {
+      diffText = "MERCANCIA DE MAS";
+    }
+
+    // Color de celda según diferencia
+    let diffColor = (SCANNERval === 0 || SCANNERval < SAPval)
+      ? "var(--rosa-principal)"
+      : (SCANNERval === SAPval) ? "var(--verde-vivo)" : "var(--rosa-secundario)";
+
+    // Buscar el índice exacto en excelData
+    const idx = excelData.findIndex(r =>
+      r.SKU === reg.SKU && r.CONTENEDOR === reg.CONTENEDOR
+    );
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${reg.FECHA || ''}</td>
+      <td>${seccionVal}</td>
+      <td>${reg.MANIFIESTO || ''}</td>
+      <td>${reg.CONTENEDOR || ''}</td>
+      <td>${reg.SKU || ''}</td>
+      <td>${reg.EUROPEO || ''}</td>
+      <td>${reg.DESCRIPCION || ''}</td>
+      <td>${SAPval}</td>
+      <td>
+        <input type="text" class="form-control scanner-input"
+               value="${SCANNERval || ''}"
+               data-index="${idx}"
+               style="max-width:80px;">
+      </td>
+      <td style="background-color: ${diffColor};
+                 color: var(--blanco);
+                 font-weight: bold;
+                 text-align:center;">
+        ${diffText}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  
+  table.appendChild(tbody);
+  containerDetails.appendChild(table);
+
+  // Listeners para actualizar SCANNER al salir del input
+  const scannerInputs = document.querySelectorAll('.scanner-input');
+  scannerInputs.forEach(input => {
+    input.addEventListener('blur', function() {
+      let newVal = parseInt(this.value) || 0;
+      let index = this.dataset.index;
+      if (index !== undefined && excelData[index] !== undefined) {
+        // Actualiza en excelData
+        excelData[index].SCANNER = newVal;
+
+        // Vuelve a renderizar la tabla del contenedor actual
+        let cont = excelData[index].CONTENEDOR;
+        currentContainerRecords = excelData.filter(r => r.CONTENEDOR === cont);
+        actualizarArchivoEnStorage();
+        mostrarDetallesContenedor(currentContainerRecords);
+
+        showToast('success', 'SCANNER actualizado.');
+      }
+    });
+  });
+}
+
+    // ========== Actualizar archivo en Storage ==========
+    function actualizarArchivoEnStorage() {
+      const filename = document.getElementById('selectedFileToWork').textContent;
+      if (!filename) return;
+      let newSheet = XLSX.utils.json_to_sheet(excelData);
+      let range = XLSX.utils.decode_range(newSheet["!ref"]);
+      for(let C = range.s.c; C <= range.e.c; ++C) {
+        let cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+        if(newSheet[cellAddress]) {
+          newSheet[cellAddress].s = {
+            fill: { fgColor: { rgb: "E6007E" } },
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            alignment: { horizontal: "center" },
+            border: {
+              top: { style: "thin", color: { auto: 1 } },
+              right: { style: "thin", color: { auto: 1 } },
+              bottom: { style: "thin", color: { auto: 1 } },
+              left: { style: "thin", color: { auto: 1 } }
+            }
+          };
+        }
+      }
+      let newWorkbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Sheet1");
+      let wbout = XLSX.write(newWorkbook, {bookType: 'xlsx', type: 'array', cellStyles: true});
+      let blob = new Blob([wbout], {type: "application/octet-stream"});
+      const storageRef = storage.ref().child('excelFiles/' + filename);
+      storageRef.put(blob).then(() => {
+         console.log("Archivo actualizado en Storage.");
+      }).catch((error) => {
+         console.error("Error al actualizar archivo:", error);
+         showToast('error', 'No se pudo actualizar el archivo.');
+      });
+    }
+
+    // ========== Procesar escaneo acumulativo ==========
+    function procesarEscaneo(code) {
+      if (!code) return;
+      const registro = currentContainerRecords.find(row => 
+        String(row.SKU).trim() === code || String(row.EUROPEO).trim() === code
+      );
+      if (!registro) {
+        showToast('info', 'Código no encontrado en este contenedor.');
+        return;
+      }
+      registro.SCANNER = (registro.SCANNER || 0) + 1;
+      let idx = excelData.findIndex(r =>
+        r.SKU === registro.SKU &&
+        r.CONTENEDOR === registro.CONTENEDOR
+      );
+      if (idx !== -1) {
+        excelData[idx].SCANNER = registro.SCANNER;
+      }
+      mostrarDetallesContenedor(currentContainerRecords);
+      actualizarArchivoEnStorage();
+    }
+
+    // ========== Registro de escaneo: Enter o 10+ dígitos ==========
+    const inputScanCode = document.getElementById('inputScanCode');
+    inputScanCode.addEventListener('keypress', function(e) {
+      if (e.key === "Enter") {
+        let code = e.target.value.trim();
+        if(code.length > 0) {
+          procesarEscaneo(code);
+          e.target.value = "";
+        }
+      }
+    });
+    inputScanCode.addEventListener('keyup', function(e) {
+      let code = e.target.value.trim();
+      if(code.length >= 10) {
+        procesarEscaneo(code);
+        e.target.value = "";
+      }
+    });
+
+    // ========== BOTÓN: ANÁLISIS GLOBAL DETALLADO ==========
+    document.getElementById('btnAnalisisGlobal').addEventListener('click', () => {
+      if (!excelData || excelData.length === 0) {
+        showToast('info', 'No hay datos cargados.');
+        return;
+      }
+      // Agrupar por contenedor, incluyendo la sección del primer registro
+      let contenedoresMap = {};
+      excelData.forEach(r => {
+        let cont = r.CONTENEDOR || "SIN_CONTENEDOR";
+        let seccion = r.SECCION || r.Seccion || r['SECCIÓN'] || "Sin Sección";
+        if (!contenedoresMap[cont]) {
+          contenedoresMap[cont] = { 
+            seccion: seccion,
+            totalSKUs: 0, 
+            completed: 0, 
+            missing: 0, 
+            extra: 0, 
+            noScan: 0 
+          };
+        }
+        contenedoresMap[cont].totalSKUs++;
+        let SAP = r.SAP || 0;
+        let SCANNER = r.SCANNER || 0;
+        if (SCANNER === 0) {
+          contenedoresMap[cont].noScan++;
+        } else if (SCANNER < SAP) {
+          contenedoresMap[cont].missing++;
+        } else if (SCANNER === SAP) {
+          contenedoresMap[cont].completed++;
+        } else if (SCANNER > SAP) {
+          contenedoresMap[cont].extra++;
+        }
+      });
+
+      let totalConts = Object.keys(contenedoresMap).length;
+      let htmlMsg = `
+        <p><strong>Estadísticas del archivo completo</strong></p>
+        <p><em>${excelData.length} SKUs en ${totalConts} contenedores</em></p>
+        <div class="table-responsive" style="max-height:300px; overflow-y:auto;">
+          <table class="table-global-analysis">
+            <thead>
+              <tr>
+                <th>Contenedor</th>
+                <th>Sección</th>
+                <th>Total SKUs</th>
+                <th>Completos</th>
+                <th>Faltan</th>
+                <th>Excedentes</th>
+                <th>Sin Escanear</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+      for (let cont in contenedoresMap) {
+        let info = contenedoresMap[cont];
+        htmlMsg += `
+          <tr>
+            <td>${cont}</td>
+            <td>${info.seccion}</td>
+            <td>${info.totalSKUs}</td>
+            <td>${info.completed}</td>
+            <td>${info.missing}</td>
+            <td>${info.extra}</td>
+            <td>${info.noScan}</td>
+          </tr>
+        `;
+      }
+      htmlMsg += `
+            </tbody>
+          </table>
+        </div>
+      `;
+      Swal.fire({
+        icon: 'info',
+        title: 'Análisis Global Detallado',
+        html: htmlMsg,
+        confirmButtonText: 'Cerrar'
+      });
+    });
+  </script>
+</body>
+</html>

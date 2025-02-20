@@ -23,34 +23,67 @@ const auth = firebase.auth();
  *  ========== VARIABLES GLOBALES ==========
  *****************************************************/
 const AppState = {
-  relacionesData: null,         // Datos de "relaciones.xlsx"
-  usuariosData: [],             // Datos de "Usuarios.xlsx"
-  allRechazosEnExcel: [],       // Todas las filas de "rechazos.xlsx"
-  rechazosGlobal: [],           // Datos filtrados (para el acordeón)
-  selectedFileData: null,       // Objeto { name, ref } del archivo "rechazos.xlsx" activo
-  isAdmin: false,               // Indica si el usuario es admin
-  fileVersion: "1"              // Versión del archivo (para control de concurrencia)
+  relacionesData: null,
+  usuariosData: [],
+  allRechazosEnExcel: [],
+  rechazosGlobal: [],
+  selectedFileData: null,
+  isAdmin: false,
+  fileVersion: "1"
 };
 
-let isSaving = false; // Para evitar guardados concurrentes
-
-// Para administradores: filtro por jefe (la columna se llama "Jefatura" en rechazos.xlsx)
+let isSaving = false;
 let adminBossFilter = "";
 
-// Lista de UIDs de administradores
 const ADMIN_UIDS = [
   "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
   "OaieQ6cGi7TnW0nbxvlk2oyLaER2"
 ];
 
-// Temporizadores para auto-guardado (por fila)
 const autoSaveTimers = {};
+
+/*****************************************************
+ *  ========== INYECTAR ESTILOS PARA EL PUNTO VERDE ==========
+ *****************************************************/
+function injectLiquidDotStyles() {
+  const css = `
+  /* Estilos para el punto verde animado */
+  .liquid-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-color: #28a745;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    margin-left: 0.5rem;
+  }
+  .liquid-dot::before {
+    content: "";
+    position: absolute;
+    bottom: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    animation: liquidDot 2s infinite ease-in-out;
+  }
+  @keyframes liquidDot {
+    0% { bottom: -100%; }
+    50% { bottom: 0; }
+    100% { bottom: -100%; }
+  }
+  `;
+  const styleEl = document.createElement("style");
+  styleEl.id = "liquid-dot-styles";
+  styleEl.textContent = css;
+  document.head.appendChild(styleEl);
+}
 
 /*****************************************************
  *  ========== FUNCIONES AUXILIARES ==========
  *****************************************************/
-// Función para mostrar alertas tipo toast (en la esquina)
-// Se ha reducido el tiempo de la alerta a 1500 ms.
 function showAlert(icon, title, text, config = {}) {
   const defaultConfig = {
     toast: true,
@@ -65,12 +98,8 @@ function showAlert(icon, title, text, config = {}) {
 function setUIForRole(isAdmin) {
   const dropzone = document.getElementById("dropzone");
   const downloadRechazosBtn = document.getElementById("downloadRechazosBtn");
-  if (dropzone) {
-    dropzone.style.display = isAdmin ? "block" : "none";
-  }
-  if (downloadRechazosBtn) {
-    downloadRechazosBtn.style.display = isAdmin ? "inline-block" : "none";
-  }
+  if (dropzone) dropzone.style.display = isAdmin ? "block" : "none";
+  if (downloadRechazosBtn) downloadRechazosBtn.style.display = isAdmin ? "inline-block" : "none";
 }
 
 function fixEncoding(str) {
@@ -82,9 +111,6 @@ function fixEncoding(str) {
   }
 }
 
-/**
- * Carga la imagen en el contenedor indicado (con fallback).
- */
 function loadDynamicImage(sku, seccion, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -135,9 +161,6 @@ function loadDynamicImage(sku, seccion, containerId) {
   };
 }
 
-/**
- * Carga Usuarios.xlsx y guarda los datos en AppState.usuariosData.
- */
 async function loadUsuariosFile() {
   try {
     const response = await fetch("../ArchivosExcel/Usuarios.xlsx");
@@ -161,9 +184,6 @@ async function loadUsuariosFile() {
   }
 }
 
-/**
- * Para usuarios normales y admin: carga relaciones.xlsx, filtra según su correo y obtiene las secciones permitidas.
- */
 async function loadRelacionesFile() {
   const filePath = "../ArchivosExcel/relaciones.xlsx";
   try {
@@ -180,8 +200,14 @@ async function loadRelacionesFile() {
         return;
       }
       AppState.relacionesData = XLSX.utils.sheet_to_json(sheet);
+      
+      // Si el usuario es admin, se omite el filtrado por relaciones
+      if (ADMIN_UIDS.includes(auth.currentUser.uid)) {
+        loadRechazosFile([]);
+        return;
+      }
+      
       const correoUsuario = auth.currentUser.email;
-      // Filtramos por correo para obtener la(s) sección(es) permitida(s)
       const usuarioData = AppState.relacionesData.filter(row => row.Correo === correoUsuario);
       if (usuarioData.length === 0) {
         showAlert("error", "Error", "No se encontró info para este usuario en 'relaciones'.");
@@ -192,7 +218,6 @@ async function loadRelacionesFile() {
         if (row.Sección) {
           secciones = secciones.concat(row.Sección.toString().split(",").map(s => s.trim()));
         }
-        // Si hay columnas adicionales (por ejemplo, Sección 1, Sección 2, etc.)
         for (let i = 1; i <= 5; i++) {
           if (row[`Sección ${i}`]) {
             secciones = secciones.concat(row[`Sección ${i}`].toString().split(",").map(s => s.trim()));
@@ -200,7 +225,6 @@ async function loadRelacionesFile() {
         }
       });
       secciones = [...new Set(secciones)];
-      // Se invoca loadRechazosFile pasando las secciones permitidas
       loadRechazosFile(secciones);
     };
     reader.readAsBinaryString(blob);
@@ -210,18 +234,14 @@ async function loadRelacionesFile() {
   }
 }
 
-/*****************************************************
- *  ========== FUNCIÓN PARA DETECTAR DISPOSITIVO MÓVIL ==========
- *****************************************************/
 function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
-/*****************************************************
- *  ========== EVENTOS DOMContentLoaded ==========
- *****************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-  // Se esperan los elementos: "logout-btn", "confirmFileSelection", "dropzone", "saveCommentsBtn", "downloadRechazosBtn", "correoUsuario"
+  // Inyecta los estilos para el punto verde animado
+  injectLiquidDotStyles();
+
   const logoutButton = document.getElementById("logout-btn");
   const confirmFileSelection = document.getElementById("confirmFileSelection");
   const dropzone = document.getElementById("dropzone");
@@ -242,7 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
       showAlert("success", "Archivo Confirmado", `El archivo seleccionado es: ${selectedFileName}`);
       const dropzoneElement = document.getElementById("dropzone");
       if (dropzoneElement) dropzoneElement.style.display = "none";
-      // Para admin y usuarios normales se usa relaciones.xlsx para filtrar las secciones permitidas.
       loadRelacionesFile();
     } else {
       showAlert("warning", "Atención", "Debes seleccionar un archivo antes de continuar.");
@@ -251,7 +270,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   saveCommentsBtn.addEventListener("click", () => saveAllComments());
 
-  /* Eventos para el dropzone (solo para administradores) */
   if (dropzone) {
     dropzone.classList.add("dropzone-style");
     dropzone.innerHTML = `<i class="bi bi-cloud-upload-fill" style="font-size: 2rem; color: #007bff;"></i>
@@ -373,27 +391,7 @@ async function renderFileSelectOptions(files) {
     cardBody.className = "card-body d-flex justify-content-between align-items-center";
     const fileInfo = document.createElement("div");
     fileInfo.innerHTML = `<i class="bi bi-file-earmark-excel me-2" style="color: #28a745;"></i>${file.name}`;
-    let metadata, estado = "";
-    try {
-      metadata = await file.ref.getMetadata();
-      estado = (metadata.customMetadata && metadata.customMetadata.estado) || "";
-    } catch (error) {
-      console.error("Error al obtener metadata para", file.name, error);
-    }
-    const badge = document.createElement("span");
-    badge.className = "badge";
-    badge.style.marginLeft = "10px";
-    if (estado === "trabajar") {
-      badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>A trabajar`;
-      badge.style.backgroundColor = "green";
-    } else if (estado === "paso") {
-      badge.innerHTML = `<i class="bi bi-info-circle me-1"></i>Ya pasó`;
-      badge.style.backgroundColor = "orange";
-    } else {
-      badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin estado`;
-      badge.style.backgroundColor = "gray";
-    }
-    fileInfo.appendChild(badge);
+    
     const selectBtn = document.createElement("button");
     selectBtn.className = "btn btn-sm btn-primary";
     selectBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>Seleccionar`;
@@ -418,7 +416,7 @@ async function renderFilesManagement(files) {
     fileListContainer.parentNode.insertBefore(managementContainer, fileListContainer.nextSibling);
   }
   managementContainer.innerHTML = "<h3 class='mb-3'>Administración del Archivo 'Rechazos'</h3>";
-  const file = files[0]; // Sólo un archivo
+  const file = files[0];
   let metadata;
   try {
     metadata = await file.ref.getMetadata();
@@ -426,7 +424,6 @@ async function renderFilesManagement(files) {
     console.error("Error al obtener metadata del archivo", file.name, err);
     metadata = {};
   }
-  const estado = (metadata.customMetadata && metadata.customMetadata.estado) || "";
   const card = document.createElement("div");
   card.className = "card mb-3 shadow-sm fade-in";
   const cardBody = document.createElement("div");
@@ -437,69 +434,11 @@ async function renderFilesManagement(files) {
   nameEl.className = "card-title mb-0";
   nameEl.innerHTML = `<i class="bi bi-file-earmark-excel me-2" style="color: #28a745;"></i>${file.name}`;
   headerRow.appendChild(nameEl);
-  const badge = document.createElement("span");
-  badge.className = "badge";
-  if (estado === "trabajar") {
-    badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>A trabajar`;
-    badge.style.backgroundColor = "green";
-  } else if (estado === "paso") {
-    badge.innerHTML = `<i class="bi bi-info-circle me-1"></i>Ya pasó`;
-    badge.style.backgroundColor = "orange";
-  } else {
-    badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin estado`;
-    badge.style.backgroundColor = "gray";
-  }
-  headerRow.appendChild(badge);
   cardBody.appendChild(headerRow);
-  // Selector de estado
-  const stateRow = document.createElement("div");
-  stateRow.className = "mb-2";
-  const label = document.createElement("label");
-  label.className = "form-label me-2";
-  label.innerHTML = `<i class="bi bi-toggle-off me-1"></i>Estado:`;
-  const selectEstado = document.createElement("select");
-  selectEstado.className = "form-select d-inline-block";
-  selectEstado.style.width = "150px";
-  const options = [
-    { value: "", text: "Sin estado" },
-    { value: "trabajar", text: "A trabajar" },
-    { value: "paso", text: "Ya pasó" }
-  ];
-  options.forEach(opt => {
-    const optionEl = document.createElement("option");
-    optionEl.value = opt.value;
-    optionEl.textContent = opt.text;
-    if (opt.value === estado) optionEl.selected = true;
-    selectEstado.appendChild(optionEl);
-  });
-  selectEstado.addEventListener("change", async (e) => {
-    const newEstado = e.target.value;
-    try {
-      await file.ref.updateMetadata({
-        customMetadata: { estado: newEstado, version: AppState.fileVersion }
-      });
-      showAlert("success", "Actualizado", `Estado actualizado a ${newEstado || "Sin estado"}`);
-      if (newEstado === "trabajar") {
-        badge.innerHTML = `<i class="bi bi-check-circle me-1"></i>A trabajar`;
-        badge.style.backgroundColor = "green";
-      } else if (newEstado === "paso") {
-        badge.innerHTML = `<i class="bi bi-info-circle me-1"></i>Ya pasó`;
-        badge.style.backgroundColor = "orange";
-      } else {
-        badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin estado`;
-        badge.style.backgroundColor = "gray";
-      }
-    } catch (error) {
-      console.error("Error actualizando estado:", error);
-      showAlert("error", "Error", "No se pudo actualizar el estado del archivo.");
-    }
-  });
-  stateRow.appendChild(label);
-  stateRow.appendChild(selectEstado);
-  cardBody.appendChild(stateRow);
-  // Botones: Descargar y Eliminar (con progreso y recarga)
+  
   const actionRow = document.createElement("div");
   actionRow.className = "d-flex justify-content-end";
+  
   const downloadBtn = document.createElement("button");
   downloadBtn.className = "btn btn-sm btn-outline-secondary me-2";
   downloadBtn.innerHTML = `<i class="bi bi-download me-1"></i>Descargar`;
@@ -517,6 +456,12 @@ async function renderFilesManagement(files) {
       showAlert("error", "Error", "No se pudo descargar el archivo.");
     }
   });
+  
+  const emailBtn = document.createElement("button");
+  emailBtn.className = "btn btn-sm btn-outline-info me-2";
+  emailBtn.innerHTML = `<i class="bi bi-envelope me-1"></i>Enviar por correo`;
+  emailBtn.addEventListener("click", sendFileByEmail);
+  
   const deleteBtn = document.createElement("button");
   deleteBtn.className = "btn btn-sm btn-outline-danger";
   deleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i>Eliminar`;
@@ -549,7 +494,9 @@ async function renderFilesManagement(files) {
       }
     }
   });
+  
   actionRow.appendChild(downloadBtn);
+  actionRow.appendChild(emailBtn);
   actionRow.appendChild(deleteBtn);
   cardBody.appendChild(actionRow);
   card.appendChild(cardBody);
@@ -568,18 +515,18 @@ function renderBossFilter(allRechazos) {
     rechazosContainer.parentNode.insertBefore(container, rechazosContainer);
   }
   container.innerHTML = "";
-  // Se usa la columna "Jefatura" (asegurándonos de usar el nombre correcto)
-  const jefesUnicos = [...new Set(allRechazos.map(r => r["Jefatura"]).filter(j => j && j.trim() !== ""))];
+  // Se aplica fixEncoding para corregir la codificación de los nombres
+  const jefesUnicos = [...new Set(allRechazos.map(r => fixEncoding(r["Jefatura"])).filter(j => j && j.trim() !== ""))];
   const select = document.createElement("select");
   select.className = "form-select mb-3";
   const allOption = document.createElement("option");
   allOption.value = "";
   allOption.textContent = "Todos los Jefes";
   select.appendChild(allOption);
-  jefesUnicos.forEach(Jefatura => {
+  jefesUnicos.forEach(jefatura => {
     const option = document.createElement("option");
-    option.value = Jefatura;
-    option.textContent = Jefatura;
+    option.value = jefatura;
+    option.textContent = jefatura;
     select.appendChild(option);
   });
   select.value = adminBossFilter;
@@ -588,7 +535,7 @@ function renderBossFilter(allRechazos) {
     adminBossFilter = e.target.value;
     let filtrados = allRechazos;
     if (adminBossFilter && adminBossFilter.trim() !== "") {
-      filtrados = allRechazos.filter(row => row["Jefatura"] === adminBossFilter);
+      filtrados = allRechazos.filter(row => fixEncoding(row["Jefatura"]) === adminBossFilter);
     }
     renderRechazos(filtrados);
   });
@@ -655,7 +602,6 @@ function choosePhoto(rowIndex) {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    // Solo si se selecciona "Cámara" y se está en dispositivo móvil, se agrega el atributo capture.
     if (result.isConfirmed && isMobile()) {
       fileInput.setAttribute("capture", "environment");
     }
@@ -680,12 +626,9 @@ async function uploadPhoto(file, rowIndex) {
     const downloadURL = await snapshot.ref.getDownloadURL();
     await verifyImage(downloadURL);
     
-    // Actualiza el estado local con la URL de la foto
     AppState.rechazosGlobal[rowIndex].Fotos = downloadURL;
     updatePhotoPreview(rowIndex, downloadURL);
     showAlert("success", "Foto guardada", "La foto se ha guardado correctamente.");
-    
-    // Guarda inmediatamente en el Excel para que el cambio persista
     await saveAllComments();
   } catch (error) {
     console.error("Error al subir/verificar la foto:", error);
@@ -706,7 +649,6 @@ function updatePhotoPreview(rowIndex, url) {
   const previewContainer = document.getElementById(`evidencia-preview-${rowIndex}`);
   if (previewContainer) {
     if (url.trim() !== "") {
-      // Se agrega un parámetro único para evitar el caché
       const imageUrl = `${url}?cb=${Date.now()}`;
       previewContainer.innerHTML = `
         <img src="${imageUrl}" alt="Evidencia" class="img-fluid mb-2" style="max-width:200px;">
@@ -736,12 +678,9 @@ async function deletePhoto(rowIndex) {
   const photoRef = storage.refFromURL(photoUrl);
   
   try {
-    // Se intenta obtener metadata para confirmar que el archivo existe
     await photoRef.getMetadata();
-    // Si existe, se elimina
     await photoRef.delete();
   } catch (error) {
-    // Si el error indica que el objeto no existe, se continúa
     if (error.code === 'storage/object-not-found') {
       console.warn("El archivo ya no existe en Firebase Storage, se actualizará el estado local.");
     } else {
@@ -751,12 +690,9 @@ async function deletePhoto(rowIndex) {
     }
   }
   
-  // Actualiza el estado local y la interfaz
   AppState.rechazosGlobal[rowIndex].Fotos = "";
   updatePhotoPreview(rowIndex, "");
   showAlert("success", "Eliminado", "La foto se eliminó correctamente.");
-  
-  // Guarda inmediatamente en el Excel para que el cambio persista
   await saveAllComments();
 }
 
@@ -783,7 +719,6 @@ async function loadRechazosFile(secciones) {
       }
       AppState.allRechazosEnExcel = XLSX.utils.sheet_to_json(sheet, { defval: "" });
       
-      // Filtrado inicial: si se proporcionaron secciones, filtrar por ellas
       let rechazosFiltrados = AppState.allRechazosEnExcel;
       if (secciones && secciones.length > 0) {
         rechazosFiltrados = rechazosFiltrados.filter(row => 
@@ -791,7 +726,6 @@ async function loadRechazosFile(secciones) {
         );
       }
       
-      // Si es admin, permitir filtrar por Jefatura
       if (AppState.isAdmin) {
         renderBossFilter(AppState.allRechazosEnExcel);
         if (adminBossFilter && adminBossFilter.trim() !== "") {
@@ -814,7 +748,6 @@ async function loadRechazosFile(secciones) {
 function renderRechazos(rechazosFiltrados) {
   const rechazosContainer = document.getElementById("rechazosContainer");
   rechazosContainer.innerHTML = "";
-  // Mapeamos los datos agregando _rowIndex y asegurando que Comentarios esté definido
   AppState.rechazosGlobal = rechazosFiltrados.map((item, index) => ({
     ...item,
     _rowIndex: index,
@@ -832,14 +765,12 @@ function renderRechazos(rechazosFiltrados) {
   accordion.className = "accordion fade-in";
   accordion.id = "rechazosAccordion";
   AppState.rechazosGlobal.forEach((rechazo, i) => {
-    // Se extraen y formatean los datos a mostrar
     const fecha = fixEncoding(rechazo["Fecha y Hora de Asignación"] || "");
     const seccion = fixEncoding(rechazo["Sección"] || "");
     const remision = fixEncoding(rechazo["Remisión"] || "");
     const sku = fixEncoding(rechazo["Sku"] || "");
     const descripcionSku = fixEncoding(rechazo["Descripción Sku"] || "");
     const piezas = fixEncoding(rechazo["Piezas"] || "");
-    // Para "Usuario de Rechazo": se busca el nombre en Usuarios.xlsx
     let usuarioCode = fixEncoding(rechazo["Usuario de Rechazo"] || "");
     const userCodeNormalized = usuarioCode.trim().toLowerCase();
     let usuarioName = usuarioCode;
@@ -849,11 +780,11 @@ function renderRechazos(rechazosFiltrados) {
       });
       if (foundUser && foundUser.Nombre) usuarioName = foundUser.Nombre;
     }
-    // Para el filtro/visualización de jefe se usa la columna "Jefatura"
     const Jefatura = fixEncoding(rechazo["Jefatura"] || "");
     
     const headingId = `heading-${i}`;
     const collapseId = `collapse-${i}`;
+    // Si existe comentario se agrega la clase y se inserta el "punto verde" animado
     const headerButtonClass = `accordion-button collapsed ${rechazo.Comentarios.trim() !== "" ? "has-comment-header" : ""}`;
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item mb-2";
@@ -871,6 +802,7 @@ function renderRechazos(rechazosFiltrados) {
       >
         <i class="bi bi-file-earmark-text me-2"></i>
         <strong>Remisión:</strong> ${remision}
+        ${rechazo.Comentarios.trim() !== "" ? '<span class="liquid-dot"></span>' : ''}
       </button>
     `;
     const collapseDiv = document.createElement("div");
@@ -879,7 +811,6 @@ function renderRechazos(rechazosFiltrados) {
     collapseDiv.setAttribute("aria-labelledby", headingId);
     const body = document.createElement("div");
     body.className = "accordion-body";
-    // Se muestran todos los datos solicitados
     body.innerHTML = `
       <div class="mb-2 text-muted">
         <i class="bi bi-calendar2 me-1"></i><strong> Fecha:</strong> ${fecha}
@@ -892,9 +823,7 @@ function renderRechazos(rechazosFiltrados) {
         <i class="bi bi-person me-1"></i><strong> Usuario de Rechazo:</strong> ${usuarioName} <br>
         <i class="bi bi-person-gear me-1"></i><strong> Jefatura:</strong> ${Jefatura}
       </p>
-      <div class="text-center mb-3" id="imgContainer-${sku}-${i}">
-        <!-- Imagen del SKU -->
-      </div>
+      <div class="text-center mb-3" id="imgContainer-${sku}-${i}"></div>
       <div class="text-center mb-3">
         <a href="https://www.liverpool.com.mx/tienda?s=${sku}" target="_blank" class="btn btn-outline-secondary btn-sm me-2">
           <i class="bi bi-search"></i> Buscar en Liverpool
@@ -942,8 +871,6 @@ function renderRechazos(rechazosFiltrados) {
 
 /*****************************************************
  *  ========== AUTO-GUARDADO DE COMENTARIOS ==========
- * Se aumentó el delay a 4000 ms para evitar que se guarde mientras el usuario aún escribe.
- * Además, se invoca la función de guardado en modo “silencioso” para que no se muestren alertas.
  *****************************************************/
 document.addEventListener("input", (e) => {
   if (e.target && e.target.classList.contains("comentario-input")) {
@@ -959,13 +886,13 @@ document.addEventListener("input", (e) => {
     if (autoSaveTimers[rowIndex]) clearTimeout(autoSaveTimers[rowIndex]);
     autoSaveTimers[rowIndex] = setTimeout(() => {
       autoSaveComment(rowIndex);
-    }, 4000); // Ahora 4 segundos de inactividad antes de auto-guardar
+    }, 4000);
   }
 });
 
 async function autoSaveComment(rowIndex) {
   try {
-    await saveAllComments(true); // Guardado en modo silencioso (sin alertas)
+    await saveAllComments(true);
     console.log(`Autosave: comentario de la fila ${rowIndex} guardado.`);
   } catch (error) {
     console.error("Error en auto-guardado:", error);
@@ -1012,8 +939,43 @@ async function downloadRechazosFile() {
 }
 
 /*****************************************************
+ *  ========== ENVIAR ARCHIVO POR CORREO ==========
+ *****************************************************/
+async function sendFileByEmail() {
+  if (!AppState.isAdmin) return;
+  try {
+    if (!AppState.selectedFileData || !AppState.selectedFileData.ref) {
+      return showAlert("error", "Error", "No se ha seleccionado ningún archivo.");
+    }
+    
+    const defaultRecipients = "agavila@liverpool.com.mx,babanuelosr@liverpool.com.mx";
+    const fileRef = AppState.selectedFileData.ref;
+    const fileUrl = await fileRef.getDownloadURL();
+    const subject = encodeURIComponent("Envío de Archivo - Rechazos");
+    const body = encodeURIComponent(
+`Estimado/a,
+
+Adjunto encontrará el enlace para descargar el archivo de rechazos:
+
+${fileUrl}
+
+Quedo a su disposición para cualquier consulta o aclaración.
+
+Atentamente,
+[Su Nombre]`
+    );
+    const mailtoLink = `mailto:${defaultRecipients}?subject=${subject}&body=${body}`;
+    window.location.href = mailtoLink;
+    
+    showAlert("success", "Abrir correo", "Se ha abierto su cliente de correo para enviar el mensaje.");
+  } catch (error) {
+    console.error("Error al enviar el archivo por correo:", error);
+    showAlert("error", "Error", "No se pudo abrir el cliente de correo.");
+  }
+}
+
+/*****************************************************
  *  ========== GUARDAR COMENTARIOS (SIN RECARGAR) ==========
- * Se agregó el parámetro "silent" (por defecto false) para que, en modo auto-save, no se muestren alertas.
  *****************************************************/
 async function saveAllComments(silent = false) {
   if (isSaving) return;
@@ -1072,7 +1034,7 @@ async function saveAllComments(silent = false) {
         const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const newBlob = new Blob([wbout], { type: "application/octet-stream" });
         const newVersion = (parseInt(currentVersion) + 1).toString();
-        await fileRef.put(newBlob, { customMetadata: { ...metadata.customMetadata, version: newVersion } });
+        await fileRef.put(newBlob, { customMetadata: { version: newVersion } });
         AppState.selectedFileData = { name: "rechazos.xlsx", ref: fileRef };
         AppState.fileVersion = newVersion;
         if (!silent) {

@@ -15,16 +15,14 @@
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 
-  <!-- jQuery (requerido por Select2) -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <!-- Select2 JS -->
-  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- SheetJS (para manipulación de Excel) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/shim.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+  <!-- AOS (Animate On Scroll) -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 
   <style>
     :root {
@@ -44,7 +42,7 @@
       color: var(--gris-oscuro);
       min-height: 100vh;
     }
-    /* Header */
+    /* Header con animación de entrada */
     header {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -57,6 +55,11 @@
       justify-content: space-between;
       align-items: center;
       transition: background-color 0.3s ease;
+      animation: fadeInDown 0.8s ease-out both;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .header-title {
       font-size: 1.5rem;
@@ -70,6 +73,7 @@
       border: none;
       cursor: pointer;
     }
+    /* Animación de "pulse" en el botón de logout al pasar el cursor */
     #logout-btn {
       font-size: 1rem;
       display: flex;
@@ -84,8 +88,14 @@
     }
     #logout-btn:hover {
       background-color: #a71d2a;
+      animation: pulse 0.5s;
     }
-    /* Offcanvas */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    /* Offcanvas (Menú Lateral) */
     .offcanvas {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -107,24 +117,64 @@
     .btn-close {
       filter: brightness(0) invert(1);
     }
-    /* Contenedor Principal */
+    /* Contenedor Principal con animación de slide-up */
     .main-container {
-      max-width: 900px;
+      max-width: 1000px;
       margin: 2rem auto;
-      padding: 1.5rem;
-      background: var(--blanco);
-      border-radius: 16px;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-      animation: fadeIn 0.6s ease-in-out;
+      padding: 2rem 3rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      position: relative;
+      overflow: hidden;
+      animation: containerSlide 0.8s ease-out both;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+    @keyframes containerSlide {
+      from { opacity: 0; transform: translateY(50px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* Sección de carga de archivos (solo Admins) */
+    .main-container::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(230,0,126,0.15) 0%, transparent 70%);
+      animation: rotateBackground 10s linear infinite;
+      z-index: 0;
+    }
+    @keyframes rotateBackground {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .main-container > * {
+      position: relative;
+      z-index: 1;
+    }
+    .main-container h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--rosa-principal);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+    /* Sección de carga de archivos (Solo Admins) */
     #adminUploadSection {
       margin-bottom: 2rem;
     }
+    /* Sección de elección de archivo */
+    #userFilePickerSection {
+      margin-bottom: 2rem;
+    }
+    #userFilePickerSection h2 {
+      margin-bottom: 1rem;
+    }
+    /* Registro de SKUs */
+    #seccionRegistro {
+      margin-top: 2rem;
+    }
+    /* Dropzone con animación de zoom y giro al arrastrar */
     #dropzone {
       border: 2px dashed var(--rosa-principal);
       border-radius: 12px;
@@ -139,27 +189,27 @@
       background-color: #fff5f7;
       transform: scale(1.05);
     }
+    #dropzone.dragover i {
+      animation: rotateBounce 0.5s;
+    }
+    @keyframes rotateBounce {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(10deg); }
+      100% { transform: rotate(0deg); }
+    }
     #dropzone i {
       font-size: 3rem;
       margin-bottom: 1rem;
     }
-    /* Sección de selección de archivo */
-    #userFilePickerSection {
-      margin-bottom: 2rem;
+    /* Animación para el texto del archivo seleccionado */
+    #selectedFileName {
+      animation: fadeIn 0.8s ease-out;
     }
-    #userFilePickerSection h2 {
-      margin-bottom: 1rem;
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
-    /* Botones en la sección de elección de archivo: separación */
-    #chooseFileBtn,
-    #loadFileBtn {
-      margin-bottom: 0.75rem;
-    }
-    /* Sección de registro de SKUs */
-    #seccionRegistro {
-      margin-top: 2rem;
-    }
-    /* Modal de carga */
+    /* Modal de carga y alertas */
     .modal-loading {
       display: flex;
       justify-content: center;
@@ -205,7 +255,7 @@
     @media (max-width: 768px) {
       .main-container {
         margin: 1rem;
-        padding: 1rem;
+        padding: 1.5rem;
       }
       .header-title {
         font-size: 1.3rem;
@@ -223,7 +273,7 @@
 </head>
 <body>
   <!-- Header -->
-  <header class="d-flex justify-content-between align-items-center px-4 py-3">
+  <header data-aos="fade-down">
     <div class="d-flex align-items-center">
       <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral">
         <i class="bi bi-list"></i>
@@ -239,35 +289,45 @@
   <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
     </div>
     <div class="offcanvas-body p-0">
       <nav>
         <ul class="navbar-nav ms-auto">
-            <a class="nav-link active" href="../index.html"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
-            <a class="nav-link" href="index.html"><i class="bi bi-plus-circle me-2"></i> Checar Precios</a>
-            <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-file-earmark-text me-2"></i> Rechazos</a>
-            <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-box me-2"></i> Inventarios</a>
-            <a class="nav-link" href="../configuracion.html"><i class="bi bi-gear-fill me-2"></i> Configuración</a>
+          <a class="nav-link active" href="../index.html" data-aos="fade-right" data-aos-delay="100">
+            <i class="bi bi-house-door-fill me-2"></i> Inicio
+          </a>
+          <a class="nav-link" href="index.html" data-aos="fade-right" data-aos-delay="200">
+            <i class="bi bi-plus-circle me-2"></i> Checar Precios
+          </a>
+          <a class="nav-link" href="../Rechazos/reportes.html" data-aos="fade-right" data-aos-delay="300">
+            <i class="bi bi-file-earmark-text me-2"></i> Rechazos
+          </a>
+          <a class="nav-link" href="../Inventarios/Inventarios.html" data-aos="fade-right" data-aos-delay="400">
+            <i class="bi bi-box me-2"></i> Inventarios
+          </a>
+          <a class="nav-link" href="../configuracion.html" data-aos="fade-right" data-aos-delay="500">
+            <i class="bi bi-gear-fill me-2"></i> Configuración
+          </a>
+          
         </ul>
-    </nav>
-    
+      </nav>
     </div>
   </div>
 
-  <!-- Contenedor Principal -->
-  <div class="main-container">
+  <!-- Contenedor Principal con Animaciones AOS -->
+  <div class="main-container" data-aos="fade-up">
     <!-- Sección de carga de archivos (Solo Admins) -->
-    <div id="adminUploadSection" style="display: none;">
+    <div id="adminUploadSection" data-aos="fade-right" style="display: none;">
       <h2 class="mb-3"><i class="bi bi-upload me-2"></i> Cargar Archivo Excel</h2>
       <div class="mb-3">
         <label for="bossUploadSelect" class="form-label">Selecciona el jefe para el archivo:</label>
         <select id="bossUploadSelect" class="form-select">
           <option value="">Elige un jefe</option>
-          <!-- Las opciones se llenarán dinámicamente -->
+          <!-- Opciones dinámicas -->
         </select>
       </div>
-      <div id="dropzone">
+      <div id="dropzone" data-aos="zoom-in">
         <i class="bi bi-cloud-upload"></i>
         <p>Arrastra y suelta el archivo aquí, o haz clic para seleccionarlo.</p>
         <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
@@ -275,13 +335,13 @@
     </div>
 
     <!-- Sección para elegir archivo subido (Usuarios y Admins) -->
-    <div id="userFilePickerSection" class="my-4">
+    <div id="userFilePickerSection" data-aos="fade-left" class="my-4">
       <h2 class="mb-3"><i class="bi bi-folder-check me-2"></i> Elige un archivo subido</h2>
       <div class="mb-3">
         <label for="bossFilterSelect" class="form-label">Filtrar por jefe:</label>
         <select id="bossFilterSelect" class="form-select">
           <option value="Todos">Todos</option>
-          <!-- Las opciones se llenarán dinámicamente -->
+          <!-- Opciones dinámicas -->
         </select>
       </div>
       <div class="mb-3">
@@ -298,7 +358,7 @@
     </div>
 
     <!-- Sección de registro de SKUs (para usuarios que ya cargaron un archivo) -->
-    <div id="seccionRegistro" style="display: none;">
+    <div id="seccionRegistro" data-aos="fade-up" style="display: none;">
       <h2 class="mb-3"><i class="bi bi-upc me-2"></i> Registro de SKUs</h2>
       <form id="skuForm">
         <div class="mb-3">
@@ -315,8 +375,8 @@
         </div>
       </form>
       <!-- Mensaje de resultado -->
-      <div id="resultado" class="mt-3"></div>
-      <!-- Botones de acción, mejor separados -->
+      <div id="resultado" class="mt-3" data-aos="fade-up"></div>
+      <!-- Botones de acción -->
       <div class="d-grid gap-3 mt-3">
         <button class="btn btn-success" id="descargarBtn" disabled>
           <i class="bi bi-download me-2"></i> Descargar Registro Actualizado
@@ -331,14 +391,14 @@
   <!-- Modal para Seleccionar Archivo -->
   <div class="modal fade" id="fileSelectionModal" tabindex="-1" aria-labelledby="fileSelectionModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content">
+      <div class="modal-content" data-aos="zoom-in">
         <div class="modal-header">
           <h5 class="modal-title" id="fileSelectionModalLabel">Selecciona un Archivo</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
           <div id="fileListContainer" class="list-group">
-            <!-- La lista de archivos se generará dinámicamente -->
+            <!-- Lista de archivos generada dinámicamente -->
           </div>
         </div>
         <div class="modal-footer">
@@ -367,7 +427,18 @@
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js" defer></script>
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-storage-compat.js" defer></script>
-  <!-- Script de la Lógica de la Página (dashboard.js) -->
+  <!-- Script de la Lógica de la Página -->
   <script src="./dashboard.js" defer></script>
+  <!-- AOS Library -->
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script>
+    // Configuración de AOS para que los elementos se animen al entrar/salir del viewport
+    AOS.init({
+      once: false,       // Permite que la animación se repita cada vez que el elemento entra en pantalla
+      offset: 150,       // Distancia en px para disparar la animación
+      duration: 800,     // Duración de la animación
+      easing: 'ease-in-out'
+    });
+  </script>
 </body>
 </html>
