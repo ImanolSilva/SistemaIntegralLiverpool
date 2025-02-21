@@ -2,12 +2,18 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Configuración - Sistema de Inventarios</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
-  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+  
+  <!-- Fuentes y Bootstrap -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <!-- AOS -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+  
   <style>
     :root {
       --rosa-principal: #E6007E;
@@ -16,7 +22,9 @@
       --blanco: #ffffff;
       --gris-oscuro: #333333;
       --gris-claro: #f8f9fa;
+      --sombra-card: 0 4px 10px rgba(0,0,0,0.1);
     }
+    /* Estilo General */
     body {
       font-family: 'Poppins', Arial, sans-serif;
       background: linear-gradient(to right, var(--rosa-principal), var(--negro));
@@ -25,73 +33,241 @@
       color: var(--gris-oscuro);
       min-height: 100vh;
     }
+    /* Header */
     header {
       background-color: var(--rosa-principal);
       color: var(--blanco);
       padding: 10px 20px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       position: sticky;
       top: 0;
       z-index: 1000;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
     }
     .btn-menu {
       font-size: 1.5rem;
       background: transparent;
       color: #fff;
       border: none;
+      cursor: pointer;
     }
+    /* Botón de Cerrar Sesión */
     #logout-btn {
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
       background-color: #c82333;
-      color: #fff;
+      border: none;
+      color: #ffffff;
     }
+    #logout-btn:hover {
+      background-color: #a71d2a;
+    }
+    /* Menú Lateral (Offcanvas) */
     .offcanvas {
       background-color: var(--rosa-principal);
       color: var(--blanco);
+    }
+    .offcanvas-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .nav-link {
+      color: var(--blanco);
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      transition: background-color 0.3s ease;
     }
     .nav-link:hover {
       background-color: var(--rosa-secundario);
       color: var(--gris-oscuro);
     }
+    /* Contenedor Principal */
+    .main-container {
+      max-width: 1000px;
+      margin: 3rem auto;
+      padding: 2rem 3rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      position: relative;
+      overflow: hidden;
+      animation: containerSlide 0.8s ease-out both;
+    }
+    @keyframes containerSlide {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .main-container::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(230,0,126,0.15) 0%, transparent 70%);
+      animation: rotateBackground 10s linear infinite;
+      z-index: 0;
+    }
+    @keyframes rotateBackground {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .main-container > * {
+      position: relative;
+      z-index: 1;
+    }
+    .main-container h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--rosa-principal);
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+    }
+    /* Card de Configuración */
+    .config-card {
+      background-color: var(--blanco);
+      border-radius: 12px;
+      box-shadow: var(--sombra-card);
+      padding: 2rem;
+    }
+    .config-card h2 {
+      margin-bottom: 1.5rem;
+      color: var(--rosa-principal);
+    }
+    .config-card h4 {
+      color: var(--rosa-principal);
+    }
+    .config-card p {
+      font-size: 1rem;
+    }
+    /* AOS */
+    [data-aos] {
+      opacity: 0;
+      transition: opacity 0.8s, transform 0.8s;
+    }
+    [data-aos].aos-animate {
+      opacity: 1;
+      transform: none;
+    }
+    /* Responsividad */
+    @media (max-width: 576px) {
+      .main-container {
+        padding: 1.5rem;
+      }
+      .main-container h2 {
+        font-size: 2rem;
+      }
+      #logout-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <button class="btn-menu" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><i class="bi bi-list"></i></button>
-    <h5>Configuración</h5>
-    <button class="btn btn-danger" id="logout-btn"><i class="bi bi-power"></i></button>
+  <!-- Header -->
+  <header class="d-flex justify-content-between align-items-center px-4 py-3">
+    <div class="d-flex align-items-center">
+      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral">
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="header-title">Configuración</div>
+    </div>
+    <button class="btn btn-danger" id="logout-btn" aria-label="Cerrar sesión">
+      <i class="bi bi-power"></i>
+    </button>
   </header>
 
-  <div class="offcanvas offcanvas-start" id="menuLateral">
-    <div class="offcanvas-header">
-      <h5>Menú</h5>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body">
-      <nav>
-        <a class="nav-link text-white" href="../index.html"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
-        <a class="nav-link text-white" href="index.html"><i class="bi bi-plus-circle me-2"></i> Checar Precios</a>
-        <a class="nav-link text-white" href="../Rechazos/reportes.html"><i class="bi bi-file-earmark-text me-2"></i> Rechazos</a>
-        <a class="nav-link text-white" href="../Inventarios/Inventarios.html"><i class="bi bi-box me-2"></i> Inventarios</a>
-        <a class="nav-link text-white active" href="../configuracion.html"><i class="bi bi-gear-fill me-2"></i> Configuración</a>
-      </nav>
-    </div>
+<!-- Menú Lateral (Offcanvas) -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
   </div>
-
-  <div class="main-container">
-    <h2>Configuración</h2>
-    <div id="user-info">
-      <h4>Datos del Usuario</h4>
-      <p><strong>Nombre:</strong> <span id="user-name"></span></p>
-      <p><strong>Email:</strong> <span id="user-email"></span></p>
-      <p><strong>UID:</strong> <span id="user-uid"></span></p>
-    </div>
+  <div class="offcanvas-body p-0">
+    <nav class="nav flex-column">
+      <ul class="navbar-nav">
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="100">
+          <a class="nav-link active d-flex align-items-center" href="../index.html">
+            <i class="bi bi-house-door-fill me-2"></i>
+            <span>Inicio</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="200">
+          <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html">
+            <i class="bi bi-tags me-2"></i>
+            <span>Checar Precios</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="300">
+          <a class="nav-link d-flex align-items-center" href="../Rechazos/reportes.html">
+            <i class="bi bi-x-octagon-fill me-2"></i>
+            <span>Rechazos</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="400">
+          <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html">
+            <i class="bi bi-archive me-2"></i>
+            <span>Inventarios</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="500">
+          <a class="nav-link d-flex align-items-center" href="../configuracion.html">
+            <i class="bi bi-sliders me-2"></i>
+            <span>Configuración</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="600">
+          <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html">
+            <i class="bi bi-file-earmark-check me-2"></i>
+            <span>Manifiestos</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
   </div>
+</div>
 
+
+  <!-- Contenido Principal -->
+  <section class="container main-container" data-aos="fade-up" data-aos-duration="1000">
+    <div class="config-card" data-aos="zoom-in" data-aos-duration="1000">
+      <h2><i class="bi bi-person-circle me-2"></i> Configuración del Usuario</h2>
+      <div id="user-info">
+        <h4>Datos del Usuario</h4>
+        <p><strong>Nombre:</strong> <span id="user-name">Cargando...</span></p>
+        <p><strong>Email:</strong> <span id="user-email">Cargando...</span></p>
+        <p><strong>UID:</strong> <span id="user-uid">Cargando...</span></p>
+      </div>
+      <hr>
+      <!-- Sección de Información Adicional (relleno) -->
+      <div id="extra-info">
+        <h4>Acerca del Sistema</h4>
+        <p>Versión: 1.0.0</p>
+        <p>Esta aplicación ha sido desarrollada para ayudarte a gestionar y controlar el inventario en tiempo real. Si tienes alguna duda o sugerencia, por favor contacta al soporte.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cargar Firebase (Compat) y SweetAlert2 -->
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
+    // Configuración de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
       authDomain: "loginliverpool.firebaseapp.com",
@@ -99,21 +275,34 @@
       storageBucket: "loginliverpool.appspot.com",
       messagingSenderId: "704223815941",
       appId: "1:704223815941:web:c871525230fb61caf96f6c",
-      measurementId: "G-QFEPQ4TSPY",
+      measurementId: "G-QFEPQ4TSPY"
     };
     firebase.initializeApp(firebaseConfig);
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
-        document.getElementById('user-name').textContent = user.displayName;
+        document.getElementById('user-name').textContent = user.displayName || "Sin nombre";
         document.getElementById('user-email').textContent = user.email;
         document.getElementById('user-uid').textContent = user.uid;
       } else {
         Swal.fire('Error', 'No hay usuario autenticado', 'error');
       }
     });
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      firebase.auth().signOut().then(() => {
+        window.location.href = "../Login/login.html";
+      }).catch(error => {
+        console.error("Error al cerrar sesión:", error);
+      });
+    });
   </script>
+  
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-  <script>AOS.init();</script>
+  <!-- AOS JS -->
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script>
+    AOS.init();
+  </script>
 </body>
 </html>

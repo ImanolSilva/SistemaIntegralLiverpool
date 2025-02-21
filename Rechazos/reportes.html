@@ -208,26 +208,56 @@
     </button>
   </header>
 
-  <!-- Offcanvas (Menú Lateral) - sin modificaciones -->
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-      <nav class="nav flex-column">
-        <nav>
-          <ul class="navbar-nav ms-auto">
-              <a class="nav-link active" href="../index.html"><i class="bi bi-house-door-fill me-2"></i> Inicio</a>
-              <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-plus-circle me-2"></i> Checar Precios</a>
-              <a class="nav-link" href="reportes.html"><i class="bi bi-file-earmark-text me-2"></i> Rechazos</a>
-              <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-box me-2"></i> Inventarios</a>
-              <a class="nav-link" href="../configuracion.html"><i class="bi bi-gear-fill me-2"></i> Configuración</a>
-          </ul>
-        </nav>
-      </nav>
-    </div>
+<!-- Offcanvas (Menú Lateral) -->
+<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
   </div>
+  <div class="offcanvas-body p-0">
+    <nav class="nav flex-column">
+      <ul class="navbar-nav" style="padding-left: 0; margin-left: 0;">
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="100">
+          <a class="nav-link active d-flex align-items-center" href="../index.html" style="padding-left: 1rem;">
+            <i class="bi bi-house-door-fill me-2"></i>
+            <span>Inicio</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="200">
+          <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html" style="padding-left: 1rem;">
+            <i class="bi bi-tags me-2"></i>
+            <span>Checar Precios</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="300">
+          <a class="nav-link d-flex align-items-center" href="reportes.html" style="padding-left: 1rem;">
+            <i class="bi bi-x-octagon-fill me-2"></i>
+            <span>Rechazos</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="400">
+          <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html" style="padding-left: 1rem;">
+            <i class="bi bi-archive me-2"></i>
+            <span>Inventarios</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="500">
+          <a class="nav-link d-flex align-items-center" href="../Configuraciones/Configuracion.html" style="padding-left: 1rem;">
+            <i class="bi bi-sliders me-2"></i>
+            <span>Configuración</span>
+          </a>
+        </li>
+        <li class="nav-item" data-aos="fade-right" data-aos-delay="600">
+          <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html" style="padding-left: 1rem;">
+            <i class="bi bi-file-earmark-check me-2"></i>
+            <span>Manifiestos</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
 
   <!-- Sección Principal con Animaciones AOS -->
   <section class="container main-container" data-aos="fade-up" data-aos-duration="1000">
