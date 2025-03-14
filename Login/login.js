@@ -267,7 +267,7 @@
       }
       showSwalAlert("success", "Registro enviado. Espera aprobación del administrador.");
       setTimeout(() => {
-        window.location.href = "Pendientes/pending.html";
+        window.location.href = "../Pendientes/pending.html";
       }, 1200);
     } catch (error) {
       console.error("Error al guardar registro adicional:", error);
