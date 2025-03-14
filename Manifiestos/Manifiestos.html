@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Manifestar Mercancía - Control en Tiempo Real</title>
   
-  <!-- Fuentes, Bootstrap, Bootstrap Icons, SweetAlert2 y AOS -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Fuente Poppins -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <!-- SweetAlert2 CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <!-- AOS CSS -->
   <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-  
+  <!-- Animate.css (para alertas) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
   <style>
-    /* VARIABLES DE COLOR */
     :root {
       --rosa-principal: #E6007E;
       --rosa-secundario: #F8BBD0;
@@ -21,23 +26,16 @@
       --blanco: #ffffff;
       --gris-oscuro: #333333;
       --verde-vivo: #66BB6A;
+      --bg-gradient: linear-gradient(135deg, #f7f7f7 0%, #f0f0f0 100%);
     }
-    /* Clase para badges de ancho fijo */
-    .badge-fixed {
-      display: inline-block;
-      min-width: 2em;
-      text-align: center;
-    }
-    /* ESTILO GENERAL */
     body {
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(to right, var(--rosa-principal), var(--negro));
-      margin: 0;
-      padding: 0;
+      background: var(--bg-gradient);
+      margin: 0; 
+      padding: 0; 
       color: var(--gris-oscuro);
       min-height: 100vh;
     }
-    a { text-decoration: none; }
     /* HEADER */
     header {
       background-color: var(--rosa-principal);
@@ -54,7 +52,8 @@
     }
     .header-title {
       font-size: 1.8rem;
-      font-weight: 600;
+      font-weight: 700;
+      margin: 0;
     }
     .btn-menu {
       font-size: 1.8rem;
@@ -63,19 +62,22 @@
       border: none;
       cursor: pointer;
     }
-    /* Logout */
     #logout-btn {
       font-size: 1rem;
       display: flex;
       align-items: center;
-      padding: 0.6rem;
+      padding: 0.6rem 1rem;
       border-radius: 8px;
       background-color: #c82333;
       border: none;
       color: var(--blanco);
-      transition: background-color 0.3s ease;
+      font-weight: 600;
+      transition: background-color 0.2s ease-in-out;
     }
-    #logout-btn:hover { background-color: #a71d2a; }
+    #logout-btn:hover {
+      background-color: #a71d2a;
+    }
+
     /* MENÚ LATERAL */
     .offcanvas {
       background-color: var(--rosa-principal);
@@ -83,70 +85,88 @@
     }
     .offcanvas-header { padding: 1rem; }
     .offcanvas-body { padding: 0; }
-    .offcanvas-title { font-size: 1.3rem; font-weight: 600; }
-    .navbar-nav { padding-left: 1rem; }
+    .offcanvas-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+    .navbar-nav {
+      padding-left: 1rem;
+    }
     .navbar-nav .nav-link {
       color: var(--blanco);
       font-size: 1rem;
       padding: 0.75rem 1.5rem;
       transition: background-color 0.3s ease;
       display: block;
-      text-decoration: none;
+      font-weight: 500;
     }
     .navbar-nav .nav-link:hover {
       background-color: var(--rosa-secundario);
       color: var(--gris-oscuro);
     }
+
     /* CONTENEDOR PRINCIPAL */
     .main-container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 3rem auto;
-      padding: 2rem 3rem;
+      padding: 2.5rem 3rem;
       background: #fff;
       border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.12);
       position: relative;
       overflow: hidden;
       animation: containerSlide 0.8s ease-out both;
     }
     @keyframes containerSlide {
       from { opacity: 0; transform: translateY(50px); }
-      to { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .main-container h2 {
-      font-size: 2.5rem;
-      font-weight: 600;
+      font-size: 2.3rem;
+      font-weight: 700;
       margin-bottom: 1.5rem;
       color: var(--rosa-principal);
       text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+      text-align: center;
     }
+    #userInfo {
+      text-align: right;
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
     /* DROPZONE */
     #dropzone {
       border: 2px dashed var(--rosa-principal);
       border-radius: 12px;
-      background-color: #f1f8ff;
+      background-color: #fff; 
       padding: 2rem;
       text-align: center;
       color: var(--rosa-principal);
       cursor: pointer;
-      transition: transform 0.3s ease;
+      transition: transform 0.3s ease, background-color 0.3s ease;
       margin-bottom: 2rem;
     }
-    #dropzone:hover { transform: scale(1.02); }
+    #dropzone:hover {
+      transform: scale(1.02);
+      background-color: #fafafa;
+    }
+
     /* BOTONES */
-    .btn, .action-btn {
-      border-radius: 8px;
-      transition: all 0.2s ease-in-out;
+    .btn {
+      border: none;
+      border-radius: 5px;
+      font-weight: 600;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
-    .btn:hover, .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    .btn:hover {
+      transform: none;
+      box-shadow: none;
+      filter: brightness(95%);
     }
-    /* Sección de Gestión de Archivos para Admins */
-    #adminFilesSection {
-      margin-top: 1rem;
-    }
-    /* TABLA MODERNA */
+
+    /* TABLA */
     .table-responsive {
       overflow: hidden;
       width: 100%;
@@ -154,8 +174,16 @@
     .table-responsive table {
       width: 100%;
       table-layout: fixed;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       border-collapse: collapse;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .table-responsive thead th {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+      font-weight: 700;
+      border-bottom: 2px solid #E6007E;
     }
     .table-responsive th,
     .table-responsive td {
@@ -165,24 +193,11 @@
       border: 1px solid #ddd;
       text-align: center;
     }
-    .table-responsive thead th {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-    }
     .table-responsive tbody tr:hover {
       background-color: #fce4ec;
     }
-    /* Animaciones */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
-      100% { transform: scale(1); }
-    }
-    /* MODO APILADO EN MÓVILES */
+
+    /* Responsivo */
     @media (max-width: 576px) {
       .table-responsive table,
       .table-responsive thead,
@@ -192,8 +207,15 @@
       .table-responsive tr {
         display: block;
       }
-      .table-responsive thead tr { position: absolute; top: -9999px; left: -9999px; }
-      .table-responsive tr { border: 1px solid #ccc; margin-bottom: 1rem; }
+      .table-responsive thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+      .table-responsive tr {
+        border: 1px solid #ccc;
+        margin-bottom: 1rem;
+      }
       .table-responsive td {
         border: none;
         border-bottom: 1px solid #eee;
@@ -201,108 +223,88 @@
         padding-left: 45%;
         text-align: left;
       }
-      .table-responsive td:before {
-        position: absolute;
-        top: 0;
-        left: 6px;
-        width: 38%;
-        padding-right: 10px;
-        white-space: nowrap;
-        font-weight: bold;
-      }
-      .table-responsive td:nth-of-type(1):before { content: "Sección"; }
-      .table-responsive td:nth-of-type(2):before { content: "Contenedor"; }
-      .table-responsive td:nth-of-type(3):before { content: "SKU"; }
-      .table-responsive td:nth-of-type(4):before { content: "Descripción"; }
-      .table-responsive td:nth-of-type(5):before { content: "SAP"; }
-      .table-responsive td:nth-of-type(6):before { content: "SCANNER"; }
-      .table-responsive td:nth-of-type(7):before { content: "Diferencia"; }
       .main-container { padding: 1.5rem; }
       .main-container h2 { font-size: 2rem; }
       #logout-btn { padding: 0.4rem 0.8rem; font-size: 0.9rem; }
     }
-    .offcanvas.offcanvas-start {
-  left: 0 !important;
-}
-
+    .offcanvas.offcanvas-start { left: 0 !important; }
   </style>
 </head>
 <body>
   <!-- HEADER -->
   <header class="d-flex justify-content-between align-items-center px-4 py-3">
     <div class="d-flex align-items-center">
-      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral">
+      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas"
+              data-bs-target="#menuLateral" aria-controls="menuLateral">
         <i class="bi bi-list"></i>
       </button>
-      <div class="header-title">Manifestar Mercancía</div>
+      <h1 class="header-title">Manifestar Mercancía</h1>
     </div>
     <button class="btn btn-danger" id="logout-btn" aria-label="Cerrar sesión">
       <i class="bi bi-power"></i>
     </button>
   </header>
 
-<!-- Menú Lateral (Offcanvas) -->
-<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+  <!-- Menú Lateral (Offcanvas) -->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+      <nav class="nav flex-column">
+        <ul class="navbar-nav" style="padding-left: 0; margin-left: 0;">
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../index.html" style="padding-left: 1rem;">
+              <i class="bi bi-house-door-fill me-2"></i>
+              <span>Inicio</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html" style="padding-left: 1rem;">
+              <i class="bi bi-tags me-2"></i>
+              <span>Checar Precios</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Rechazos/reportes.html" style="padding-left: 1rem;">
+              <i class="bi bi-x-octagon-fill me-2"></i>
+              <span>Rechazos</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html" style="padding-left: 1rem;">
+              <i class="bi bi-archive me-2"></i>
+              <span>Inventarios</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Configuraciones/Configuracion.html" style="padding-left: 1rem;">
+              <i class="bi bi-sliders me-2"></i>
+              <span>Configuración</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html" style="padding-left: 1rem;">
+              <i class="bi bi-file-earmark-check me-2"></i>
+              <span>Manifiestos</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
   </div>
-  <div class="offcanvas-body p-0">
-    <nav class="nav flex-column">
-      <ul class="navbar-nav" style="padding-left: 0; margin-left: 0;">
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="100">
-          <a class="nav-link d-flex align-items-center" href="../index.html" style="padding-left: 1rem;">
-            <i class="bi bi-house-door-fill me-2"></i>
-            <span>Inicio</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="200">
-          <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html" style="padding-left: 1rem;">
-            <i class="bi bi-tags me-2"></i>
-            <span>Checar Precios</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="300">
-          <a class="nav-link d-flex align-items-center" href="../Rechazos/reportes.html" style="padding-left: 1rem;">
-            <i class="bi bi-x-octagon-fill me-2"></i>
-            <span>Rechazos</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="400">
-          <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html" style="padding-left: 1rem;">
-            <i class="bi bi-archive me-2"></i>
-            <span>Inventarios</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="500">
-          <a class="nav-link d-flex align-items-center active" href="../Configuraciones/Configuracion.html" style="padding-left: 1rem;">
-            <i class="bi bi-sliders me-2"></i>
-            <span>Configuración</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="600">
-          <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html" style="padding-left: 1rem;">
-            <i class="bi bi-file-earmark-check me-2"></i>
-            <span>Manifiestos</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</div>
 
-
-
-
-
-  <!-- CONTENEDOR PRINCIPAL -->
+  <!-- Contenedor Principal -->
   <section class="container main-container" data-aos="fade-up" data-aos-duration="1000">
-    <!-- Sección de Carga de Archivos (Solo Admins) -->
+    <div id="userInfo"></div>
+
+    <!-- Sección de Carga de Archivos (Admin/Jefe/Auxiliar) -->
     <div id="adminUploadSection" data-aos="zoom-in" style="display: none;">
-      <div class="card mb-4">
-        <div class="card-header text-center">
-          <h2 class="h4" style="color: var(--rosa-principal);">
-            <i class="bi bi-upload me-1"></i> Subir Archivo
+      <div class="card mb-4" style="border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+        <div class="card-header text-center bg-white border-0" style="border-radius:15px 15px 0 0;">
+          <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
+            <i class="bi bi-upload me-1"></i> Subir Archivo Manifiesto
           </h2>
         </div>
         <div class="card-body text-center">
@@ -313,9 +315,8 @@
             <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
           </div>
           <p id="selectedFileName" class="text-muted"></p>
-          <!-- Botón de subir y ver archivos juntos en la misma fila -->
           <div class="d-flex justify-content-center gap-2 mt-3">
-            <button id="uploadFileBtn" class="btn btn-primary action-btn" disabled>
+            <button id="uploadFileBtn" class="btn btn-primary" disabled>
               <i class="bi bi-upload me-1"></i> Subir
             </button>
             <button id="btnVerArchivos" class="btn btn-secondary">
@@ -326,40 +327,40 @@
       </div>
     </div>
 
-    <!-- Sección para Escanear Referencia (para todos) -->
-    <div id="referenceScanSection" data-aos="fade-up" class="mb-4">
-      <div class="card shadow-sm">
-        <div class="card-header text-center bg-white border-0">
-          <h2 class="h4" style="color: var(--rosa-principal);">
+    <!-- Sección para Escanear Referencia -->
+    <div id="referenceScanSection" class="mb-4">
+      <div class="card shadow-sm" style="border-radius:15px;">
+        <div class="card-header text-center bg-white border-0" style="border-radius:15px 15px 0 0;">
+          <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
             <i class="bi bi-upc-scan me-1"></i> Escanear Referencia
           </h2>
         </div>
         <div class="card-body">
-          <div class="row g-3 align-items-center">
-            <div class="col-md-9">
-              <input type="text" id="inputReferencia" class="form-control" placeholder="Ej: CONT123 o ART456">
-            </div>
-            <div class="col-md-3">
-              <button id="btnBuscarReferencia" class="btn btn-primary btn-sm w-100">
-                <i class="bi bi-search me-1"></i> Buscar
-              </button>
-            </div>
-          </div>
+          <input type="text" id="inputReferencia" class="form-control" placeholder="Ej: CONT123 o ART456">
+          <small class="text-muted d-block mt-1">
+            Después de 5 dígitos, buscará automáticamente.
+          </small>
         </div>
       </div>
     </div>
 
     <!-- Sección de Resultados del Contenedor -->
-    <div id="containerResultsSection" data-aos="fade-up" style="display: none;" class="mb-4">
-      <div class="card shadow-sm">
-        <div class="card-header text-center bg-white border-0">
-          <h2 class="h4" style="color: var(--rosa-principal);">
+    <div id="containerResultsSection" style="display: none;" class="mb-4">
+      <div class="card shadow-sm" style="border-radius:15px;">
+        <div class="card-header text-center bg-white border-0" style="border-radius:15px 15px 0 0;">
+          <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
             <i class="bi bi-box-seam me-1"></i> Detalles del Contenedor
           </h2>
-          <p id="selectedFileToWork" class="fw-bold"></p>
-          <button id="btnAnalisisGlobal" class="btn btn-info btn-sm mt-2">Análisis Global</button>
+          <p id="selectedFileToWork" class="fw-bold" style="margin-bottom:0;"></p>
+          <p id="lastUserUpdate" class="text-muted" style="font-size:0.9rem;"></p>
+          <button id="btnAnalisisGlobal" class="btn btn-info btn-sm mt-2">
+            <i class="bi bi-bar-chart-fill"></i> Análisis Global
+          </button>
+          <button id="btnCerrarContenedor" class="btn btn-danger btn-sm mt-2" style="margin-left:10px;">
+            <i class="bi bi-box-arrow-in-down"></i> Cerrar Contenedor
+          </button>
         </div>
-        <div id="containerDetails" class="card-body table-responsive">
+        <div id="containerDetails" class="card-body table-responsive" style="border-radius:0 0 15px 15px;">
           <!-- Aquí se mostrarán los registros filtrados -->
         </div>
         <div id="downloadSection" class="p-3" style="display: none; text-align: center;">
@@ -370,30 +371,36 @@
       </div>
     </div>
 
-    <!-- Sección de Registro de Escaneo (para todos) -->
-    <div id="scanEntrySection" data-aos="fade-up" style="display: none;" class="mb-4">
-      <div class="card shadow-sm">
-        <div class="card-header text-center bg-white border-0">
-          <h2 class="h4" style="color: var(--rosa-principal);">
-            <i class="bi bi-upc me-1"></i> Registro de Escaneo
+    <!-- Sección de Registro de Piezas -->
+    <div id="scanEntrySection" style="display: none;" class="mb-4">
+      <div class="card shadow-sm" style="border-radius:15px;">
+        <div class="card-header text-center bg-white border-0" style="border-radius:15px 15px 0 0;">
+          <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
+            <i class="bi bi-upc me-1"></i> Registro de Piezas
           </h2>
         </div>
         <div class="card-body">
-          <input type="text" id="inputScanCode" class="form-control" placeholder="Escanee el código aquí" autofocus>
-          <small class="text-muted d-block mt-2">
-            Presione Enter o, al detectar más de 9 dígitos, se buscará automáticamente.
+          <input type="text" id="inputScanCode" class="form-control" placeholder="Escanee el código aquí">
+          <small class="text-muted d-block mt-1">
+            Después de 5 dígitos, se sumará automáticamente a SCANNER. O presiona Enter.
           </small>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- SCRIPTS: Firebase -->
+  <!-- Scripts Firebase y otras librerías -->
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
   <script>
+    // ============= (A) Firebase Config =============
     const firebaseConfig = {
       apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
       authDomain: "loginliverpool.firebaseapp.com",
@@ -401,689 +408,1080 @@
       storageBucket: "loginliverpool.appspot.com",
       messagingSenderId: "704223815941",
       appId: "1:704223815941:web:c871525230fb61caf96f6c",
-      measurementId: "G-QFEPQ4TSPY"
+      measurementId: "G-QFEPQ4TSPY",
     };
+
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
-    const auth = firebase.auth();
+
     const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
     const db = firebase.firestore();
-  </script>
+    const auth = firebase.auth();
 
-  <!-- Otras librerías -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    // ============= (B) Variables Globales =============
+    const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2";
+    let currentUser = null;
+    let currentUserStore = null;
+    let currentUserRole = null;
+    let currentContenedor = null;
+    let currentContainerRecords = [];
+    let excelDataGlobal = {};
 
-  <!-- Script principal -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      AOS.init();
-      
-      // VARIABLES GLOBALES
-      const adminUIDs = ["doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "OaieQ6cGi7TnW0nbxvlk2oyLaER2"];
-      let currentUser = null;
-      let excelDataGlobal = {};  // Almacenará los datos de cada archivo subido
-      let currentContainerRecords = [];
-      let currentContenedor = null;
-      
-      // AUTENTICACIÓN: Sólo los admins ven la sección de carga y gestión
-      auth.onAuthStateChanged(user => {
-        currentUser = user;
-        if (currentUser && adminUIDs.includes(currentUser.uid)) {
-          document.getElementById('adminUploadSection').style.display = 'block';
-        } else {
-          document.getElementById('adminUploadSection').style.display = 'none';
-        }
-      });
-      
-      function showToast(icon, title) {
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: icon,
-          title: title,
-          showConfirmButton: false,
-          timer: 2000,
-          timerProgressBar: true,
-          didOpen: (toast) => {
-            toast.addEventListener('mouseenter', Swal.stopTimer);
-            toast.addEventListener('mouseleave', Swal.resumeTimer);
-          }
-        });
-      }
-      
-      // CERRAR SESIÓN: Solo se asigna el listener si existe el botón
-      const logoutBtn = document.getElementById('logout-btn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-          auth.signOut().then(() => {
-            window.location.href = "../Login/login.html";
-          }).catch(error => {
-            console.error("Error al cerrar sesión:", error);
-          });
-        });
-      }
-      
-      // --- FUNCIONES DE ANÁLISIS ---
-      function checkContainerCompleteness(records) {
-        let missingDetails = [];
-        let extraDetails = [];
-        const totalCount = records.length;
-        let completeCount = 0;
-        records.forEach(r => {
-          const SAP = r.SAP || 0;
-          const SCANNER = r.SCANNER || 0;
-          if (SCANNER >= SAP && SAP > 0) {
-            completeCount++;
-          } else if (SCANNER < SAP) {
-            missingDetails.push({ sku: r.SKU, faltan: SAP - SCANNER });
-          }
-          if (SCANNER > SAP && SAP > 0) {
-            extraDetails.push({ sku: r.SKU, deMas: SCANNER - SAP });
-          }
-        });
-        const complete = (completeCount === totalCount);
-        let msg = `<p><strong>Contenedor:</strong> ${records[0].CONTENEDOR}</p>`;
-        msg += `<table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
-                  <tr>
-                    <td style="border:1px solid #ddd; padding:5px; text-align:center;">Completos:</td>
-                    <td style="border:1px solid #ddd; padding:5px; text-align:center;" class="badge bg-success badge-fixed">${completeCount}</td>
-                  </tr>
-                  <tr>
-                    <td style="border:1px solid #ddd; padding:5px; text-align:center;">Faltantes:</td>
-                    <td style="border:1px solid #ddd; padding:5px; text-align:center;" class="badge bg-danger badge-fixed">${missingDetails.length}</td>
-                  </tr>
-                  <tr>
-                    <td style="border:1px solid #ddd; padding:5px; text-align:center;">Excedentes:</td>
-                    <td style="border:1px solid #ddd; padding:5px; text-align:center;" class="badge bg-warning badge-fixed">${extraDetails.length}</td>
-                  </tr>
-                </table>`;
-        if (missingDetails.length > 0) {
-          msg += `<p><strong>Detalle de Faltantes:</strong></p>`;
-          msg += `<table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
-                    <thead>
-                      <tr>
-                        <th style="border:1px solid #ddd; padding:5px;">SKU</th>
-                        <th style="border:1px solid #ddd; padding:5px;">Faltan</th>
-                      </tr>
-                    </thead>
-                    <tbody>`;
-          missingDetails.forEach(item => {
-            msg += `<tr>
-                      <td style="border:1px solid #ddd; padding:5px; text-align:center;">${item.sku}</td>
-                      <td style="border:1px solid #ddd; padding:5px; text-align:center;">${item.faltan} uds</td>
-                    </tr>`;
-          });
-          msg += `</tbody></table>`;
-        }
-        if (extraDetails.length > 0) {
-          msg += `<p><strong>Detalle de Excedentes:</strong></p>`;
-          msg += `<table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
-                    <thead>
-                      <tr>
-                        <th style="border:1px solid #ddd; padding:5px;">SKU</th>
-                        <th style="border:1px solid #ddd; padding:5px;">De más</th>
-                      </tr>
-                    </thead>
-                    <tbody>`;
-          extraDetails.forEach(item => {
-            msg += `<tr>
-                      <td style="border:1px solid #ddd; padding:5px; text-align:center;">${item.sku}</td>
-                      <td style="border:1px solid #ddd; padding:5px; text-align:center;">${item.deMas} uds</td>
-                    </tr>`;
-          });
-          msg += `</tbody></table>`;
-        }
-        if (complete) {
-          const worker = currentUser ? (currentUser.displayName || currentUser.email) : "Desconocido";
-          msg += `<p class="text-success" style="margin:0;"><i class="bi bi-check-circle"></i> Contenedor completado.<br>Trabajado por: <strong>${worker}</strong></p>`;
-        }
-        msg += `<p>¿Desea continuar con este contenedor?</p>`;
-        return { incomplete: (missingDetails.length > 0 || extraDetails.length > 0), msg, complete };
-      }
-      
-      // Función de análisis global de todo el archivo con diseño mejorado, iconos y animaciones
-      function checkGlobalCompleteness(records) {
-        const grupos = {};
-        records.forEach(r => {
-          const cont = r.CONTENEDOR || "Sin contenedor";
-          if (!grupos[cont]) grupos[cont] = [];
-          grupos[cont].push(r);
-        });
-        let overallComplete = true;
-        let msg = `<div style="font-family: 'Poppins', sans-serif;">`;
-        for (const cont in grupos) {
-          const grupo = grupos[cont];
-          let completeCount = 0, missingCount = 0, extraCount = 0;
-          const totalCount = grupo.length;
-          grupo.forEach(r => {
-            const SAP = r.SAP || 0;
-            const SCANNER = r.SCANNER || 0;
-            if (SCANNER >= SAP && SAP > 0) {
-              completeCount++;
-            } else {
-              if (SCANNER < SAP) missingCount++;
-              if (SCANNER > SAP) extraCount++;
-            }
-          });
-          const isComplete = (completeCount === totalCount);
-          if (!isComplete) overallComplete = false;
-          msg += `<div style="margin-bottom: 1rem; padding: 1rem; border: 2px solid ${isComplete ? '#66BB6A' : '#F44336'}; border-radius: 10px; animation: fadeIn 1s;">`;
-          msg += `<h5 style="margin-bottom: 0.5rem; color: ${isComplete ? '#66BB6A' : '#F44336'};">`;
-          msg += isComplete ? `<i class="bi bi-check-circle-fill"></i> ` : `<i class="bi bi-exclamation-triangle-fill"></i> `;
-          msg += `Contenedor: ${cont}</h5>`;
-          msg += `<div style="display: flex; justify-content: space-between;">`;
-          msg += `<span style="background: #66BB6A; color: #fff; padding: 0.3rem 0.6rem; border-radius: 5px; animation: pulse 1.5s infinite;">Completos: ${completeCount}</span>`;
-          msg += `<span style="background: #F44336; color: #fff; padding: 0.3rem 0.6rem; border-radius: 5px; animation: pulse 1.5s infinite;">Faltantes: ${missingCount}</span>`;
-          msg += `<span style="background: #FFEB3B; color: #000; padding: 0.3rem 0.6rem; border-radius: 5px; animation: pulse 1.5s infinite;">Excedentes: ${extraCount}</span>`;
-          msg += `</div></div>`;
-        }
-        msg += `<div style="text-align: center; font-weight: bold; color: ${overallComplete ? '#66BB6A' : '#F44336'}; font-size: 1.1rem; animation: fadeIn 1s;">`;
-        msg += overallComplete 
-                  ? '<i class="bi bi-check-circle-fill"></i> Todos los contenedores están completos.' 
-                  : '<i class="bi bi-exclamation-triangle-fill"></i> Hay contenedores incompletos.';
-        msg += `</div></div>`;
-        return { msg, complete: overallComplete };
-      }
-      
-      // Función para mostrar detalles del contenedor (vista filtrada)
-      function mostrarDetallesContenedor(registros) {
-        const containerDetails = document.getElementById('containerDetails');
-        containerDetails.innerHTML = "";
-        const isMobile = window.innerWidth < 576;
-        const headers = isMobile 
-          ? ["Sección", "Contenedor", "SKU", "Descripción", "SAP", "SCANNER", "Diferencia"]
-          : ["Fecha", "Sección", "Manifiesto", "Contenedor", "SKU", "Europeo", "Descripción", "SAP", "SCANNER", "Diferencia"];
-      
-        const table = document.createElement('table');
-        table.className = 'table table-bordered table-striped table-hover';
-        let theadHTML = `<thead><tr>`;
-        headers.forEach(h => { theadHTML += `<th>${h}</th>`; });
-        theadHTML += `</tr></thead>`;
-        table.innerHTML = theadHTML;
-      
-        const tbody = document.createElement('tbody');
-        registros.forEach(reg => {
-          const SAPval = reg.SAP || 0;
-          const SCANNERval = reg.SCANNER || 0;
-          let diffText = "";
-          if (SCANNERval < SAPval) {
-            diffText = "FALTAN " + (SAPval - SCANNERval) + " uds";
-          } else if (SCANNERval > SAPval) {
-            diffText = "MERCANCIA DE MAS: " + (SCANNERval - SAPval) + " uds";
-          } else {
-            diffText = "OK";
-          }
-          const diffColor = (SCANNERval < SAPval)
-            ? "#F44336"
-            : (SCANNERval === SAPval) ? "#66BB6A" : "#FFEB3B";
-      
-          let trHTML = `<tr>`;
-          if (!isMobile) {
-            trHTML += `<td>${reg.FECHA || ''}</td>`;
-            trHTML += `<td>${reg.SECCION || ''}</td>`;
-            trHTML += `<td>${reg.MANIFIESTO || ''}</td>`;
-            trHTML += `<td>${reg.CONTENEDOR || ''}</td>`;
-            trHTML += `<td>${reg.SKU || ''}</td>`;
-            trHTML += `<td>${reg.EUROPEO || ''}</td>`;
-            trHTML += `<td>${reg.DESCRIPCION || ''}</td>`;
-            trHTML += `<td>${SAPval}</td>`;
-            trHTML += `<td><input type="text" class="form-control scanner-input" value="${SCANNERval || ''}" data-index="${excelDataGlobal[document.getElementById('selectedFileToWork').textContent].findIndex(r => r.SKU === reg.SKU && r.CONTENEDOR === reg.CONTENEDOR)}" style="max-width:80px;"></td>`;
-            trHTML += `<td style="background-color: ${diffColor}; color: ${diffColor === "#FFEB3B" ? "#000000" : "#FFFFFF"}; font-weight: bold;">${diffText}</td>`;
-          } else {
-            trHTML += `<td>${reg.SECCION || ''}</td>`;
-            trHTML += `<td>${reg.CONTENEDOR || ''}</td>`;
-            trHTML += `<td>${reg.SKU || ''}</td>`;
-            trHTML += `<td>${reg.DESCRIPCION || ''}</td>`;
-            trHTML += `<td>${SAPval}</td>`;
-            trHTML += `<td><input type="text" class="form-control scanner-input" value="${SCANNERval || ''}" data-index="${excelDataGlobal[document.getElementById('selectedFileToWork').textContent].findIndex(r => r.SKU === reg.SKU && r.CONTENEDOR === reg.CONTENEDOR)}" style="max-width:80px;"></td>`;
-            trHTML += `<td style="background-color: ${diffColor}; color: ${diffColor === "#FFEB3B" ? "#000000" : "#FFFFFF"}; font-weight: bold;">${diffText}</td>`;
-          }
-          trHTML += `</tr>`;
-          tbody.innerHTML += trHTML;
-        });
-        table.appendChild(tbody);
-        containerDetails.appendChild(table);
-      
-        document.querySelectorAll('.scanner-input').forEach(input => {
-          input.addEventListener('blur', function() {
-            const newVal = parseInt(this.value) || 0;
-            const index = this.dataset.index;
-            const fileName = document.getElementById('selectedFileToWork').textContent;
-            if (index !== undefined && excelDataGlobal[fileName][index] !== undefined) {
-              excelDataGlobal[fileName][index].SCANNER = newVal;
-              currentContainerRecords = excelDataGlobal[fileName].filter(r => r.CONTENEDOR === excelDataGlobal[fileName][index].CONTENEDOR);
-              actualizarArchivoEnStorage(fileName);
-              mostrarDetallesContenedor(currentContainerRecords);
-              showToast('success', 'SCANNER actualizado.');
-            }
-          });
-        });
-      }
-      
-      // Función para actualizar el archivo en Storage
-      function actualizarArchivoEnStorage(fileName) {
-        if (!fileName) return;
-        const data = excelDataGlobal[fileName];
-        const newSheet = XLSX.utils.json_to_sheet(data);
-        const range = XLSX.utils.decode_range(newSheet["!ref"]);
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: C });
-          if (newSheet[cellAddress]) {
-            newSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: "E6007E" } },
-              font: { bold: true, color: { rgb: "FFFFFF" } },
-              alignment: { horizontal: "center" },
-              border: { top: { style: "thin" }, right: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" } }
-            };
-          }
-        }
-        const newWorkbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Sheet1");
-        const wbout = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array', cellStyles: true });
-        const blob = new Blob([wbout], { type: "application/octet-stream" });
-        const storageRef = storage.ref().child('excelFiles/' + fileName);
-        storageRef.put(blob).then(() => {
-          console.log("Archivo actualizado en Storage.");
-        }).catch((error) => {
-          console.error("Error al actualizar archivo:", error);
-          showToast('error', 'No se pudo actualizar el archivo.');
-        });
-      }
-      
-      // Función para procesar escaneo acumulativo
-      function procesarEscaneo(code) {
-        if (!code) return;
-        const fileName = document.getElementById('selectedFileToWork').textContent;
-        const data = excelDataGlobal[fileName];
-        const registro = data.find(row =>
-          String(row.SKU).trim() === code || String(row.EUROPEO).trim() === code
-        );
-        if (!registro) {
-          showToast('info', 'Código no encontrado en este archivo.');
-          return;
-        }
-        registro.SCANNER = (registro.SCANNER || 0) + 1;
-        actualizarArchivoEnStorage(fileName);
-        currentContainerRecords = data.filter(r => r.CONTENEDOR === registro.CONTENEDOR);
-        mostrarDetallesContenedor(currentContainerRecords);
-      }
-      
-      // Función para buscar referencia en TODOS los archivos
-      function buscarReferenciaEnTodosLosArchivos(referencia) {
-        storage.ref('excelFiles').listAll().then(result => {
-          let found = false;
-          let foundRecords = [];
-          let foundFile = "";
-          const promises = result.items.map(item => {
-            return item.getDownloadURL().then(url => {
-              return fetch(url)
-                .then(response => response.arrayBuffer())
-                .then(data => {
-                  const workbook = XLSX.read(data, { type: 'array' });
-                  const firstSheetName = workbook.SheetNames[0];
-                  const worksheet = workbook.Sheets[firstSheetName];
-                  const dataJson = XLSX.utils.sheet_to_json(worksheet);
-                  excelDataGlobal[item.name] = dataJson;
-                  let registros = dataJson.filter(row => String(row.CONTENEDOR).trim() === referencia);
-                  if (registros.length === 0) {
-                    const match = dataJson.find(row => 
-                      String(row.SKU).trim() === referencia || String(row.EUROPEO).trim() === referencia
-                    );
-                    if (match) {
-                      registros = dataJson.filter(row => String(row.CONTENEDOR).trim() === String(match.CONTENEDOR).trim());
-                    }
-                  }
-                  if (registros.length > 0 && !found) {
-                    found = true;
-                    foundRecords = registros;
-                    foundFile = item.name;
-                  }
-                });
-            });
-          });
-          Promise.all(promises).then(() => {
-            if (found) {
-              const nuevoContenedor = foundRecords[0].CONTENEDOR;
-              if (currentContenedor && currentContenedor !== nuevoContenedor) {
-                const infoActual = checkContainerCompleteness(currentContainerRecords);
-                Swal.fire({
-                  icon: 'warning',
-                  title: 'Cambio de Contenedor',
-                  html: `<p>Actualmente trabajas en el contenedor <strong>${currentContenedor}</strong>.</p>
-                         ${infoActual.msg}<br>¿Deseas cambiar al contenedor <strong>${nuevoContenedor}</strong>?`,
-                  showCancelButton: true,
-                  confirmButtonText: 'Sí, cambiar',
-                  cancelButtonText: 'No, mantener'
-                }).then(res => {
-                  if (res.isConfirmed) {
-                    currentContenedor = nuevoContenedor;
-                    continuarBusqueda(foundRecords, foundFile);
-                  }
-                });
-              } else {
-                currentContenedor = nuevoContenedor;
-                const info = checkContainerCompleteness(foundRecords);
-                if (info.complete) {
-                  const worker = currentUser ? (currentUser.displayName || currentUser.email) : "Desconocido";
-                  Swal.fire({
-                    icon: 'info',
-                    title: 'Contenedor Completado',
-                    html: `<p>El contenedor <strong>${nuevoContenedor}</strong> ya fue completado.</p>
-                           <p>Trabajado por: <strong>${worker}</strong></p>
-                           ${info.msg}`,
-                    confirmButtonText: 'Continuar'
-                  }).then(() => {
-                    continuarBusqueda(foundRecords, foundFile);
-                  });
-                } else {
-                  continuarBusqueda(foundRecords, foundFile);
-                }
-              }
-            } else {
-              showToast('info', 'No se encontró la referencia en ningún archivo.');
-            }
-          });
-        }).catch(error => {
-          console.error("Error al listar archivos:", error);
-          showToast('error', 'Error al buscar archivos.');
-        });
-      }
-      
-      // Función que continúa la búsqueda mostrando resultados
-      function continuarBusqueda(registros, fileName) {
-        document.getElementById('selectedFileToWork').textContent = fileName;
-        currentContainerRecords = registros;
-        mostrarDetallesContenedor(currentContainerRecords);
-        document.getElementById('containerResultsSection').style.display = 'block';
-        document.getElementById('scanEntrySection').style.display = 'block';
-        if (currentUser && adminUIDs.includes(currentUser.uid)) {
-          document.getElementById('downloadSection').style.display = 'block';
-        } else {
-          document.getElementById('downloadSection').style.display = 'none';
-        }
-      }
-      
-      // --- EVENTO PARA BOTÓN "ANÁLISIS GLOBAL" ---
-      const btnAnalisisGlobal = document.getElementById('btnAnalisisGlobal');
-      if (btnAnalisisGlobal) {
-        btnAnalisisGlobal.addEventListener('click', () => {
-          const fileName = document.getElementById('selectedFileToWork').textContent;
-          if (fileName && excelDataGlobal[fileName]) {
-            const globalAnalysis = checkGlobalCompleteness(excelDataGlobal[fileName]);
-            Swal.fire({
-              title: 'Análisis Global',
-              html: globalAnalysis.msg,
-              icon: globalAnalysis.complete ? 'success' : 'warning',
-              confirmButtonText: 'OK'
-            });
-          } else {
-            showToast('error', 'No hay registros para analizar.');
-          }
-        });
-      }
-      
-      // --- EVENTO PARA BOTÓN "DESCARGAR ARCHIVO" ---
-      const btnDescargarArchivo = document.getElementById('btnDescargarArchivo');
-      if (btnDescargarArchivo) {
-        btnDescargarArchivo.addEventListener('click', () => {
-          descargarArchivoTotal();
-        });
-      }
-      
-      // Función para descargar el archivo actual
-      function descargarArchivoTotal() {
-        const fileName = document.getElementById('selectedFileToWork').textContent;
-        if (!fileName || !excelDataGlobal[fileName]) {
-          showToast('error', 'No hay archivo para descargar.');
-          return;
-        }
-        let exportData = excelDataGlobal[fileName].slice().sort((a, b) => {
-          if(a.CONTENEDOR < b.CONTENEDOR) return -1;
-          if(a.CONTENEDOR > b.CONTENEDOR) return 1;
-          return ('' + a.SKU).localeCompare(b.SKU);
-        });
-        exportData = exportData.map(row => {
-          const SAP = row.SAP || 0;
-          const SCANNER = row.SCANNER || 0;
-          let diff = "";
-          if (SCANNER < SAP) {
-            diff = "FALTAN " + (SAP - SCANNER) + " uds";
-          } else if (SCANNER > SAP) {
-            diff = "MERCANCIA DE MAS: " + (SCANNER - SAP) + " uds";
-          } else {
-            diff = "OK";
-          }
-          return {
-            FECHA: row.FECHA || "",
-            SECCION: row.SECCION || "",
-            MANIFIESTO: row.MANIFIESTO || "",
-            CONTENEDOR: row.CONTENEDOR || "",
-            SKU: row.SKU || "",
-            EUROPEO: row.EUROPEO || "",
-            DESCRIPCION: row.DESCRIPCION || "",
-            SAP: row.SAP || "",
-            SCANNER: row.SCANNER || "",
-            DIFERENCIA: diff
-          };
-        });
-        const newSheet = XLSX.utils.json_to_sheet(exportData, {
-          header: ["FECHA","SECCION","MANIFIESTO","CONTENEDOR","SKU","EUROPEO","DESCRIPCION","SAP","SCANNER","DIFERENCIA"]
-        });
-        const range = XLSX.utils.decode_range(newSheet["!ref"]);
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const cellAddress = XLSX.utils.encode_cell({ r: range.s.r, c: C });
-          if (newSheet[cellAddress]) {
-            newSheet[cellAddress].s = {
-              fill: { fgColor: { rgb: "E6007E" } },
-              font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
-              alignment: { horizontal: "center" },
-              border: { top: { style: "thin" }, right: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" } }
-            };
-          }
-        }
-        for (let i = range.s.r + 1; i <= range.e.r; i++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: i, c: 9 });
-          if (newSheet[cellAddress]) {
-            const cellValue = newSheet[cellAddress].v;
-            if (cellValue === "OK") {
-              newSheet[cellAddress].s = {
-                fill: { fgColor: { rgb: "66BB6A" } },
-                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
-                alignment: { horizontal: "center" },
-                border: { top: { style: "thin" }, right: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" } }
-              };
-            } else if (cellValue.startsWith("MERCANCIA DE MAS")) {
-              newSheet[cellAddress].s = {
-                fill: { fgColor: { rgb: "FFEB3B" } },
-                font: { bold: true, color: { rgb: "000000" }, sz: 12 },
-                alignment: { horizontal: "center" },
-                border: { top: { style: "thin" }, right: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" } }
-              };
-            } else if (cellValue.startsWith("FALTAN")) {
-              newSheet[cellAddress].s = {
-                fill: { fgColor: { rgb: "F44336" } },
-                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
-                alignment: { horizontal: "center" },
-                border: { top: { style: "thin" }, right: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" } }
-              };
-            }
-          }
-        }
-        const newWorkbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Sheet1");
-        const wbout = XLSX.write(newWorkbook, { bookType: 'xlsx', type: 'array', cellStyles: true });
-        const blob = new Blob([wbout], { type: "application/octet-stream" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-      
-      // --- EVENTO PARA BOTÓN "BUSCAR REFERENCIA" ---
-      const btnBuscarReferencia = document.getElementById('btnBuscarReferencia');
-      const inputReferencia = document.getElementById('inputReferencia');
-      if (btnBuscarReferencia) {
-        btnBuscarReferencia.addEventListener('click', () => {
-          const referencia = inputReferencia.value.trim();
-          if (!referencia) {
-            showToast('error', 'Ingrese una referencia.');
-            return;
-          }
-          buscarReferenciaEnTodosLosArchivos(referencia);
-        });
-      }
-      if (inputReferencia) {
-        inputReferencia.addEventListener('keyup', (e) => {
-          const referencia = e.target.value.trim();
-          if (referencia.length > 9) {
-            buscarReferenciaEnTodosLosArchivos(referencia);
-          }
-        });
-      }
-      
-      // --- EVENTOS PARA SUBIDA DE ARCHIVOS (CLICK y DRAG & DROP) ---
-      const dropzone = document.getElementById('dropzone');
-      const fileInput = document.getElementById('fileInput');
-      const selectedFileName = document.getElementById('selectedFileName');
-      const uploadFileBtn = document.getElementById('uploadFileBtn');
+    // ============= (C) Referencias DOM =============
+    const logoutBtn = document.getElementById("logout-btn");
+    const adminUploadSection = document.getElementById("adminUploadSection");
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("fileInput");
+    const selectedFileNameEl = document.getElementById("selectedFileName");
+    const uploadFileBtn = document.getElementById("uploadFileBtn");
+    const btnVerArchivos = document.getElementById("btnVerArchivos");
+    const inputReferencia = document.getElementById("inputReferencia");
+    const containerResultsSection = document.getElementById("containerResultsSection");
+    const containerDetailsEl = document.getElementById("containerDetails");
+    const selectedFileToWorkEl = document.getElementById("selectedFileToWork");
+    const lastUserUpdateEl = document.getElementById("lastUserUpdate");
+    const btnAnalisisGlobal = document.getElementById("btnAnalisisGlobal");
+    const downloadSection = document.getElementById("downloadSection");
+    const btnDescargarArchivo = document.getElementById("btnDescargarArchivo");
+    const scanEntrySection = document.getElementById("scanEntrySection");
+    const inputScanCode = document.getElementById("inputScanCode");
+    const userInfoEl = document.getElementById("userInfo");
+    const btnCerrarContenedor = document.getElementById("btnCerrarContenedor");
 
-      dropzone.addEventListener('click', () => {
-        fileInput.click();
-      });
+    // ============= (D) Iniciar AOS =============
+    AOS.init();
 
-      fileInput.addEventListener('change', function() {
-        const file = this.files[0];
-        if (file) {
-          selectedFileName.textContent = file.name;
-          uploadFileBtn.disabled = false;
-        }
-      });
-
-      dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.style.backgroundColor = "#e0e0e0";
-      });
-      dropzone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        dropzone.style.backgroundColor = "#f1f8ff";
-      });
-      dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.style.backgroundColor = "#f1f8ff";
-        const file = e.dataTransfer.files[0];
-        if (file) {
-          fileInput.files = e.dataTransfer.files;
-          selectedFileName.textContent = file.name;
-          uploadFileBtn.disabled = false;
-        }
-      });
-
-      uploadFileBtn.addEventListener('click', () => {
-        const file = fileInput.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(e) {
-            const arrayBuffer = e.target.result;
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const dataJson = XLSX.utils.sheet_to_json(worksheet);
-            excelDataGlobal[file.name] = dataJson;
-            const storageRef = storage.ref().child('excelFiles/' + file.name);
-            const blob = new Blob([arrayBuffer], { type: file.type });
-            storageRef.put(blob).then(() => {
-              showToast('success', 'Archivo subido exitosamente.');
-              fileInput.value = "";
-              selectedFileName.textContent = "";
-              uploadFileBtn.disabled = true;
-            }).catch((error) => {
-              console.error("Error al subir archivo:", error);
-              showToast('error', 'Error al subir archivo.');
-            });
-          };
-          reader.readAsArrayBuffer(file);
-        } else {
-          showToast('error', 'No hay archivo seleccionado.');
-        }
-      });
-      
-      // --- ADMIN: Gestión de Archivos (Listar y Eliminar) ---
-      function listarArchivos() {
-        storage.ref('excelFiles').listAll().then(result => {
-          if (result.items.length === 0) {
-            Swal.fire({
-              title: 'Archivos Subidos',
-              html: '<p>No hay archivos subidos.</p>',
-              width: '600px'
-            });
-            return;
-          }
-          let html = '<ul class="list-group">';
-          result.items.forEach(item => {
-            const fileName = item.name;
-            html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                      ${fileName}
-                      <button class="btn btn-danger btn-sm" onclick="eliminarArchivo('${fileName}')">
-                        <i class="bi bi-trash"></i> Eliminar
-                      </button>
-                    </li>`;
-          });
-          html += '</ul>';
-          Swal.fire({
-            title: 'Archivos Subidos',
-            html: html,
-            width: '600px'
-          });
-        }).catch(error => {
-          console.error("Error al listar archivos:", error);
-          showToast('error', 'Error al listar archivos.');
-        });
-      }
-      
-      function eliminarArchivo(fileName) {
-        Swal.fire({
-          title: '¿Está seguro?',
-          text: `Se eliminará el archivo: ${fileName}. Esta acción no se puede deshacer.`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, eliminar',
-          cancelButtonText: 'Cancelar'
-        }).then((result) => {
-          if(result.isConfirmed) {
-            storage.ref('excelFiles/' + fileName).delete().then(() => {
-              showToast('success', 'Archivo eliminado exitosamente.');
-              if(excelDataGlobal[fileName]) {
-                delete excelDataGlobal[fileName];
-              }
-              listarArchivos();
-            }).catch(error => {
-              console.error("Error al eliminar archivo:", error);
-              showToast('error', 'Error al eliminar archivo.');
-            });
-          }
-        });
-      }
-      
-      // Exponer la función eliminarArchivo para que funcione el onclick
-      window.eliminarArchivo = eliminarArchivo;
-      
-      // Asignar el evento al botón de Gestión de Archivos (solo para admins)
-      const btnVerArchivos = document.getElementById('btnVerArchivos');
-      if (btnVerArchivos) {
-        btnVerArchivos.addEventListener('click', () => {
-          listarArchivos();
-        });
-      }
-      
+    // ============= (E) Foco Inicial en “Buscar Referencia” =============
+    window.addEventListener("load", ()=>{
+      // Al cargar la página, el foco va a "Escanear Referencia"
+      inputReferencia.focus();
     });
+
+    // ============= (F) onAuthStateChanged =============
+    auth.onAuthStateChanged(async (user)=>{
+      if(!user){
+        Swal.fire({
+          icon:"warning",
+          title:"No Autenticado",
+          text:"Debes iniciar sesión para acceder."
+        }).then(()=> window.location.href="../Login/login.html");
+        return;
+      }
+      currentUser= user;
+      if(user.uid===ADMIN_UID){
+        currentUserStore="ALL";
+        currentUserRole="admin";
+        adminUploadSection.style.display="block";
+        userInfoEl.textContent= `Usuario: Admin (ALL - admin)`;
+      } else {
+        let docSnap= await db.collection("usuarios").doc(user.uid).get();
+        if(!docSnap.exists){
+          Swal.fire({icon:"warning",title:"Sin datos",text:"No se encontró tu registro en 'usuarios'."})
+            .then(()=>window.location.href="../Login/login.html");
+          return;
+        }
+        let data= docSnap.data();
+        if((data.status||"pendiente")!=="aprobado"){
+          Swal.fire({icon:"info",title:"Pendiente",text:"Tu cuenta no está aprobada."})
+            .then(()=>window.location.href="../Login/login.html");
+          return;
+        }
+        currentUserStore= data.store||"";
+        currentUserRole= data.role||"vendedor";
+        if(["jefe","auxiliar"].includes(currentUserRole)){
+          adminUploadSection.style.display="block";
+        }
+        userInfoEl.textContent= `Usuario: ${user.email} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
+      }
+      console.log("Store:",currentUserStore,"Role:",currentUserRole);
+    });
+
+    // ============= (G) LOGOUT =============
+    logoutBtn.addEventListener("click",()=>{
+      auth.signOut().then(()=>{
+        window.location.href="../Login/login.html";
+      }).catch(err=>{
+        console.error("Error al cerrar sesión:",err);
+      });
+    });
+
+    // ============= (H) DRAG & DROP / CLIC SUBIR ARCHIVOS =============
+    dropzone.addEventListener("click",()=> fileInput.click());
+    dropzone.addEventListener("dragover",(e)=>{ e.preventDefault(); dropzone.style.backgroundColor="#fafafa"; });
+    dropzone.addEventListener("dragleave",(e)=>{ e.preventDefault(); dropzone.style.backgroundColor="#fff"; });
+    dropzone.addEventListener("drop",(e)=>{
+      e.preventDefault();
+      dropzone.style.backgroundColor="#fff";
+      let file= e.dataTransfer.files[0];
+      if(file){
+        fileInput.files= e.dataTransfer.files;
+        selectedFileNameEl.textContent=file.name;
+        uploadFileBtn.disabled=false;
+      }
+    });
+    fileInput.addEventListener("change",function(){
+      let f= this.files[0];
+      if(f){
+        selectedFileNameEl.textContent=f.name;
+        uploadFileBtn.disabled=false;
+      }
+    });
+
+    // ============= (I) SUBIR ARCHIVO =============
+    uploadFileBtn.addEventListener("click", async()=>{
+      let f= fileInput.files[0];
+      if(!f){
+        showToast("error","No hay archivo seleccionado.");
+        return;
+      }
+      if(currentUser?.uid!==ADMIN_UID && !["admin","jefe","auxiliar"].includes(currentUserRole)){
+        showToast("error","No tienes permisos para subir.");
+        return;
+      }
+      try{
+        Swal.fire({title:"Subiendo archivo...", allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+        let arrBuff= await f.arrayBuffer();
+        let wb= XLSX.read(arrBuff,{type:"array"});
+        let sheet= wb.SheetNames[0];
+        let dataJson= XLSX.utils.sheet_to_json(wb.Sheets[sheet]);
+
+        excelDataGlobal[f.name]= {
+          data: dataJson,
+          lastUser: currentUser.email|| currentUser.uid,
+          lastUserStore: currentUserStore,
+          lastUserRole: currentUserRole,
+          closedContainers: {}
+        };
+        let storeFolder= (currentUserStore==="ALL")?"ALL": currentUserStore;
+        let storageRef= storage.ref(`Manifiestos/${storeFolder}/${f.name}`);
+        await storageRef.put(new Blob([arrBuff],{type:f.type}));
+
+        await db.collection("manifiestos").doc(f.name).set({
+          fileName: f.name,
+          store: storeFolder,
+          lastUser: currentUser.email|| currentUser.uid,
+          lastUserStore: currentUserStore,
+          lastUserRole: currentUserRole,
+          closedContainers: {},
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        },{merge:true});
+
+        Swal.fire({icon:"success", title:"Archivo subido", text:"Se subió correctamente."});
+        fileInput.value="";
+        selectedFileNameEl.textContent="";
+        uploadFileBtn.disabled=true;
+      }catch(err){
+        console.error("Error al subir archivo:",err);
+        Swal.fire({icon:"error",title:"Error al subir",text:String(err)});
+      }
+    });
+
+    // ============= (J) VER ARCHIVOS =============
+    btnVerArchivos.addEventListener("click",()=>listarArchivos());
+    async function listarArchivos(){
+      try{
+        let storeFolder= (currentUserStore==="ALL")?"ALL": currentUserStore;
+        let finalFiles=[];
+        if(storeFolder==="ALL"){
+          let root= await storage.ref("Manifiestos").listAll();
+          for(const folderRef of root.prefixes){
+            let stName= folderRef.name;
+            let storeFiles= await folderRef.listAll();
+            for(const itemRef of storeFiles.items){
+              finalFiles.push({ref:itemRef, folderName:stName});
+            }
+          }
+        } else {
+          let storeFiles= await storage.ref(`Manifiestos/${storeFolder}`).listAll();
+          for(const itemRef of storeFiles.items){
+            finalFiles.push({ref:itemRef, folderName:storeFolder});
+          }
+        }
+        if(finalFiles.length===0){
+          Swal.fire({
+            html:`
+              <div class="text-center">
+                <i class="bi bi-folder-x" style="font-size:3rem;color:#E6007E;"></i>
+                <h3>No hay archivos</h3>
+                <p>No se encontraron archivos subidos para tu tienda.</p>
+              </div>
+            `,
+            icon:"info",
+            showConfirmButton:true,
+            confirmButtonText:"Cerrar",
+            customClass:{ popup:"animate__animated animate__fadeInDown" }
+          });
+          return;
+        }
+
+        let html=`
+          <div class="text-center mb-2">
+            <i class="bi bi-folder-symlink" style="font-size:3rem;color:#E6007E;"></i>
+            <h3 style="color:#E6007E;">Archivos Subidos</h3>
+          </div>
+          <ul class="list-group">
+        `;
+        for(const f of finalFiles){
+          let fName= f.ref.name;
+          let docSnap= await db.collection("manifiestos").doc(fName).get();
+          let depto="", lastUser="", userStore="", userRole="";
+          let closedContainersObj= {};
+          if(docSnap.exists){
+            depto= docSnap.data().department||"";
+            lastUser= docSnap.data().lastUser||"";
+            userStore= docSnap.data().lastUserStore||"";
+            userRole= docSnap.data().lastUserRole||"";
+            closedContainersObj= docSnap.data().closedContainers||{};
+          }
+          let closedHtml="";
+          let keysClosed= Object.keys(closedContainersObj);
+          if(keysClosed.length>0){
+            closedHtml= `<br><span style="font-size:0.75rem; color:red;">Contenedores cerrados:</span>`;
+            keysClosed.forEach(cKey=>{
+              closedHtml+= `<br>
+                <span style="font-size:0.75rem; color:red;">
+                  - ${cKey} cerrado por: ${closedContainersObj[cKey]}
+                </span>`;
+            });
+          }
+          html+=`
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${fName}</strong><br>
+                <span style="font-size:0.85rem; color:#888;">Tienda: ${f.folderName} | Depto: ${depto}</span><br>
+                <span style="font-size:0.75rem; color:#aaa;">
+                  Último cambio: ${lastUser} (Tienda: ${userStore}, Rol: ${userRole})
+                </span>
+                ${closedHtml}
+              </div>
+              <div>
+                ${
+                  (currentUser?.uid===ADMIN_UID || ["admin","jefe","auxiliar"].includes(currentUserRole))
+                  ? `<button class="btn btn-danger btn-sm" onclick="eliminarArchivo('${f.folderName}','${fName}')">
+                      <i class="bi bi-trash"></i>
+                    </button>`
+                  : ""
+                }
+              </div>
+            </li>
+          `;
+        }
+        html+= "</ul>";
+        Swal.fire({
+          html,
+          icon:"info",
+          showConfirmButton:true,
+          confirmButtonText:"Cerrar",
+          width:"600px",
+          background:"#FDF3F7",
+          customClass:{ popup:"animate__animated animate__backInDown" }
+        });
+      }catch(err){
+        console.error("Error al listar archivos:",err);
+        showToast("error","Error al listar archivos.");
+      }
+    }
+    window.eliminarArchivo= async(folderName,fileName)=>{
+      Swal.fire({
+        title:"¿Está seguro?",
+        text:`Se eliminará el archivo: ${fileName}. Esta acción no se puede deshacer.`,
+        icon:"warning",
+        showCancelButton:true,
+        confirmButtonText:"Sí, eliminar",
+        cancelButtonText:"Cancelar"
+      }).then(async r=>{
+        if(r.isConfirmed){
+          try{
+            await storage.ref(`Manifiestos/${folderName}/${fileName}`).delete();
+            await db.collection("manifiestos").doc(fileName).delete().catch(()=>{});
+            if(excelDataGlobal[fileName]) delete excelDataGlobal[fileName];
+            showToast("success","Archivo eliminado.");
+            listarArchivos();
+          }catch(err){
+            console.error("Error al eliminar archivo:",err);
+            showToast("error","Error al eliminar archivo.");
+          }
+        }
+      });
+    };
+
+    // ============= (K) ESCANEAR REFERENCIA =============
+    // Búsqueda global para encontrar un contenedor
+    inputReferencia.addEventListener("keyup", (e) => {
+      let val = e.target.value.trim().toUpperCase();
+      if (val.length > 5) {
+        buscarReferenciaEnArchivosManifiesto(val);
+        e.target.value = ""; // Limpiar
+      }
+      if (e.key === "Enter" && val.length > 5) {
+        buscarReferenciaEnArchivosManifiesto(val);
+        e.target.value = ""; // Limpiar
+      }
+    });
+
+    // ============= (L) REGISTRO DE Piezas =============
+    // En esta sección NO buscamos en todos los archivos, sino que sumamos +1 en SCANNER dentro del contenedor abierto
+    inputScanCode.addEventListener("keyup", (e) => {
+      let val = e.target.value.trim().toUpperCase();
+      if (val.length > 5) {
+        handleScanCode(val);
+        e.target.value = "";  // Limpiar el campo
+      }
+      if (e.key === "Enter" && val.length > 5) {
+        handleScanCode(val);
+        e.target.value = "";  // Limpiar el campo
+      }
+    });
+
+    // Función local para sumar +1 en SCANNER en el contenedor abierto
+    function handleScanCode(code){
+      // Verificar si hay contenedor abierto
+      if(!currentContenedor || !currentContainerRecords.length){
+        showToast("error","No hay contenedor abierto para sumar SCANNER.");
+        return;
+      }
+      let fn = selectedFileToWorkEl.textContent;
+      if(!fn || !excelDataGlobal[fn]){
+        showToast("error","No hay un archivo abierto para actualizar.");
+        return;
+      }
+
+      let dataObj = excelDataGlobal[fn];
+      // Si el contenedor está cerrado, impedir la edición
+      if(dataObj.closedContainers && dataObj.closedContainers[currentContenedor]){
+        showToast("error", "Contenedor cerrado, no se puede editar.");
+        return;
+      }
+
+      // Buscar SKU o EUROPEO en el contenedor actual
+      let rowObj = currentContainerRecords.find(r=>{
+        let sku = String(r.SKU||"").trim().toUpperCase();
+        let euro= String(r.EUROPEO||"").trim().toUpperCase();
+        return (sku===code || euro===code);
+      });
+
+      if(!rowObj){
+        showToast("info",`No se encontró ${code} en el contenedor.`);
+        return;
+      }
+
+      // Sumar +1 al SCANNER
+      let oldVal = rowObj.SCANNER||0;
+      rowObj.SCANNER = oldVal + 1;
+      rowObj.LAST_SCANNED_BY = currentUser.email|| currentUser.uid;
+
+      // Actualizar "último usuario" en excelDataGlobal
+      dataObj.lastUser = currentUser.email|| currentUser.uid;
+      dataObj.lastUserStore = currentUserStore;
+      dataObj.lastUserRole = currentUserRole;
+
+      excelDataGlobal[fn] = dataObj;
+
+      // Re-subir archivo con cambios
+      reuploadFileWithScannerChanges(fn).then(()=>{
+        // Volver a filtrar registros de este contenedor
+        currentContainerRecords = dataObj.data.filter(x=>
+          String(x.CONTENEDOR||"").trim().toUpperCase()=== currentContenedor
+        );
+        mostrarDetallesContenedor(currentContainerRecords);
+        showToast("success",`¡Sumado 1 a ${code}!`);
+      }).catch(e=>{
+        console.error("Error al re-subir:", e);
+        showToast("error","No se pudo actualizar el archivo.");
+      });
+    }
+
+    // ============= (M) Buscar Referencia en Todos los Archivos =============
+    async function buscarReferenciaEnArchivosManifiesto(ref) {
+      if (!ref) return;
+      try {
+        let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
+        let finalFiles = [];
+
+        // Obtener archivos en la carpeta del manifiesto
+        if (storeFolder === "ALL") {
+          let root = await storage.ref("Manifiestos").listAll();
+          for (const folderRef of root.prefixes) {
+            let stName = folderRef.name;
+            let storeFiles = await folderRef.listAll();
+            for (const itemRef of storeFiles.items) {
+              finalFiles.push({ folderName: stName, ref: itemRef });
+            }
+          }
+        } else {
+          let storeFiles = await storage.ref(`Manifiestos/${storeFolder}`).listAll();
+          for (const itemRef of storeFiles.items) {
+            finalFiles.push({ folderName: storeFolder, ref: itemRef });
+          }
+        }
+
+        let foundCandidates = [];
+        for (const f of finalFiles) {
+          let fileName = f.ref.name;
+          let candidate = await checkFileForReference(f.folderName, fileName, ref);
+          if (candidate) foundCandidates.push(candidate);
+        }
+
+        if (foundCandidates.length === 0) {
+          showToast("info", "No se encontró la referencia en ningún archivo.");
+          return;
+        }
+
+        if (foundCandidates.length === 1) {
+          openContainerDirect(foundCandidates[0]);
+        } else {
+          let html = "<p>Se encontró la referencia en varios archivos:</p><ul class='list-group'>";
+          foundCandidates.forEach((c, idx) => {
+            html += `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div>
+                      <strong>${c.fileName}</strong><br>
+                      <small>Contenedor: ${c.matchedRecords[0]?.CONTENEDOR || "?"}</small>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="chooseCandidate(${idx})">
+                      Elegir
+                  </button>
+              </li>
+            `;
+          });
+          html += "</ul>";
+          Swal.fire({
+            title: "Referencia en varios archivos",
+            html,
+            icon: "question",
+            showConfirmButton: false,
+            allowOutsideClick: false
+          });
+
+          window.chooseCandidate = (idx) => {
+            Swal.close();
+            openContainerDirect(foundCandidates[idx]);
+          };
+        }
+      } catch (err) {
+        console.error("Error al buscar referencia:", err);
+        Swal.fire({ icon: "error", title: "Error al buscar referencia", text: String(err) });
+      }
+    }
+
+    // ============= (N) checkFileForReference =============
+    async function checkFileForReference(folderName, fileName, ref){
+      if(!excelDataGlobal[fileName]){
+        let url= await storage.ref(`Manifiestos/${folderName}/${fileName}`).getDownloadURL();
+        let arrBuff= await (await fetch(url)).arrayBuffer();
+        let wb= XLSX.read(arrBuff,{type:"array"});
+        let firstSheet= wb.SheetNames[0];
+        let dataJson= XLSX.utils.sheet_to_json(wb.Sheets[firstSheet]);
+        let docSnap= await db.collection("manifiestos").doc(fileName).get();
+        let lastUserDoc="", lastUserStore="", lastUserRole="";
+        let closedContainers={};
+        if(docSnap.exists){
+          lastUserDoc= docSnap.data().lastUser||"";
+          lastUserStore= docSnap.data().lastUserStore||"";
+          lastUserRole= docSnap.data().lastUserRole||"";
+          closedContainers= docSnap.data().closedContainers||{};
+        }
+        excelDataGlobal[fileName]={
+          data: dataJson,
+          lastUser: lastUserDoc,
+          lastUserStore,
+          lastUserRole,
+          closedContainers
+        };
+      }
+      let arr= excelDataGlobal[fileName].data;
+      let sr= ref.toUpperCase();
+
+      // 1) Buscar contenedor = sr
+      let matched= arr.filter(r=>
+        String(r.CONTENEDOR||"").trim().toUpperCase()===sr
+      );
+      // 2) Si no se encontró, buscar SKU/EUROPEO => traer su contenedor
+      if(matched.length===0){
+        let foundOne= arr.find(r=>{
+          let sku= String(r.SKU||"").trim().toUpperCase();
+          let euro= String(r.EUROPEO||"").trim().toUpperCase();
+          return (sku===sr || euro===sr);
+        });
+        if(foundOne){
+          let contRef= String(foundOne.CONTENEDOR||"").trim().toUpperCase();
+          matched= arr.filter(r=>
+            String(r.CONTENEDOR||"").trim().toUpperCase()===contRef
+          );
+        }
+      }
+      if(matched.length===0)return null;
+      return { folderName, fileName, matchedRecords: matched };
+    }
+
+    // ============= (O) openContainerDirect =============
+    function openContainerDirect(candidate){
+      let {fileName, matchedRecords}= candidate;
+      let cont= String(matchedRecords[0]?.CONTENEDOR||"").trim().toUpperCase();
+      realOpenFileManifiesto(fileName, cont);
+    }
+
+    // ============= (P) ABRIR CONTENEDOR SIN CAMBIO AUTOMÁTICO =============
+    function realOpenFileManifiesto(fileName, cont){
+      currentContenedor= cont;
+      let dataObj= excelDataGlobal[fileName];
+      let arr= dataObj.data;
+      let matched= arr.filter(r=>
+        String(r.CONTENEDOR||"").trim().toUpperCase()===cont
+      );
+      currentContainerRecords= matched;
+
+      selectedFileToWorkEl.textContent= fileName;
+      let lastU= dataObj.lastUser||"Desconocido";
+      let store= dataObj.lastUserStore||"?";
+      let role= dataObj.lastUserRole||"?";
+      let closedBy= dataObj.closedContainers && dataObj.closedContainers[cont] ? dataObj.closedContainers[cont] : "";
+      if(closedBy){
+        lastUserUpdateEl.textContent= `Contenedor ${cont} cerrado por: ${closedBy}`;
+        // Si el contenedor ya está cerrado, deshabilitar el input para escanear
+        inputScanCode.disabled = true;
+      } else {
+        lastUserUpdateEl.textContent= `Último cambio por: ${lastU} (Tienda:${store}, Rol:${role})`;
+        inputScanCode.disabled = false;
+      }
+      containerResultsSection.style.display="block";
+
+      // Mostramos la sección de "Registro de Piezas" y le damos foco
+      scanEntrySection.style.display="block";
+      inputScanCode.focus();
+
+      if(currentUser && (currentUser.uid===ADMIN_UID || ["admin","jefe","auxiliar"].includes(currentUserRole))){
+        downloadSection.style.display="block";
+      } else {
+        downloadSection.style.display="none";
+      }
+      mostrarDetallesContenedor(currentContainerRecords);
+    }
+
+    // ============= (Q) BOTÓN ANÁLISIS GLOBAL =============
+    btnAnalisisGlobal.addEventListener("click",()=>{
+      let fn= selectedFileToWorkEl.textContent;
+      if(!fn|| !excelDataGlobal[fn]){
+        showToast("error","No hay registros para analizar.");
+        return;
+      }
+      let arr= excelDataGlobal[fn].data;
+      let ga= checkGlobalCompleteness(arr);
+      Swal.fire({
+        title:"Análisis Global",
+        html:`<div style="max-height:300px; overflow-y:auto;">${ga.msg}</div>`,
+        icon: ga.complete?"success":"warning",
+        confirmButtonText:"OK",
+        width:"600px"
+      });
+    });
+
+    // ============= (R) BOTÓN CERRAR CONTENEDOR =============
+    btnCerrarContenedor.addEventListener("click", async()=>{
+      let fn= selectedFileToWorkEl.textContent;
+      if(!fn|| !excelDataGlobal[fn]){
+        showToast("error","No hay contenedor abierto.");
+        return;
+      }
+      if(!currentContenedor){
+        showToast("error","No hay contenedor seleccionado.");
+        return;
+      }
+      let dataObj= excelDataGlobal[fn];
+      // Si el contenedor ya está cerrado, ofrecer reabrir en modo solo lectura
+      if(dataObj.closedContainers && dataObj.closedContainers[currentContenedor]){
+        let reopenRes = await Swal.fire({
+          icon:"question",
+          title:"Contenedor Cerrado",
+          text:`El contenedor ${currentContenedor} ya fue cerrado por: ${dataObj.closedContainers[currentContenedor]}. ¿Deseas abrirlo para verlo?`,
+          showCancelButton:true,
+          confirmButtonText:"Sí, abrir",
+          cancelButtonText:"Buscar otro contenedor"
+        });
+        if(reopenRes.isConfirmed) {
+          // Reabrir en modo solo lectura (el input de escaneo permanece deshabilitado)
+          inputScanCode.disabled = true;
+          showToast("info", "Contenedor abierto en modo solo lectura.");
+          let completeness = checkContainerCompleteness(currentContainerRecords);
+          Swal.fire({
+            title: `Detalles del Contenedor ${currentContenedor}`,
+            html: completeness.msg,
+            icon: completeness.complete ? "success" : "warning",
+            confirmButtonText: "OK"
+          });
+        } else {
+          // Limpiar para buscar otro contenedor
+          currentContenedor = null;
+          currentContainerRecords = [];
+          containerResultsSection.style.display = "none";
+          scanEntrySection.style.display = "none";
+          inputScanCode.disabled = false;
+          showToast("info", "Busca otro contenedor.");
+        }
+        return;
+      }
+
+      // Si el contenedor aún no está cerrado, proceder a cerrarlo
+      let confirmRes = await Swal.fire({
+        icon:"question",
+        title:"Cerrar Contenedor",
+        text:`¿Deseas cerrar definitivamente el contenedor (${currentContenedor})? Una vez cerrado, no se podrá editar.`,
+        showCancelButton:true,
+        confirmButtonText:"Sí, cerrar",
+        cancelButtonText:"Cancelar"
+      });
+      if(!confirmRes.isConfirmed) return;
+
+      if(!dataObj.closedContainers) dataObj.closedContainers = {};
+      dataObj.closedContainers[currentContenedor] = currentUser.email|| currentUser.uid;
+      excelDataGlobal[fn]= dataObj;
+      await reuploadFileWithScannerChanges(fn);
+      showToast("success",`Contenedor ${currentContenedor} cerrado.`);
+
+      // Deshabilitar el input de escaneo
+      inputScanCode.disabled = true;
+
+      // Mostrar alerta con detalles del cierre y ofrecer abrir en modo solo lectura o buscar otro contenedor
+      let completeness = checkContainerCompleteness(currentContainerRecords);
+      let alertResult = await Swal.fire({
+          title: `Contenedor ${currentContenedor} cerrado por: ${dataObj.closedContainers[currentContenedor]}`,
+          html: `<p>${completeness.complete ? "El contenedor está COMPLETO." : "El contenedor tiene diferencias."}</p>
+                 ${completeness.msg}`,
+          icon: completeness.complete ? "success" : "warning",
+          showCancelButton: true,
+          confirmButtonText: "Abrir en modo solo lectura",
+          cancelButtonText: "Buscar otro contenedor"
+      });
+      if(alertResult.isConfirmed) {
+          // Permanecer en modo solo lectura (input de escaneo permanece deshabilitado)
+          inputScanCode.disabled = true;
+          showToast("info", "Contenedor en modo solo lectura.");
+      } else {
+          // Limpiar para buscar otro contenedor
+          currentContenedor = null;
+          currentContainerRecords = [];
+          containerResultsSection.style.display = "none";
+          scanEntrySection.style.display = "none";
+          inputScanCode.disabled = false;
+          showToast("info", "Busca otro contenedor.");
+      }
+    });
+
+    // ============= (S) BOTÓN DESCARGAR ARCHIVO =============
+    btnDescargarArchivo.addEventListener("click",()=>{
+      let fn= selectedFileToWorkEl.textContent;
+      if(!fn|| !excelDataGlobal[fn]){
+        showToast("error","No hay archivo para descargar.");
+        return;
+      }
+      descargarArchivoTotal(fn);
+    });
+
+    // ============= (T) DESCARGAR ARCHIVO (definición) =============
+    function descargarArchivoTotal(fileName){
+      let dataObj= excelDataGlobal[fileName];
+      if(!dataObj || !dataObj.data){
+        showToast("error","No hay datos para descargar.");
+        return;
+      }
+      let arr= dataObj.data.slice();
+      // Ordenar por CONTENEDOR, luego SKU
+      arr.sort((a,b)=>{
+        let ca= String(a.CONTENEDOR||"").trim().toUpperCase();
+        let cb= String(b.CONTENEDOR||"").trim().toUpperCase();
+        if(ca<cb)return -1; if(ca>cb)return 1;
+        let sa= String(a.SKU||"");
+        let sb= String(b.SKU||"");
+        return sa.localeCompare(sb);
+      });
+      let exportData= arr.map(r=>{
+        let SAP= r.SAP||0;
+        let SCANNER= r.SCANNER||0;
+        let diff="";
+        if(SCANNER===SAP){
+          diff="OK";
+        } else if(SCANNER<SAP){
+          diff= "FALTAN "+(SAP-SCANNER)+" piezas";
+        } else {
+          diff= "MERCANCIA DE MAS: "+(SCANNER-SAP)+" piezas";
+        }
+        return {
+          FECHA: r.FECHA||"",
+          SECCION: r.SECCION||"",
+          MANIFIESTO: r.MANIFIESTO||"",
+          CONTENEDOR: r.CONTENEDOR||"",
+          SKU: r.SKU||"",
+          EUROPEO: r.EUROPEO||"",
+          DESCRIPCION: r.DESCRIPCION||"",
+          SAP,
+          SCANNER,
+          LAST_SCANNED_BY: r.LAST_SCANNED_BY || "",
+          DIFERENCIA: diff
+        };
+      });
+      let ws= XLSX.utils.json_to_sheet(exportData, {
+        header:[
+          "FECHA","SECCION","MANIFIESTO","CONTENEDOR","SKU","EUROPEO","DESCRIPCION",
+          "SAP","SCANNER","LAST_SCANNED_BY","DIFERENCIA"
+        ]
+      });
+      let range= XLSX.utils.decode_range(ws["!ref"]);
+      // Pintar encabezado
+      for(let C=range.s.c; C<=range.e.c; C++){
+        let addr= XLSX.utils.encode_cell({r:range.s.r,c:C});
+        if(ws[addr]){
+          ws[addr].s={
+            fill:{fgColor:{rgb:"E6007E"}},
+            font:{bold:true, color:{rgb:"FFFFFF"}, sz:12},
+            alignment:{horizontal:"center"}
+          };
+        }
+      }
+      // Pintar columna DIFERENCIA
+      for(let R= range.s.r+1; R<=range.e.r; R++){
+        let addr= XLSX.utils.encode_cell({r:R,c:range.e.c});
+        if(ws[addr]){
+          let val= ws[addr].v||"";
+          if(val==="OK"){
+            ws[addr].s={
+              fill:{fgColor:{rgb:"66BB6A"}},
+              font:{bold:true, color:{rgb:"FFFFFF"}, sz:12},
+              alignment:{horizontal:"center"}
+            };
+          } else if(val.startsWith("FALTAN")){
+            ws[addr].s={
+              fill:{fgColor:{rgb:"F44336"}},
+              font:{bold:true, color:{rgb:"FFFFFF"}, sz:12},
+              alignment:{horizontal:"center"}
+            };
+          } else if(val.startsWith("MERCANCIA DE MAS")){
+            ws[addr].s={
+              fill:{fgColor:{rgb:"FFEB3B"}},
+              font:{bold:true, color:{rgb:"000000"}, sz:12},
+              alignment:{horizontal:"center"}
+            };
+          }
+        }
+      }
+      let newWb= XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWb,ws,"Sheet1");
+      let wbout= XLSX.write(newWb,{bookType:"xlsx",type:"array",cellStyles:true});
+      let blob= new Blob([wbout],{type:"application/octet-stream"});
+      let url= URL.createObjectURL(blob);
+      let a= document.createElement("a");
+      a.href= url;
+      a.download= fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast("success","Archivo descargado.");
+    }
+
+    // ============= (U) RE-SUBIR ARCHIVO CON CAMBIOS =============
+    async function reuploadFileWithScannerChanges(fileName){
+      let dataObj= excelDataGlobal[fileName];
+      let arr= dataObj.data;
+      let ws= XLSX.utils.json_to_sheet(arr);
+      let wb= XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,"Sheet1");
+      let wbout= XLSX.write(wb,{bookType:"xlsx",type:"array"});
+      let blob= new Blob([wbout],{type:"application/octet-stream"});
+      let storeFolder= (currentUserStore==="ALL")?"ALL": currentUserStore;
+      let storageRef= storage.ref(`Manifiestos/${storeFolder}/${fileName}`);
+      await storageRef.put(blob);
+
+      await db.collection("manifiestos").doc(fileName).set({
+        fileName,
+        store: storeFolder,
+        lastUser: dataObj.lastUser,
+        lastUserStore: dataObj.lastUserStore,
+        lastUserRole: dataObj.lastUserRole,
+        closedContainers: dataObj.closedContainers||{},
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      },{merge:true});
+    }
+
+    // ============= (V) MOSTRAR DETALLES DEL CONTENEDOR =============
+    function mostrarDetallesContenedor(registros){
+      containerDetailsEl.innerHTML="";
+      if(!registros|| registros.length===0)return;
+      let isMobile=(window.innerWidth<576);
+      let headers= isMobile
+        ? ["Sección","Contenedor","SKU","Descripción","SAP","SCANNER","Diferencia"]
+        : ["Fecha","Sección","Manifiesto","Contenedor","SKU","Europeo","Descripción","SAP","SCANNER","Diferencia"];
+
+      let table= document.createElement("table");
+      table.className="table table-bordered table-striped table-hover";
+      table.style.borderRadius= "12px";
+      table.style.overflow= "hidden";
+
+      let thead="<thead><tr>";
+      headers.forEach(h=> thead+=`<th>${h}</th>`);
+      thead+="</tr></thead>";
+      table.innerHTML=thead;
+
+      let tbody=document.createElement("tbody");
+      registros.forEach(r=>{
+        let SAPval=r.SAP||0;
+        let SCANNERval=r.SCANNER||0;
+        let diff="";
+        if(SCANNERval===SAPval){
+          diff="OK";
+        } else if(SCANNERval<SAPval){
+          diff=`FALTAN ${SAPval-SCANNERval} piezas`;
+        } else {
+          diff=`MERCANCIA DE MAS: ${SCANNERval-SAPval} piezas`;
+        }
+        let diffColor= (SCANNERval===SAPval)? "#66BB6A" : (SCANNERval<SAPval?"#F44336":"#FFEB3B");
+
+        let row="<tr>";
+        if(!isMobile){
+          row+= `<td>${r.FECHA||""}</td>`;
+          row+= `<td>${r.SECCION||""}</td>`;
+          row+= `<td>${r.MANIFIESTO||""}</td>`;
+          row+= `<td>${r.CONTENEDOR||""}</td>`;
+          row+= `<td>${r.SKU||""}</td>`;
+          row+= `<td>${r.EUROPEO||""}</td>`;
+          row+= `<td>${r.DESCRIPCION||""}</td>`;
+          row+= `<td>${SAPval}</td>`;
+          // SCANNER + botón “-1”
+          row+= `<td>
+                   <span class="scanner-value">${SCANNERval}</span>
+                   ${
+                     (SCANNERval>0)
+                     ? `<button class="btn btn-warning btn-sm removeOneBtn"
+                           data-sku="${String(r.SKU||"").trim().toUpperCase()}"
+                           style="margin-left:5px;">
+                          <i class="bi bi-dash-circle"></i>
+                        </button>`
+                     : `<button class="btn btn-warning btn-sm" disabled style="margin-left:5px;">
+                          <i class="bi bi-dash-circle"></i>
+                        </button>`
+                   }
+                 </td>`;
+          row+= `<td style="background-color:${diffColor}; color:${diffColor==="#FFEB3B"?"#000":"#FFF"}; font-weight:600;">
+                    ${diff}
+                 </td>`;
+        } else {
+          // Vista móvil
+          row+= `<td>${r.SECCION||""}</td>`;
+          row+= `<td>${r.CONTENEDOR||""}</td>`;
+          row+= `<td>${r.SKU||""}</td>`;
+          row+= `<td>${r.DESCRIPCION||""}</td>`;
+          row+= `<td>${SAPval}</td>`;
+          row+= `<td>
+                   <span class="scanner-value">${SCANNERval}</span>
+                   ${
+                     (SCANNERval>0)
+                     ? `<button class="btn btn-warning btn-sm removeOneBtn"
+                           data-sku="${String(r.SKU||"").trim().toUpperCase()}"
+                           style="margin-left:5px;">
+                          <i class="bi bi-dash-circle"></i>
+                        </button>`
+                     : `<button class="btn btn-warning btn-sm" disabled style="margin-left:5px;">
+                          <i class="bi bi-dash-circle"></i>
+                        </button>`
+                   }
+                 </td>`;
+          row+= `<td style="background-color:${diffColor}; color:${diffColor==="#FFEB3B"?"#000":"#FFF"}; font-weight:600;">
+                    ${diff}
+                 </td>`;
+        }
+        row+="</tr>";
+        tbody.innerHTML+=row;
+      });
+      table.appendChild(tbody);
+      containerDetailsEl.appendChild(table);
+
+      // Manejar botón “-1” (restar piezas)
+      containerDetailsEl.querySelectorAll(".removeOneBtn").forEach(btn=>{
+        btn.addEventListener("click",(e)=>{
+          let sku= (btn.dataset.sku||"").trim().toUpperCase();
+          let fn= selectedFileToWorkEl.textContent;
+          if(!excelDataGlobal[fn])return;
+          let dataObj= excelDataGlobal[fn];
+          let arr= dataObj.data;
+          let rowObj= arr.find(x=>
+            String(x.SKU||"").trim().toUpperCase()===sku &&
+            String(x.CONTENEDOR||"").trim().toUpperCase()===currentContenedor
+          );
+          if(!rowObj)return;
+          let oldVal= rowObj.SCANNER||0;
+          if(oldVal===0)return;
+
+          // Resta 1
+          rowObj.SCANNER= oldVal-1;
+          rowObj.LAST_SCANNED_BY= currentUser.email|| currentUser.uid;
+          dataObj.lastUser= currentUser.email|| currentUser.uid;
+          dataObj.lastUserStore= currentUserStore;
+          dataObj.lastUserRole= currentUserRole;
+          excelDataGlobal[fn]= dataObj;
+
+          reuploadFileWithScannerChanges(fn).then(()=>{
+            currentContainerRecords= arr.filter(z=>
+              String(z.CONTENEDOR||"").trim().toUpperCase()===currentContenedor
+            );
+            mostrarDetallesContenedor(currentContainerRecords);
+            showToast("success","-1 pieza");
+          }).catch(e=>{
+            console.error("Error al re-subir:", e);
+            showToast("error","No se pudo actualizar el archivo.");
+          });
+        });
+      });
+    }
+
+    // ============= (W) checkContainerCompleteness =============
+    function checkContainerCompleteness(records){
+      if(!records|| records.length===0){
+        return { incomplete:true, msg:"<p>No hay registros en este contenedor.</p>", complete:false };
+      }
+      let totalMissing=0, totalExtra=0;
+      let completeCount=0;
+      let totalCount= records.length;
+      let contName= (records[0].CONTENEDOR||"Desconocido");
+      let detailsMissing=[], detailsExtra=[];
+
+      records.forEach(r=>{
+        let SAP= r.SAP||0;
+        let SCANNER= r.SCANNER||0;
+        if(SCANNER===SAP){
+          completeCount++;
+        } else if(SCANNER<SAP){
+          let falta= SAP-SCANNER;
+          totalMissing+= falta;
+          detailsMissing.push({sku:r.SKU, faltan:falta});
+        } else {
+          let extra= SCANNER-SAP;
+          totalExtra+= extra;
+          detailsExtra.push({sku:r.SKU, deMas:extra});
+        }
+      });
+
+      let isComplete= (completeCount=== totalCount);
+      let msg=`
+        <p><strong>Contenedor:</strong> ${contName}</p>
+        <table class="table">
+          <tbody>
+            <tr><td>Completos (SKU=SAP):</td><td><span class="badge bg-success">${completeCount}</span></td></tr>
+            <tr><td>Faltantes (piezas):</td><td><span class="badge bg-danger">${totalMissing}</span></td></tr>
+            <tr><td>Excedentes (piezas):</td><td><span class="badge bg-warning">${totalExtra}</span></td></tr>
+          </tbody>
+        </table>
+      `;
+      if(detailsMissing.length>0){
+        msg+=`<p><strong>Faltantes (detalle):</strong></p><ul>`;
+        detailsMissing.forEach(m=>{
+          msg+=`<li>SKU <strong>${m.sku}</strong>, faltan: ${m.faltan} piezas</li>`;
+        });
+        msg+="</ul>";
+      }
+      if(detailsExtra.length>0){
+        msg+=`<p><strong>Excedentes (detalle):</strong></p><ul>`;
+        detailsExtra.forEach(m=>{
+          msg+=`<li>SKU <strong>${m.sku}</strong>, de más: ${m.deMas} piezas</li>`;
+        });
+        msg+="</ul>";
+      }
+
+      if(isComplete){
+        msg+=`
+          <p class="text-success">
+            <i class="bi bi-check-circle"></i> Contenedor COMPLETO (SCANNER=SAP en todos los SKUs).
+          </p>
+        `;
+      } else {
+        msg+=`
+          <p class="text-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i> Contenedor con diferencias.
+          </p>
+        `;
+      }
+      return { incomplete:!isComplete, msg, complete:isComplete };
+    }
+
+    // ============= (X) checkGlobalCompleteness =============
+    function checkGlobalCompleteness(records){
+      let contMap={};
+      records.forEach(r=>{
+        let c= String(r.CONTENEDOR||"").trim().toUpperCase()||"SIN_CONT";
+        if(!contMap[c]) contMap[c]=[];
+        contMap[c].push(r);
+      });
+      let overallComplete=true;
+      let msg=`<div style="font-family:'Poppins',sans-serif;max-height:250px;overflow:auto;">`;
+      for(let c in contMap){
+        let group= contMap[c];
+        let totalCount= group.length;
+        let completeCount=0;
+        group.forEach(rr=>{
+          let SAP= rr.SAP||0;
+          let SCANNER= rr.SCANNER||0;
+          if(SCANNER===SAP){
+            completeCount++;
+          }
+        });
+        let isComplete= (completeCount===totalCount);
+        if(!isComplete) overallComplete=false;
+
+        let totalMissing=0, totalExtra=0;
+        group.forEach(rr=>{
+          let SAP= rr.SAP||0;
+          let SCANNER= rr.SCANNER||0;
+          if(SCANNER<SAP) totalMissing+=(SAP-SCANNER);
+          if(SCANNER>SAP) totalExtra+=(SCANNER-SAP);
+        });
+
+        msg+=`
+          <div style="margin-bottom:0.8rem; padding:0.5rem; border:2px solid ${isComplete?"#66BB6A":"#F44336"}; border-radius:8px;">
+            <h6 style="margin-bottom:0.3rem; color:${isComplete?"#66BB6A":"#F44336"};">
+              ${
+                isComplete
+                ? "<i class='bi bi-check-circle-fill'></i> Contenedor: "+c+" (Completo)"
+                : "<i class='bi bi-exclamation-triangle-fill'></i> Contenedor: "+c+" (Con diferencias)"
+              }
+            </h6>
+            <div style="display:flex; justify-content:space-evenly;">
+              <span style="background:#66BB6A; color:#fff; padding:0.2rem 0.5rem; border-radius:5px;">
+                Completos: ${completeCount}
+              </span>
+              <span style="background:#F44336; color:#fff; padding:0.2rem 0.5rem; border-radius:5px;">
+                Faltantes: ${totalMissing}
+              </span>
+              <span style="background:#FFEB3B; color:#000; padding:0.2rem 0.5rem; border-radius:5px;">
+                Excedentes: ${totalExtra}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+      msg+=`<hr style="margin:0.5rem 0;">`;
+      msg+=`
+        <p style="text-align:center;font-weight:bold;color:${overallComplete?"#66BB6A":"#F44336"};">
+          ${
+            overallComplete
+            ? "<i class='bi bi-check-circle-fill'></i> Todos los contenedores están completos."
+            : "<i class='bi bi-exclamation-triangle-fill'></i> Hay contenedores con diferencias."
+          }
+        </p>
+      </div>`;
+      return { msg, complete: overallComplete };
+    }
+
+    // ============= (Y) showToast Helper =============
+    function showToast(icon, title){
+      Swal.fire({
+        toast:true,
+        position:"top-end",
+        icon,
+        title,
+        showConfirmButton:false,
+        timer:2000,
+        timerProgressBar:true
+      });
+    }
   </script>
 </body>
 </html>

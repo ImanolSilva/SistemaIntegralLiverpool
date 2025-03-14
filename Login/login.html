@@ -17,7 +17,6 @@
 
   <!-- Custom Styles -->
   <style>
-    /* Reset y fuente */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -33,7 +32,6 @@
       position: relative;
       overflow: hidden;
     }
-    /* Fondo con textura sutil */
     .particles {
       position: absolute;
       top: 0;
@@ -44,7 +42,6 @@
       opacity: 0.1;
       z-index: 1;
     }
-    /* Contenedor del login centrado */
     .auth-container {
       position: relative;
       z-index: 2;
@@ -53,7 +50,6 @@
       padding: 20px;
       margin: 0 20px;
     }
-    /* Tarjeta de login con efecto de elevación */
     .card {
       border: none;
       border-radius: 1rem;
@@ -65,7 +61,6 @@
       padding: 2rem;
       text-align: center;
     }
-    /* Efecto typewriter para el título */
     .typewriter {
       overflow: hidden;
       border-right: .15em solid #E6007E;
@@ -85,7 +80,6 @@
     @keyframes blink-caret {
       50% { border-color: transparent; }
     }
-    /* Botón para Google */
     .btn-google {
       background-color: #fff;
       color: #444;
@@ -105,7 +99,6 @@
     .btn-google i {
       margin-right: 0.5rem;
     }
-    /* Enlace "Olvidé mi contraseña" */
     .forgot-link {
       display: block;
       margin-top: 1.5rem;
@@ -118,7 +111,6 @@
       color: #C5006C;
       text-decoration: underline;
     }
-    /* Footer */
     footer {
       position: absolute;
       bottom: 10px;
@@ -128,7 +120,6 @@
       font-size: 0.85rem;
       z-index: 2;
     }
-    /* Modal personalizado */
     .modal-content {
       border-radius: 1rem;
       overflow: hidden;
@@ -140,7 +131,6 @@
     .modal-body {
       background-color: #fdfdfd;
     }
-    /* Estilos para alertas personalizadas */
     .custom-alert {
       position: fixed;
       top: 20px;
@@ -165,24 +155,30 @@
     }
   </style>
 
-  <!-- Firebase (compat) y Auth (compat) -->
+  <!-- Firebase (compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
   <script>
     // CONFIGURACIÓN DE FIREBASE
     const firebaseConfig = {
-      apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
-      authDomain: "loginliverpool.firebaseapp.com",
-      projectId: "loginliverpool",
-      storageBucket: "loginliverpool.appspot.com",
-      messagingSenderId: "704223815941",
-      appId: "1:704223815941:web:c871525230fb61caf96f6c",
-      measurementId: "G-QFEPQ4TSPY"
-    };
+  apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+  authDomain: "loginliverpool.firebaseapp.com",
+  projectId: "loginliverpool",
+  storageBucket: "loginliverpool.appspot.com",
+  messagingSenderId: "704223815941",
+  appId: "1:704223815941:web:c871525230fb61caf96f6c",
+  measurementId: "G-QFEPQ4TSPY",
+};
+
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    // Forzar idioma español
+    const db = firebase.firestore();
+
+    // Forzar idioma español en la autenticación
     auth.languageCode = "es";
   </script>
 </head>
@@ -200,8 +196,10 @@
         <button id="googleSignInBtn" class="btn btn-google">
           <i class="fab fa-google"></i> Iniciar sesión con Google
         </button>
-        <!-- Enlace para "Olvidé mi contraseña" -->
-        <a href="#" class="forgot-link" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">¿Olvidaste tu contraseña?</a>
+        <!-- Enlace para "Olvidaste tu contraseña" -->
+        <a href="#" id="forgotPasswordLink" class="forgot-link" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">
+          <i class="fa-solid fa-key me-1"></i> ¿Olvidaste tu contraseña?
+        </a>
       </div>
     </div>
   </div>
@@ -232,6 +230,225 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-google" id="sendResetEmailBtn">
             <i class="fas fa-paper-plane me-2"></i> Enviar Correo
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para registro adicional (nuevos usuarios) -->
+  <div class="modal fade" id="registrationModal" tabindex="-1" aria-labelledby="registrationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius:1rem;">
+        <div class="modal-header">
+          <h5 class="modal-title" id="registrationModalLabel">
+            <i class="fa-solid fa-user-plus me-2" style="color: #E6007E;"></i> Completa tu registro
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Selección de Departamento -->
+          <div class="mb-3" id="departmentContainer">
+            <label for="departmentSelect" class="form-label">
+              <i class="fa-solid fa-building me-1"></i> Departamento
+            </label>
+            <select id="departmentSelect" class="form-select">
+              <option value="">-- Selecciona --</option>
+              <option value="000">000 - AUXILIAR DE OPERACIONES</option>
+              <option value="101">101 - MUEBLES</option>
+              <option value="104">104 - POTTERY BARN</option>
+              <option value="105">105 - POTTERY BARN KIDS</option>
+              <option value="106">106 - POTTERY BARN TEEN</option>
+              <option value="107">107 - WEST ELM</option>
+              <option value="108">108 - TAPICERÍA Y PISOS</option>
+              <option value="110">110 - DECORACIÓN TEXTIL</option>
+              <option value="111">111 - COLCHONES</option>
+              <option value="116">116 - MUEBLES DE EXTERIOR</option>
+              <option value="121">121 - TAPETES</option>
+              <option value="147">147 - FLORES Y VELAS</option>
+              <option value="149">149 - BOUTIQUE HOGAR</option>
+              <option value="152">152 - NUESTRA CASA</option>
+              <option value="154">154 - MESA FINA</option>
+              <option value="156">156 - ILUMINACIÓN</option>
+              <option value="157">157 - DECORACION HOGAR</option>
+              <option value="161">161 - CUADROS Y ESPEJOS</option>
+              <option value="201">201 - ACCESORIOS DEPORTIVOS</option>
+              <option value="202">202 - SF TREND M</option>
+              <option value="203">203 - ZAPATOS DEPORTIVOS</option>
+              <option value="205">205 - ROPA DEPORTIVA</option>
+              <option value="206">206 - APARATOS DE EJERCICIO</option>
+              <option value="207">207 - MOTOS</option>
+              <option value="211">211 - MOVILIDAD ELECTRICA</option>
+              <option value="213">213 - ACCESORIOS HOMBRE</option>
+              <option value="223">223 - GAP HOMBRE</option>
+              <option value="224">224 - AEROPOSTALE HOMBRE</option>
+              <option value="225">225 - BANANA REPUBLIC HOMBRE</option>
+              <option value="237">237 - ZAPATOS HOMBRE</option>
+              <option value="241">241 - TRAJES</option>
+              <option value="242">242 - TALLAS ESPECIALES</option>
+              <option value="245">245 - HOMBRE CONTEMPORÁNEO</option>
+              <option value="246">246 - SACOS</option>
+              <option value="247">247 - PANTALONES DE VESTIR</option>
+              <option value="251">251 - JUVENILES</option>
+              <option value="252">252 - ZONA URBANA HOMBRE</option>
+              <option value="261">261 - DISEÑADORES</option>
+              <option value="271">271 - CASUAL</option>
+              <option value="276">276 - CAMISAS VESTIR</option>
+              <option value="279">279 - CORBATAS</option>
+              <option value="282">282 - CALCETINES</option>
+              <option value="285">285 - ROPA INTERIOR</option>
+              <option value="288">288 - PIJAMAS</option>
+              <option value="302">302 - GOURMET</option>
+              <option value="307">307 - WILLIAMS-SONOMA</option>
+              <option value="322">322 - NAVIDAD</option>
+              <option value="323">323 - ARTÍCULOS DE VIAJE</option>
+              <option value="327">327 - ESCOLARES</option>
+              <option value="338">338 - PAPELERIA</option>
+              <option value="340">340 - AUTOMOTRIZ</option>
+              <option value="343">343 - FERRETERÍA</option>
+              <option value="345">345 - MASCOTAS</option>
+              <option value="351">351 - BAÑO</option>
+              <option value="356">356 - BLANCOS</option>
+              <option value="357">357 - ÓPTICA</option>
+              <option value="358">358 - MICAS GRADUADAS</option>
+              <option value="365">365 - LIBRERÍA</option>
+              <option value="374">374 - ALTA RELOJERÍA</option>
+              <option value="375">375 - RELOJES FINOS</option>
+              <option value="376">376 - RELOJES</option>
+              <option value="377">377 - ACCESORIOS FINOS</option>
+              <option value="380">380 - REG Y COM C/COM D3</option>
+              <option value="388">388 - VINOS Y LICORES</option>
+              <option value="391">391 - DULCERÍA</option>
+              <option value="393">393 - SNACK BAR</option>
+              <option value="398">398 - ORGANIZACIÓN HOGAR</option>
+              <option value="401">401 - GIRL</option>
+              <option value="402">402 - TENIS NIÑO/NIÑA</option>
+              <option value="404">404 - BOY</option>
+              <option value="405">405 - ZAPATOS NIÑA</option>
+              <option value="413">413 - MUEBLES PARA BEBÉ</option>
+              <option value="417">417 - ACCESORIOS BEBÉ</option>
+              <option value="421">421 - BEBÉS</option>
+              <option value="423">423 - VIDEOJUEGOS</option>
+              <option value="424">424 - JUGUETES</option>
+              <option value="425">425 - THE DISNEY STORE</option>
+              <option value="433">433 - GAP INFANTILES</option>
+              <option value="435">435 - AEROPOSTALE KIDS NIÑOS</option>
+              <option value="436">436 - BEBÉS MODA</option>
+              <option value="437">437 - AEROPOSTALE KIDS NIÑAS</option>
+              <option value="438">438 - PRE-ESCOLAR</option>
+              <option value="443">443 - ROPA INTERIOR NIÑO</option>
+              <option value="444">444 - NIÑOS</option>
+              <option value="447">447 - NIÑOS 8+</option>
+              <option value="448">448 - NIÑAS 8+</option>
+              <option value="450">450 - COLECCIONES NIÑO</option>
+              <option value="456">456 - DEPORTIVO NIÑOS</option>
+              <option value="459">459 - ZAPATOS NIÑO</option>
+              <option value="466">466 - NIÑAS</option>
+              <option value="469">469 - COLECCIONES NIÑA</option>
+              <option value="473">473 - ROPA INTERIOR NIÑA</option>
+              <option value="478">478 - ACCESORIOS NIÑO</option>
+              <option value="479">479 - ACCESORIOS NIÑA</option>
+              <option value="480">480 - REG Y COM C/COM D4</option>
+              <option value="486">486 - DEPORTIVO NIÑAS</option>
+              <option value="503">503 - KNITWEAR W</option>
+              <option value="504">504 - LENCERÍA</option>
+              <option value="508">508 - ETAM</option>
+              <option value="510">510 - VESTIDOS DE FIESTA</option>
+              <option value="511">511 - BOLSAS</option>
+              <option value="512">512 - MUJER CLÁSICA</option>
+              <option value="513">513 - CONFIDENTIAL W</option>
+              <option value="514">514 - ACCESORIOS</option>
+              <option value="517">517 - ACCESSORIES W</option>
+              <option value="520">520 - VESTIDOS</option>
+              <option value="521">521 - PETITE</option>
+              <option value="522">522 - ZONA URBANA MUJER</option>
+              <option value="523">523 - GAP MUJER</option>
+              <option value="524">524 - AEROPOSTALE MUJER</option>
+              <option value="525">525 - BANANA REPUBLIC MUJER</option>
+              <option value="529">529 - CURVY CONTEMPORÁNEA</option>
+              <option value="530">530 - MUJER CONTEMPORÁNEA</option>
+              <option value="532">532 - PLAYA Y VIAJE</option>
+              <option value="533">533 - PUNT ROMA</option>
+              <option value="535">535 - STUDIO ZEN</option>
+              <option value="540">540 - JUNIORS</option>
+              <option value="544">544 - MATERNIDAD</option>
+              <option value="545">545 - JOVEN CONTEMPORÁNEA</option>
+              <option value="550">550 - ZAPATOS MUJER</option>
+              <option value="553">553 - MUJER ACTUAL</option>
+              <option value="555">555 - COLECCIONES</option>
+              <option value="557">557 - CURVY ACTUAL</option>
+              <option value="559">559 - DISEÑADORES</option>
+              <option value="566">566 - ALTA JOYERÍA</option>
+              <option value="571">571 - JOYERÍA MODA</option>
+              <option value="610">610 - ZONA GEEK</option>
+              <option value="623">623 - COCINA</option>
+              <option value="625">625 - ELÉCTRICOS</option>
+              <option value="627">627 - FOTO Y VIDEO</option>
+              <option value="628">628 - COMPUTACIÓN</option>
+              <option value="629">629 - TV Y VIDEO</option>
+              <option value="630">630 - SONIDO</option>
+              <option value="631">631 - INSTRUMENTOS MUSICALES</option>
+              <option value="632">632 - CELULARES</option>
+              <option value="633">633 - COMERCIO VIRTUAL</option>
+              <option value="634">634 - LÍNEA BLANCA</option>
+              <option value="635">635 - SOLUCION A MEDIDA</option>
+              <option value="636">636 - EQUIPOS DE EMPOTRAR</option>
+              <option value="637">637 - ACCESORIOS MULTIMEDIA</option>
+              <option value="638">638 - SMART HOME</option>
+              <option value="639">639 - COLECCIONABLES</option>
+              <option value="640">640 - SERVICIOS INTEGRALES</option>
+              <option value="701">701 - FRAGANCIAS</option>
+              <option value="702">702 - COSMÉTICOS</option>
+              <option value="704">704 - FARMACIA</option>
+              <option value="705">705 - CUIDADO PERSONAL</option>
+              <option value="706">706 - BELLEZA</option>
+              <option value="780">780 - REG Y COM C/COM D7</option>
+              <option value="905">905 - SERVICIOS GENERALES FACTURABLES</option>
+              <option value="910">910 - SERVICIOS GENERALES</option>
+              <option value="911">911 - AGENCIA DE VIAJES</option>
+              <option value="930">930 - SEGUROS</option>
+              <option value="931">931 - ASEGURADORA QUALITAS</option>
+              <option value="933">933 - SEGURO CELULAR ACE</option>
+              <option value="934">934 - SEGUROS MOTOS</option>
+              <option value="936">936 - SEGUROS TELEMARKETING Y MASIVOS</option>
+              <option value="950">950 - MOVIMIENTOS FINANCIEROS</option>
+              <option value="321">321 - HALLOWEEN</option>
+            </select>
+          </div>
+
+          <!-- Selección de Rol -->
+          <div class="mb-3" id="roleContainer">
+            <label for="roleSelect" class="form-label">
+              <i class="fa-solid fa-user-gear me-1"></i> Rol Deseado
+            </label>
+            <select id="roleSelect" class="form-select">
+              <option value="">-- Selecciona --</option>
+              <option value="vendedor">Vendedor</option>
+              <option value="jefe">Jefe</option>
+            </select>
+          </div>
+
+          <!-- Tienda -->
+          <div class="mb-3">
+            <label for="storeInput" class="form-label">
+              <i class="fa-solid fa-shop me-1"></i> Tienda
+            </label>
+            <input type="text" id="storeInput" class="form-control" placeholder="Ingresa el nombre o número de la tienda">
+          </div>
+
+          <!-- Seleccionar Jefe (si rol = vendedor) -->
+          <div class="mb-3" id="bossSelectContainer" style="display: none;">
+            <label for="bossSelect" class="form-label">
+              <i class="fa-solid fa-user-tie me-1"></i> Selecciona a tu Jefe
+            </label>
+            <select id="bossSelect" class="form-select">
+              <option value="">-- Cargando jefes... --</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="saveRegistrationBtn" class="btn btn-google">
+            <i class="fas fa-save me-2"></i> Guardar
           </button>
         </div>
       </div>

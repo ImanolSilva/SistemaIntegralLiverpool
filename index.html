@@ -114,13 +114,11 @@
       from { opacity: 0; transform: translateY(50px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    /* Efecto Typewriter en rosa brillante */
     .typewriter-text {
       color: #FF69B4;
       text-shadow: 0 0 8px rgba(255,105,180,0.8), 0 0 16px rgba(255,105,180,0.6);
       font-weight: 600;
     }
-    /* Responsividad */
     @media (max-width: 768px) {
       .navbar-nav .nav-link {
         font-size: 1.2rem;
@@ -151,49 +149,59 @@
               aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
-<!-- Menú -->
-<div class="collapse navbar-collapse" id="navbarNav">
-  <ul class="navbar-nav ms-auto">
-    <li class="nav-item">
-      <a class="nav-link active" href="index.html">
-        <i class="bi bi-house-door-fill"></i> Inicio
-      </a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="ChecarPrecios/index.html">
-        <i class="bi bi-tags"></i> Checar Precios
-      </a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="Rechazos/reportes.html">
-        <i class="bi bi-x-octagon-fill"></i> Rechazos
-      </a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="Inventarios/Inventarios.html">
-        <i class="bi bi-archive"></i> Inventarios
-      </a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="Configuraciones/Configuracion.html">
-        <i class="bi bi-sliders"></i> Configuración
-      </a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="Manifiestos/Manifiestos.html">
-        <i class="bi bi-file-earmark-check"></i> Manifiestos
-      </a>
-    </li>
-  </ul>
-</div>
-</div>
-</nav>
 
+      <!-- Menú -->
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="index.html">
+              <i class="bi bi-house-door-fill"></i> Inicio
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="ChecarPrecios/index.html">
+              <i class="bi bi-tags"></i> Checar Precios
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Rechazos/reportes.html">
+              <i class="bi bi-x-octagon-fill"></i> Rechazos
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Inventarios/Inventarios.html">
+              <i class="bi bi-archive"></i> Inventarios
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Configuraciones/Configuracion.html">
+              <i class="bi bi-sliders"></i> Configuración
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="Manifiestos/Manifiestos.html">
+              <i class="bi bi-file-earmark-check"></i> Manifiestos
+            </a>
+          </li>
+
+          <!-- Pestaña Administrar (solo para admin) -->
+          <li class="nav-item" id="adminTab" style="display: none;">
+            <a class="nav-link" href="/Adminroles/admin.html">
+              <i class="bi bi-gear-fill"></i> Administrar
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
 
   <!-- SECCIÓN HERO -->
   <section class="hero-section">
     <div class="hero-content" data-aos="fade-up" data-aos-duration="1500">
       <h1>Bienvenido a <span>Sistema Liverpool</span></h1>
+      <!-- Texto con la tienda, depto, rol, y nombre del usuario -->
+      <p id="storeRoleInfo" style="font-size:1.1rem; margin-top:15px;"></p>
+
       <p class="typewriter" data-aos="fade-up" data-aos-duration="1500" data-aos-delay="1000">
         Una herramienta para <span class="typewriter-text"></span><label>|</label>
       </p>
@@ -205,12 +213,13 @@
   <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Firebase -->
+  <!-- Firebase (versión 8.x) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
   <script>
-    // Configuración de Firebase
+    // CONFIGURACIÓN DE FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
       authDomain: "loginliverpool.firebaseapp.com",
@@ -218,10 +227,14 @@
       storageBucket: "loginliverpool.appspot.com",
       messagingSenderId: "704223815941",
       appId: "1:704223815941:web:c871525230fb61caf96f6c",
-      measurementId: "G-QFEPQ4TSPY",
+      measurementId: "G-QFEPQ4TSPY"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // UID del Administrador
+    const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2";
 
     // Función para gestionar inicio/cierre de sesión
     function handleAuthClick() {
@@ -230,29 +243,94 @@
         auth.signOut().then(() => {
           console.log("Sesión cerrada");
           authButton.textContent = "Acceder";
+          // Ocultamos la pestaña Admin si se cierra sesión
+          const adminTab = document.getElementById("adminTab");
+          if (adminTab) adminTab.style.display = "none";
+
+          // Borramos la info de tienda, depto y rol
+          const storeRoleInfo = document.getElementById("storeRoleInfo");
+          storeRoleInfo.textContent = "";
         }).catch((error) => {
           console.error("Error al cerrar sesión:", error);
         });
       } else {
+        // Ir a la página de login
         window.location.href = "Login/login.html";
       }
     }
 
-    // Cambiar texto del botón según estado de sesión
-    auth.onAuthStateChanged((user) => {
+    // Al cambiar el estado de autenticación
+    auth.onAuthStateChanged(async (user) => {
       const authButton = document.getElementById("authButton");
-      authButton.textContent = user ? "Salir" : "Acceder";
-    });
+      const adminTab = document.getElementById("adminTab");
+      const storeRoleInfo = document.getElementById("storeRoleInfo");
 
-    document.addEventListener('DOMContentLoaded', function() {
-      const authButton = document.getElementById("authButton");
-      if(authButton) {
-        authButton.addEventListener('click', handleAuthClick);
+      if (user) {
+        authButton.textContent = "Salir";
+
+        // Nombre del usuario (viene de Google)
+        const displayName = user.displayName || user.email || "Usuario";
+
+        // Si es el admin principal
+        if (user.uid === ADMIN_UID) {
+          adminTab.style.display = "block";
+          // Mostrar info "Administrador"
+          storeRoleInfo.innerHTML = `
+            Hola, <strong>${displayName}</strong><br>
+            <i class="bi bi-shop"></i> Tienda: <strong>42</strong> |
+            <i class="bi bi-building"></i> Dept: <strong>---</strong> |
+            <i class="bi bi-person-badge"></i> Rol: <strong>Administrador</strong>
+          `;
+          return; // No necesitamos más
+        } else {
+          adminTab.style.display = "none";
+        }
+
+        // Para usuarios normales, obtener tienda, depto, rol, status desde Firestore
+        try {
+          const docRef = db.collection("usuarios").doc(user.uid);
+          const docSnap = await docRef.get();
+          if (!docSnap.exists) {
+            // No existe => se asume no completó registro
+            // Redirigir a login
+            window.location.href = "Login/login.html";
+            return;
+          }
+          const data = docSnap.data();
+          const store = data.store || "Sin tienda";
+          const department = data.department || "Sin depto";
+          const currentRole = data.role || "Sin rol";
+          const status = data.status || "pendiente";
+
+          // Si está pendiente, no accede a la vista => redirige a login
+          if (status === "pendiente") {
+            window.location.href = "Login/login.html";
+            return;
+          }
+
+          // Muestra info
+          storeRoleInfo.innerHTML = `
+            Hola, <strong>${displayName}</strong><br>
+            <i class="bi bi-shop"></i> Tienda: <strong>${store}</strong> |
+            <i class="bi bi-building"></i> Dept: <strong>${department}</strong> |
+            <i class="bi bi-person-badge"></i> Rol: <strong>${currentRole}</strong>
+          `;
+        } catch (error) {
+          console.error("Error al obtener info de Firestore:", error);
+          storeRoleInfo.innerHTML = `
+            Hola, <strong>${displayName}</strong><br>
+            Error al cargar la información de la tienda/depto/rol.
+          `;
+        }
       } else {
-        console.error('El botón de autenticación no fue encontrado en el DOM.');
+        // Usuario no logueado
+        authButton.textContent = "Acceder";
+        adminTab.style.display = "none";
+        storeRoleInfo.textContent = "";
       }
     });
 
+    // Inicializar AOS
     AOS.init();
 
     // Efecto typewriter con texto vibrante
@@ -266,6 +344,7 @@
     const textElement = document.querySelector(".typewriter-text");
     let textIndex = 0;
     let characterIndex = 0;
+
     function typeWriter() {
       if(characterIndex < texts[textIndex].length) {
         textElement.innerHTML += texts[textIndex].charAt(characterIndex);
