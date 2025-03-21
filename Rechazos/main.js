@@ -29,56 +29,125 @@ const AppState = {
   rechazosGlobal: [],
   selectedFileData: null,
   isAdmin: false,
-  fileVersion: "1"
+  fileVersion: "1",
 };
 
 let isSaving = false;
 let adminBossFilter = "";
-
 const ADMIN_UIDS = [
   "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
-  "OaieQ6cGi7TnW0nbxvlk2oyLaER2"
+  "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
 ];
-
 const autoSaveTimers = {};
 
 /*****************************************************
- *  ========== INYECTAR ESTILOS PARA EL PUNTO VERDE ==========
+ *  ========== INYECTAR ESTILOS PERSONALIZADOS ==========
  *****************************************************/
-function injectLiquidDotStyles() {
+function injectCustomStyles() {
   const css = `
-  /* Estilos para el punto verde animado */
-  .liquid-dot {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    background-color: #28a745;
-    border-radius: 50%;
-    position: relative;
-    overflow: hidden;
-    margin-left: 0.5rem;
-  }
-  .liquid-dot::before {
-    content: "";
-    position: absolute;
-    bottom: -100%;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255,255,255,0.6);
-    border-radius: 50%;
-    animation: liquidDot 2s infinite ease-in-out;
-  }
-  @keyframes liquidDot {
-    0% { bottom: -100%; }
-    50% { bottom: 0; }
-    100% { bottom: -100%; }
-  }
+    /* ====== LIQUID DOT (efecto onda) ====== */
+    .liquid-dot {
+      position: relative;
+      width: 14px; /* Tamaño fijo para consistencia */
+      height: 14px; 
+      background: #28a745; /* punto verde */
+      border-radius: 50%;
+      margin-left: 0.5rem;
+      overflow: hidden;
+    }
+    .liquid-dot::before,
+    .liquid-dot::after {
+      content: "";
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      border-radius: 50%;
+      background-color: rgba(255,255,255,0.3);
+      animation: liquidDotRipple 2.5s infinite ease-in-out;
+    }
+    .liquid-dot::after {
+      animation-delay: 1.25s;
+    }
+    @keyframes liquidDotRipple {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      70% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+      100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+    }
+
+    /* ====== Spinner (guardando) ====== */
+    .saving-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-top: 2px solid #28a745;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ====== Icono de comentario ====== */
+    .comment-icon {
+      color: #17a2b8; /* azul clarito */
+      margin-left: 0.5rem;
+      font-size: 1rem; /* tamaño fijo para consistencia */
+    }
+
+    /* ====== Remisión Liquid Efecto ====== */
+    .remision-liquid {
+      display: inline-block;
+      position: relative;
+      padding: 4px 10px;
+      background: #fff;
+      border: 2px solid #E6007E;
+      border-radius: 12px;
+      color: #E6007E;
+      font-weight: 700;
+      margin-left: 6px;
+      overflow: hidden;
+    }
+    .remision-liquid::before,
+    .remision-liquid::after {
+      content: "";
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -100%;
+      left: -100%;
+      background: rgba(230, 0, 126, 0.15);
+      border-radius: 50%;
+      animation: liquidRemision 6s infinite linear;
+    }
+    .remision-liquid::after {
+      animation-delay: 3s;
+    }
+    @keyframes liquidRemision {
+      0% { transform: translate(0, 0) scale(0.7); }
+      50% { transform: translate(50%, 50%) scale(1.2); }
+      100% { transform: translate(0, 0) scale(0.7); }
+    }
+
+    /* ====== Ajustes responsivos mínimos ====== */
+    @media (max-width: 576px) {
+      .accordion-button { font-size: 0.9rem; }
+      .accordion-body { font-size: 0.9rem; }
+      .comment-icon { font-size: 0.9rem; }
+    }
   `;
-  const styleEl = document.createElement("style");
-  styleEl.id = "liquid-dot-styles";
-  styleEl.textContent = css;
-  document.head.appendChild(styleEl);
+  if (!document.getElementById("custom-styles")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "custom-styles";
+    styleEl.textContent = css;
+    document.head.appendChild(styleEl);
+  }
 }
 
 /*****************************************************
@@ -87,7 +156,7 @@ function injectLiquidDotStyles() {
 function showAlert(icon, title, text, config = {}) {
   const defaultConfig = {
     toast: true,
-    position: 'top-end',
+    position: "top-end",
     showConfirmButton: false,
     timer: 1500,
     timerProgressBar: true,
@@ -99,7 +168,8 @@ function setUIForRole(isAdmin) {
   const dropzone = document.getElementById("dropzone");
   const downloadRechazosBtn = document.getElementById("downloadRechazosBtn");
   if (dropzone) dropzone.style.display = isAdmin ? "block" : "none";
-  if (downloadRechazosBtn) downloadRechazosBtn.style.display = isAdmin ? "inline-block" : "none";
+  if (downloadRechazosBtn)
+    downloadRechazosBtn.style.display = isAdmin ? "inline-block" : "none";
 }
 
 function fixEncoding(str) {
@@ -111,19 +181,26 @@ function fixEncoding(str) {
   }
 }
 
+function isMobile() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+/*****************************************************
+ *  ========== CARGA DINÁMICA DE IMÁGENES ==========
+ *****************************************************/
 function loadDynamicImage(sku, seccion, containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  
+
   const imageUrl = `https://ss${seccion}.liverpool.com.mx/xl/${sku}.jpg`;
   const funnyImageUrl = "https://michelacosta.com/wp-content/uploads/2017/03/Cristiano-llorando.gif";
-  
+
   const imgElement = document.createElement("img");
   imgElement.alt = "Imagen del artículo";
-  imgElement.className = "img-fluid";
+  imgElement.className = "img-fluid rounded";
   imgElement.style.maxWidth = "200px";
   imgElement.style.display = "none";
-  
+
   const fallbackElement = document.createElement("div");
   fallbackElement.className = "no-image";
   fallbackElement.style.display = "none";
@@ -133,12 +210,12 @@ function loadDynamicImage(sku, seccion, containerId) {
   fallbackElement.style.border = "2px dashed #ff4081";
   fallbackElement.style.color = "#ff4081";
   fallbackElement.style.borderRadius = "10px";
-  
+
   container.appendChild(imgElement);
   container.appendChild(fallbackElement);
-  
+
   imgElement.src = imageUrl;
-  imgElement.onload = function() {
+  imgElement.onload = function () {
     this.style.display = "block";
     fallbackElement.style.display = "none";
     const successMsg = document.createElement("div");
@@ -148,8 +225,8 @@ function loadDynamicImage(sku, seccion, containerId) {
     container.appendChild(successMsg);
     setTimeout(() => successMsg.remove(), 3000);
   };
-  
-  imgElement.onerror = function() {
+
+  imgElement.onerror = function () {
     imgElement.style.display = "none";
     fallbackElement.innerHTML = `
       <div>
@@ -161,6 +238,9 @@ function loadDynamicImage(sku, seccion, containerId) {
   };
 }
 
+/*****************************************************
+ *  ========== CARGAR ARCHIVOS EXCEL ==========
+ *****************************************************/
 async function loadUsuariosFile() {
   try {
     const response = await fetch("../ArchivosExcel/Usuarios.xlsx");
@@ -200,13 +280,11 @@ async function loadRelacionesFile() {
         return;
       }
       AppState.relacionesData = XLSX.utils.sheet_to_json(sheet);
-      
       // Si el usuario es admin, se omite el filtrado por relaciones
       if (ADMIN_UIDS.includes(auth.currentUser.uid)) {
         loadRechazosFile([]);
         return;
       }
-      
       const correoUsuario = auth.currentUser.email;
       const usuarioData = AppState.relacionesData.filter(row => row.Correo === correoUsuario);
       if (usuarioData.length === 0) {
@@ -234,13 +312,12 @@ async function loadRelacionesFile() {
   }
 }
 
-function isMobile() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
+/*****************************************************
+ *  ========== DOMContentLoaded PRINCIPAL ==========
+ *****************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-  // Inyecta los estilos para el punto verde animado
-  injectLiquidDotStyles();
+  // Inyecta los estilos personalizados
+  injectCustomStyles();
 
   const logoutButton = document.getElementById("logout-btn");
   const confirmFileSelection = document.getElementById("confirmFileSelection");
@@ -248,12 +325,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveCommentsBtn = document.getElementById("saveCommentsBtn");
   const downloadRechazosBtn = document.getElementById("downloadRechazosBtn");
 
+  // Cerrar sesión
   logoutButton.addEventListener("click", () => {
     auth.signOut().then(() => {
       window.location.href = "../Login/login.html";
     });
   });
 
+  // Confirmar selección de archivo
   confirmFileSelection.addEventListener("click", () => {
     const selectedFileNameElem = document.getElementById("selectedFileName");
     if (!selectedFileNameElem) return;
@@ -268,12 +347,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Guardar comentarios manualmente
   saveCommentsBtn.addEventListener("click", () => saveAllComments());
 
+  /********************
+   * CONFIGURACIÓN DEL DROPZONE
+   ********************/
   if (dropzone) {
-    dropzone.classList.add("dropzone-style");
-    dropzone.innerHTML = `<i class="bi bi-cloud-upload-fill" style="font-size: 2rem; color: #007bff;"></i>
-                          <p>Arrastra y suelta el archivo aquí o haz clic para seleccionarlo.</p>`;
+    dropzone.innerHTML = `
+      <i class="bi bi-cloud-upload-fill" style="font-size: 2rem; color: #007bff;"></i>
+      <p>Arrastra y suelta el archivo aquí o haz clic para seleccionarlo.</p>
+    `;
     dropzone.addEventListener("click", () => {
       if (!AppState.isAdmin) return;
       checkExistingFile().then(exists => {
@@ -319,12 +403,12 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadRechazosBtn.addEventListener("click", downloadRechazosFile);
   }
 
+  // Manejo del estado de autenticación
   auth.onAuthStateChanged(async (user) => {
     if (user) {
       const correoElem = document.getElementById("correoUsuario");
       if (correoElem) correoElem.innerText = user.email;
       AppState.isAdmin = ADMIN_UIDS.includes(user.uid);
-      console.log(`El usuario actual es ${AppState.isAdmin ? "ADMIN" : "USUARIO normal"}`);
       setUIForRole(AppState.isAdmin);
       await loadUsuariosFile();
       await loadFilesFromFirebase();
@@ -384,24 +468,47 @@ async function loadFilesFromFirebase() {
 async function renderFileSelectOptions(files) {
   const fileListContainer = document.getElementById("fileListContainer");
   fileListContainer.innerHTML = "";
-  files.forEach(async file => {
+
+  files.forEach(async (file) => {
+    // Card principal con sombra suave y borde minimalista
     const card = document.createElement("div");
-    card.className = "card mb-2 shadow-sm fade-in";
+    card.className = "card mb-2 shadow-sm fade-in border-0";
+    card.style.transition = "transform 0.2s ease, box-shadow 0.2s";
+    card.onmouseover = () => {
+      card.style.transform = "translateY(-2px)";
+      card.style.boxShadow = "0 4px 10px rgba(0,0,0,0.1)";
+    };
+    card.onmouseout = () => {
+      card.style.transform = "translateY(0)";
+      card.style.boxShadow = "0 2px 6px rgba(0,0,0,0.05)";
+    };
+
+    // Cuerpo de la card
     const cardBody = document.createElement("div");
-    cardBody.className = "card-body d-flex justify-content-between align-items-center";
+    cardBody.className = "card-body d-flex justify-content-between align-items-center p-3";
+
+    // Información del archivo
     const fileInfo = document.createElement("div");
-    fileInfo.innerHTML = `<i class="bi bi-file-earmark-excel me-2" style="color: #28a745;"></i>${file.name}`;
-    
+    fileInfo.innerHTML = `
+      <i class="bi bi-file-earmark-excel me-2" style="color:#28a745; font-size:1.2rem;"></i>
+      <span class="fw-bold">${file.name}</span>
+    `;
+
+    // Botón para seleccionar el archivo
     const selectBtn = document.createElement("button");
     selectBtn.className = "btn btn-sm btn-primary";
-    selectBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i>Seleccionar`;
+    selectBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i> Seleccionar`;
     selectBtn.addEventListener("click", () => {
       document.getElementById("selectedFileName").textContent = `Seleccionado: ${file.name}`;
       document.getElementById("confirmFileSelection").disabled = false;
       AppState.selectedFileData = file;
     });
+
+    // Añadimos la info y el botón al cuerpo de la card
     cardBody.appendChild(fileInfo);
     cardBody.appendChild(selectBtn);
+
+    // Ensamblamos la card
     card.appendChild(cardBody);
     fileListContainer.appendChild(card);
   });
@@ -415,33 +522,67 @@ async function renderFilesManagement(files) {
     const fileListContainer = document.getElementById("fileListContainer");
     fileListContainer.parentNode.insertBefore(managementContainer, fileListContainer.nextSibling);
   }
-  managementContainer.innerHTML = "<h3 class='mb-3'>Administración del Archivo 'Rechazos'</h3>";
+  
+  // Card principal con header en degradado
+  managementContainer.innerHTML = `
+    <div class="card shadow-sm mb-4">
+      <div class="card-header" style="background: linear-gradient(135deg, #E6007E, #F8BBD0); border: none;">
+        <h4 class="mb-0 text-white">
+          <i class="bi bi-file-earmark-excel me-2"></i>
+          Administración del Archivo 'Rechazos'
+        </h4>
+      </div>
+      <div class="card-body p-3" id="filesManagementContent"></div>
+    </div>
+  `;
+  
+  const contentContainer = document.getElementById("filesManagementContent");
   const file = files[0];
-  let metadata;
+  let metadata = {};
   try {
     metadata = await file.ref.getMetadata();
   } catch (err) {
-    console.error("Error al obtener metadata del archivo", file.name, err);
-    metadata = {};
+    console.error("Error al obtener metadata:", err);
   }
-  const card = document.createElement("div");
-  card.className = "card mb-3 shadow-sm fade-in";
+  
+  // Card para mostrar la información del archivo
+  const fileCard = document.createElement("div");
+  fileCard.className = "card mb-3 border-0";
+  fileCard.style.backgroundColor = "#ffffff";
+  
   const cardBody = document.createElement("div");
-  cardBody.className = "card-body d-flex flex-column";
+  cardBody.className = "card-body d-flex flex-column p-3";
+  
+  // Encabezado de la card
   const headerRow = document.createElement("div");
-  headerRow.className = "d-flex justify-content-between align-items-center mb-2";
-  const nameEl = document.createElement("h5");
-  nameEl.className = "card-title mb-0";
-  nameEl.innerHTML = `<i class="bi bi-file-earmark-excel me-2" style="color: #28a745;"></i>${file.name}`;
-  headerRow.appendChild(nameEl);
+  headerRow.className = "d-flex justify-content-between align-items-center mb-3";
+  headerRow.innerHTML = `
+    <h5 class="card-title mb-0" style="color: #E6007E;">
+      <i class="bi bi-file-earmark-excel me-2" style="color:#28a745;"></i> ${file.name}
+    </h5>
+    <span class="text-muted" style="font-size: 0.9rem;">
+      Versión: ${(metadata.customMetadata && metadata.customMetadata.version) || "1"}
+    </span>
+  `;
   cardBody.appendChild(headerRow);
   
+  // Grupo de botones de acción con colores vibrantes y minimalistas
   const actionRow = document.createElement("div");
-  actionRow.className = "d-flex justify-content-end";
+  actionRow.className = "d-flex justify-content-end gap-2 flex-wrap";
   
+  const btnStyle = "border-radius: 30px; font-weight: 600; padding: 0.5rem 1.2rem; transition: all 0.3s ease;";
+  const btnHoverStyle = "transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15);";
+  
+  // Botón Descargar (rosa vibrante)
   const downloadBtn = document.createElement("button");
-  downloadBtn.className = "btn btn-sm btn-outline-secondary me-2";
-  downloadBtn.innerHTML = `<i class="bi bi-download me-1"></i>Descargar`;
+  downloadBtn.style = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
+  downloadBtn.innerHTML = `<i class="bi bi-download me-1"></i> Descargar`;
+  downloadBtn.addEventListener("mouseover", () => {
+    downloadBtn.style = btnStyle + "background-color: #D4006F; color: #fff; border: none; " + btnHoverStyle;
+  });
+  downloadBtn.addEventListener("mouseout", () => {
+    downloadBtn.style = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
+  });
   downloadBtn.addEventListener("click", async () => {
     try {
       const url = await file.ref.getDownloadURL();
@@ -457,14 +598,28 @@ async function renderFilesManagement(files) {
     }
   });
   
+  // Botón Enviar por correo (verde vibrante)
   const emailBtn = document.createElement("button");
-  emailBtn.className = "btn btn-sm btn-outline-info me-2";
-  emailBtn.innerHTML = `<i class="bi bi-envelope me-1"></i>Enviar por correo`;
+  emailBtn.style = btnStyle + "background-color: #28a745; color: #fff; border: none;";
+  emailBtn.innerHTML = `<i class="bi bi-envelope me-1"></i> Enviar por correo`;
+  emailBtn.addEventListener("mouseover", () => {
+    emailBtn.style = btnStyle + "background-color: #218838; color: #fff; border: none; " + btnHoverStyle;
+  });
+  emailBtn.addEventListener("mouseout", () => {
+    emailBtn.style = btnStyle + "background-color: #28a745; color: #fff; border: none;";
+  });
   emailBtn.addEventListener("click", sendFileByEmail);
   
+  // Botón Eliminar (rojo vibrante)
   const deleteBtn = document.createElement("button");
-  deleteBtn.className = "btn btn-sm btn-outline-danger";
-  deleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i>Eliminar`;
+  deleteBtn.style = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
+  deleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i> Eliminar`;
+  deleteBtn.addEventListener("mouseover", () => {
+    deleteBtn.style = btnStyle + "background-color: #c82333; color: #fff; border: none; " + btnHoverStyle;
+  });
+  deleteBtn.addEventListener("mouseout", () => {
+    deleteBtn.style = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
+  });
   deleteBtn.addEventListener("click", async () => {
     const result = await Swal.fire({
       title: "¿Estás seguro?",
@@ -480,7 +635,7 @@ async function renderFilesManagement(files) {
          html: 'Por favor espere',
          allowOutsideClick: false,
          allowEscapeKey: false,
-         didOpen: () => { Swal.showLoading(); }
+         didOpen: () => Swal.showLoading()
       });
       try {
          await file.ref.delete();
@@ -495,13 +650,12 @@ async function renderFilesManagement(files) {
     }
   });
   
-  actionRow.appendChild(downloadBtn);
-  actionRow.appendChild(emailBtn);
-  actionRow.appendChild(deleteBtn);
+  actionRow.append(downloadBtn, emailBtn, deleteBtn);
   cardBody.appendChild(actionRow);
-  card.appendChild(cardBody);
-  managementContainer.appendChild(card);
+  fileCard.appendChild(cardBody);
+  contentContainer.appendChild(fileCard);
 }
+
 
 /*****************************************************
  *  ========== FILTRO POR JEFE (SOLO PARA ADMIN) ==========
@@ -515,7 +669,6 @@ function renderBossFilter(allRechazos) {
     rechazosContainer.parentNode.insertBefore(container, rechazosContainer);
   }
   container.innerHTML = "";
-  // Se aplica fixEncoding para corregir la codificación de los nombres
   const jefesUnicos = [...new Set(allRechazos.map(r => fixEncoding(r["Jefatura"])).filter(j => j && j.trim() !== ""))];
   const select = document.createElement("select");
   select.className = "form-select mb-3";
@@ -622,16 +775,24 @@ async function uploadPhoto(file, rowIndex) {
     const timestamp = Date.now();
     const filename = `uploads/evidencias/evidencia_${remision}_${timestamp}.jpg`;
     const storageRef = storage.ref(filename);
+    Swal.fire({
+      title: "Subiendo foto...",
+      text: "Por favor espera un momento.",
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); }
+    });
     const snapshot = await storageRef.put(file);
     const downloadURL = await snapshot.ref.getDownloadURL();
     await verifyImage(downloadURL);
-    
     AppState.rechazosGlobal[rowIndex].Fotos = downloadURL;
     updatePhotoPreview(rowIndex, downloadURL);
+
+    Swal.close();
     showAlert("success", "Foto guardada", "La foto se ha guardado correctamente.");
-    await saveAllComments();
+    await saveAllComments(true);
   } catch (error) {
     console.error("Error al subir/verificar la foto:", error);
+    Swal.close();
     showAlert("error", "Error", "No se pudo subir o verificar la foto correctamente.");
   }
 }
@@ -651,8 +812,8 @@ function updatePhotoPreview(rowIndex, url) {
     if (url.trim() !== "") {
       const imageUrl = `${url}?cb=${Date.now()}`;
       previewContainer.innerHTML = `
-        <img src="${imageUrl}" alt="Evidencia" class="img-fluid mb-2" style="max-width:200px;">
-        <div class="mt-2">
+        <img src="${imageUrl}" alt="Evidencia" class="img-fluid rounded mb-2" style="max-width:200px;">
+        <div>
           <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2" data-row-index="${rowIndex}">
             <i class="bi bi-camera"></i> Cambiar Foto
           </button>
@@ -674,11 +835,9 @@ function updatePhotoPreview(rowIndex, url) {
 async function deletePhoto(rowIndex) {
   const photoUrl = AppState.rechazosGlobal[rowIndex].Fotos;
   if (!photoUrl) return;
-  
-  const photoRef = storage.refFromURL(photoUrl);
-  
   try {
-    await photoRef.getMetadata();
+    const photoRef = storage.refFromURL(photoUrl);
+    await photoRef.getMetadata(); 
     await photoRef.delete();
   } catch (error) {
     if (error.code === 'storage/object-not-found') {
@@ -689,19 +848,18 @@ async function deletePhoto(rowIndex) {
       return;
     }
   }
-  
   AppState.rechazosGlobal[rowIndex].Fotos = "";
   updatePhotoPreview(rowIndex, "");
   showAlert("success", "Eliminado", "La foto se eliminó correctamente.");
-  await saveAllComments();
+  await saveAllComments(true);
 }
 
 /*****************************************************
- *  ========== MANEJO DE ARCHIVOS EXCEL ==========
+ *  ========== MANEJO DE ARCHIVOS EXCEL (RECHAZOS) ==========
  *****************************************************/
 async function loadRechazosFile(secciones) {
   try {
-    const archivoRechazos = AppState.selectedFileData.ref;
+    const archivoRechazos = AppState.selectedFileData?.ref;
     if (!archivoRechazos) {
       showAlert("warning", "Archivo no encontrado", "No se encontró el archivo seleccionado en Firebase");
       return;
@@ -718,21 +876,21 @@ async function loadRechazosFile(secciones) {
         return showAlert("error", "Error", "No existe la hoja 'Rechazos' en el Excel");
       }
       AppState.allRechazosEnExcel = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-      
+
       let rechazosFiltrados = AppState.allRechazosEnExcel;
       if (secciones && secciones.length > 0) {
-        rechazosFiltrados = rechazosFiltrados.filter(row => 
+        rechazosFiltrados = rechazosFiltrados.filter(row =>
           secciones.some(seccion => row.Sección && row.Sección.toString().trim() === seccion.toString().trim())
         );
       }
-      
+
       if (AppState.isAdmin) {
         renderBossFilter(AppState.allRechazosEnExcel);
         if (adminBossFilter && adminBossFilter.trim() !== "") {
           rechazosFiltrados = AppState.allRechazosEnExcel.filter(row => row["Jefatura"] === adminBossFilter);
         }
       }
-      
+
       renderRechazos(rechazosFiltrados);
     };
     reader.readAsBinaryString(blob);
@@ -743,28 +901,37 @@ async function loadRechazosFile(secciones) {
 }
 
 /*****************************************************
- *  ========== RENDERIZAR ACORDEÓN ==========
- *****************************************************/
-function renderRechazos(rechazosFiltrados) {
-  const rechazosContainer = document.getElementById("rechazosContainer");
-  rechazosContainer.innerHTML = "";
+ *  ========== RENDERIZAR REMISIONES (ACORDEÓN) ==========
+ *  - Contenido alineado a la izquierda
+ *  - Imagen a la derecha
+ *  - Remisión, punto verde y ícono de mensaje con tamaño y ubicación fijos
+ *  - Colapsado por defecto
+ *****************************************************/function renderRechazos(rechazosFiltrados) {
+  const container = document.getElementById("rechazosContainer");
+  container.innerHTML = "";
+  
+  // Actualizamos el estado global de remisiones
   AppState.rechazosGlobal = rechazosFiltrados.map((item, index) => ({
     ...item,
     _rowIndex: index,
     Comentarios: item.Comentarios || ""
   }));
-  if (AppState.rechazosGlobal.length === 0) {
-    rechazosContainer.innerHTML = `
-      <div class="alert alert-warning">
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        No se encontraron rechazos para la selección actual.
+  
+  if (!AppState.rechazosGlobal.length) {
+    container.innerHTML = `
+      <div class="alert alert-warning text-center">
+        <i class="bi bi-exclamation-triangle-fill"></i> No se encontraron reportes para la selección actual.
       </div>`;
     return;
   }
+  
+  // Acordeón para agrupar las remisiones
   const accordion = document.createElement("div");
-  accordion.className = "accordion fade-in";
+  accordion.className = "accordion";
   accordion.id = "rechazosAccordion";
+  
   AppState.rechazosGlobal.forEach((rechazo, i) => {
+    // Variables
     const fecha = fixEncoding(rechazo["Fecha y Hora de Asignación"] || "");
     const seccion = fixEncoding(rechazo["Sección"] || "");
     const remision = fixEncoding(rechazo["Remisión"] || "");
@@ -774,100 +941,194 @@ function renderRechazos(rechazosFiltrados) {
     let usuarioCode = fixEncoding(rechazo["Usuario de Rechazo"] || "");
     const userCodeNormalized = usuarioCode.trim().toLowerCase();
     let usuarioName = usuarioCode;
-    if (AppState.usuariosData && AppState.usuariosData.length > 0) {
-      const foundUser = AppState.usuariosData.find(u => {
-        return u.Usuarios && u.Usuarios.toString().trim().toLowerCase() === userCodeNormalized;
-      });
-      if (foundUser && foundUser.Nombre) usuarioName = foundUser.Nombre;
+    if (AppState.usuariosData.length) {
+      const foundUser = AppState.usuariosData.find(u =>
+        u.Usuarios && u.Usuarios.toString().trim().toLowerCase() === userCodeNormalized
+      );
+      if (foundUser?.Nombre) usuarioName = foundUser.Nombre;
     }
-    const Jefatura = fixEncoding(rechazo["Jefatura"] || "");
+    const jefatura = fixEncoding(rechazo["Jefatura"] || "");
+    const hasComment = rechazo.Comentarios.trim() !== "";
     
-    const headingId = `heading-${i}`;
-    const collapseId = `collapse-${i}`;
-    // Si existe comentario se agrega la clase y se inserta el "punto verde" animado
-    const headerButtonClass = `accordion-button collapsed ${rechazo.Comentarios.trim() !== "" ? "has-comment-header" : ""}`;
+    // Indicador de estado: verde si tiene comentarios, rojo si no
+    const stateIndicator = `
+      <span style="
+        display:inline-block; 
+        width:12px; 
+        height:12px; 
+        border-radius:50%; 
+        background-color:${hasComment ? "#28a745" : "#dc3545"};
+        margin-left:0.5rem;">
+      </span>
+    `;
+    
+    // Estructura del acordeón
     const accordionItem = document.createElement("div");
-    accordionItem.className = "accordion-item mb-2";
+    accordionItem.className = "accordion-item mb-3 border-0";
+    
+    // Header
     const header = document.createElement("h2");
     header.className = "accordion-header";
-    header.id = headingId;
-    header.innerHTML = `
-      <button 
-        class="${headerButtonClass}" 
-        type="button" 
-        data-bs-toggle="collapse"
-        data-bs-target="#${collapseId}"
-        aria-expanded="false"
-        aria-controls="${collapseId}"
-      >
-        <i class="bi bi-file-earmark-text me-2"></i>
-        <strong>Remisión:</strong> ${remision}
-        ${rechazo.Comentarios.trim() !== "" ? '<span class="liquid-dot"></span>' : ''}
-      </button>
+    header.id = `heading-${i}`;
+    
+    const headerButton = document.createElement("button");
+    headerButton.className = "accordion-button collapsed";
+    headerButton.type = "button";
+    headerButton.setAttribute("data-bs-toggle", "collapse");
+    headerButton.setAttribute("data-bs-target", `#collapse-${i}`);
+    headerButton.setAttribute("aria-expanded", "false");
+    headerButton.setAttribute("aria-controls", `collapse-${i}`);
+    headerButton.style.backgroundColor = "#fff";
+    headerButton.style.border = "1px solid #E6007E";
+    headerButton.style.borderRadius = "10px";
+    headerButton.style.fontWeight = "600";
+    headerButton.style.padding = "1rem";
+    headerButton.style.transition = "transform 0.3s ease";
+    headerButton.onmouseover = () => headerButton.style.transform = "scale(1.02)";
+    headerButton.onmouseout = () => headerButton.style.transform = "scale(1)";
+    
+    headerButton.innerHTML = `
+      <div class="d-flex align-items-center justify-content-between w-100">
+        <div>
+          <span>Reporte:</span>
+          <span style="
+            padding: 0.25rem 0.75rem;
+            background-color: #E6007E;
+            color: #fff;
+            border-radius: 20px;
+            margin-left:0.5rem;">
+            ${remision}
+          </span>
+        </div>
+        <div class="d-flex align-items-center">
+          ${stateIndicator}
+          ${
+            hasComment
+              ? `<i class="bi bi-chat-dots-fill ms-2" style="color:#17a2b8;" title="Tiene comentarios"></i>`
+              : ""
+          }
+        </div>
+      </div>
     `;
-    const collapseDiv = document.createElement("div");
-    collapseDiv.id = collapseId;
-    collapseDiv.className = "accordion-collapse collapse";
-    collapseDiv.setAttribute("aria-labelledby", headingId);
-    const body = document.createElement("div");
-    body.className = "accordion-body";
-    body.innerHTML = `
-      <div class="mb-2 text-muted">
-        <i class="bi bi-calendar2 me-1"></i><strong> Fecha:</strong> ${fecha}
-      </div>
-      <p>
-        <i class="bi bi-diagram-2 me-1"></i><strong> Sección:</strong> ${seccion} <br>
-        <i class="bi bi-tags me-1"></i><strong> SKU:</strong> ${sku} <br>
-        <i class="bi bi-card-text me-1"></i><strong> Descripción Sku:</strong> ${descripcionSku} <br>
-        <i class="bi bi-box-seam me-1"></i><strong> Piezas:</strong> ${piezas} <br>
-        <i class="bi bi-person me-1"></i><strong> Usuario de Rechazo:</strong> ${usuarioName} <br>
-        <i class="bi bi-person-gear me-1"></i><strong> Jefatura:</strong> ${Jefatura}
-      </p>
-      <div class="text-center mb-3" id="imgContainer-${sku}-${i}"></div>
-      <div class="text-center mb-3">
-        <a href="https://www.liverpool.com.mx/tienda?s=${sku}" target="_blank" class="btn btn-outline-secondary btn-sm me-2">
-          <i class="bi bi-search"></i> Buscar en Liverpool
-        </a>
-        <a href="https://www.google.com/search?q=site:liverpool.com.mx+${sku}" target="_blank" class="btn btn-outline-danger btn-sm">
-          <i class="bi bi-google"></i> Buscar en Google
-        </a>
-      </div>
-      <div id="evidencia-preview-${rechazo._rowIndex}" class="text-center mb-3">
-        ${rechazo.Fotos && rechazo.Fotos.trim() !== "" 
-          ? `
-            <img src="${rechazo.Fotos}" alt="Evidencia" class="img-fluid mb-2" style="max-width:200px;">
-            <div>
-              <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2" data-row-index="${rechazo._rowIndex}">
-                <i class="bi bi-camera"></i> Cambiar Foto
-              </button>
-              <button class="btn btn-sm btn-outline-danger eliminar-foto-btn" data-row-index="${rechazo._rowIndex}">
-                <i class="bi bi-trash"></i> Eliminar Foto
-              </button>
-            </div>
-          `
-          : `<button class="btn btn-outline-primary btn-sm agregar-foto-btn" data-row-index="${rechazo._rowIndex}">
-               <i class="bi bi-camera"></i> Agregar Foto
-             </button>`
-        }
-      </div>
-      <label for="comentario-${rechazo._rowIndex}" class="form-label fw-semibold">
-        <i class="bi bi-chat-left-dots me-1"></i> Comentarios:
-      </label>
-      <textarea
-        id="comentario-${rechazo._rowIndex}"
-        rows="3"
-        class="form-control comentario-input ${rechazo.Comentarios.trim() !== "" ? "has-comment" : ""}"
-        data-row-index="${rechazo._rowIndex}"
-      >${rechazo.Comentarios}</textarea>
-    `;
-    collapseDiv.appendChild(body);
+    header.appendChild(headerButton);
     accordionItem.appendChild(header);
+    
+    // Contenido del acordeón
+    const collapseDiv = document.createElement("div");
+    collapseDiv.id = `collapse-${i}`;
+    collapseDiv.className = "accordion-collapse collapse";
+    collapseDiv.setAttribute("aria-labelledby", `heading-${i}`);
+    collapseDiv.setAttribute("data-bs-parent", "#rechazosAccordion");
+    
+    const bodyDiv = document.createElement("div");
+    bodyDiv.className = "accordion-body p-4";
+    bodyDiv.style.backgroundColor = "#fdfdfd";
+    
+    // Aquí definimos la fila (row) con align-items-start
+    bodyDiv.innerHTML = `
+      <div class="row g-3 align-items-start">
+        <!-- Columna de Datos (Lista) -->
+        <div class="col-md-7">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-1"><strong>Fecha:</strong> ${fecha}</li>
+            <li class="mb-1"><strong>Sección:</strong> ${seccion}</li>
+            <li class="mb-1"><strong>SKU:</strong> ${sku}</li>
+            <li class="mb-1"><strong>Descripción:</strong> ${descripcionSku}</li>
+            <li class="mb-1"><strong>Piezas:</strong> ${piezas}</li>
+            <li class="mb-1"><strong>Usuario:</strong> ${usuarioName}</li>
+            <li class="mb-1"><strong>Jefatura:</strong> ${jefatura}</li>
+          </ul>
+          
+          <!-- Botones de búsqueda -->
+          <div class="mt-3">
+            <a
+              href="https://www.liverpool.com.mx/tienda?s=${sku}"
+              target="_blank"
+              class="btn btn-sm btn-outline-secondary me-2"
+            >
+              <i class="bi bi-search"></i> Ver en Liverpool
+            </a>
+            <a
+              href="https://www.google.com/search?q=site:liverpool.com.mx+${sku}"
+              target="_blank"
+              class="btn btn-sm btn-outline-danger"
+            >
+              <i class="bi bi-google"></i> Buscar en Google
+            </a>
+          </div>
+          
+          <!-- Comentarios -->
+          <div class="mt-3">
+            <label
+              for="comentario-${rechazo._rowIndex}"
+              class="form-label fw-semibold"
+            >
+              <i class="bi bi-chat-left-dots me-1"></i> Comentarios:
+            </label>
+            <textarea
+              id="comentario-${rechazo._rowIndex}"
+              rows="3"
+              class="form-control comentario-input ${
+                rechazo.Comentarios.trim() !== "" ? "has-comment" : ""
+              }"
+              data-row-index="${rechazo._rowIndex}"
+            >${rechazo.Comentarios}</textarea>
+          </div>
+        </div>
+        
+        <!-- Columna de Imagen y Acciones -->
+        <div class="col-md-5 text-center">
+          <div id="imgContainer-${sku}-${i}" class="mb-3"></div>
+          <div id="evidencia-preview-${rechazo._rowIndex}">
+            ${
+              rechazo.Fotos && rechazo.Fotos.trim() !== ""
+                ? `
+                  <img
+                    src="${rechazo.Fotos}"
+                    alt="Evidencia"
+                    class="img-fluid rounded mb-2"
+                    style="max-width:180px;"
+                  >
+                  <div>
+                    <button
+                      class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2"
+                      data-row-index="${rechazo._rowIndex}"
+                    >
+                      <i class="bi bi-camera"></i> Cambiar
+                    </button>
+                    <button
+                      class="btn btn-sm btn-outline-danger eliminar-foto-btn"
+                      data-row-index="${rechazo._rowIndex}"
+                    >
+                      <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                  </div>
+                `
+                : `
+                  <button
+                    class="btn btn-sm btn-outline-primary agregar-foto-btn"
+                    data-row-index="${rechazo._rowIndex}"
+                  >
+                    <i class="bi bi-camera"></i> Agregar Foto
+                  </button>
+                `
+            }
+          </div>
+        </div>
+      </div>
+    `;
+    
+    collapseDiv.appendChild(bodyDiv);
     accordionItem.appendChild(collapseDiv);
     accordion.appendChild(accordionItem);
-    rechazosContainer.appendChild(accordion);
-    loadDynamicImage(sku, seccion, `imgContainer-${sku}-${i}`);
+    
+    // Carga dinámica de la imagen
+    setTimeout(() => loadDynamicImage(sku, seccion, `imgContainer-${sku}-${i}`), 50);
   });
+  
+  container.appendChild(accordion);
 }
+
 
 /*****************************************************
  *  ========== AUTO-GUARDADO DE COMENTARIOS ==========
@@ -878,29 +1139,67 @@ document.addEventListener("input", (e) => {
     const newComment = e.target.value;
     if (AppState.rechazosGlobal[rowIndex]) {
       AppState.rechazosGlobal[rowIndex].Comentarios = newComment;
-      console.log(`Nuevo comentario para rowIndex=${rowIndex}: ${newComment}`);
     }
     e.target.classList.toggle("has-comment", newComment.trim() !== "");
-    const headerButton = document.querySelector(`#heading-${rowIndex} button`);
-    if (headerButton) headerButton.classList.toggle("has-comment-header", newComment.trim() !== "");
+
+    // Actualizar encabezado (punto e ícono si hay comentario)
+    const heading = document.getElementById(`heading-${rowIndex}`);
+    if (heading) {
+      const button = heading.querySelector("button");
+      if (button) {
+        const existingDot = button.querySelector(".liquid-dot");
+        const existingIcon = button.querySelector(".comment-icon");
+        if (newComment.trim() !== "") {
+          if (!existingDot) {
+            const dotSpan = document.createElement("span");
+            dotSpan.className = "liquid-dot";
+            button.appendChild(dotSpan);
+          }
+          if (!existingIcon) {
+            const icon = document.createElement("i");
+            icon.className = "bi bi-chat-dots-fill comment-icon";
+            icon.title = "Hay comentarios";
+            button.appendChild(icon);
+          }
+        } else {
+          if (existingDot) existingDot.remove();
+          if (existingIcon) existingIcon.remove();
+        }
+      }
+    }
+
+    // Programar auto-guardado
     if (autoSaveTimers[rowIndex]) clearTimeout(autoSaveTimers[rowIndex]);
     autoSaveTimers[rowIndex] = setTimeout(() => {
       autoSaveComment(rowIndex);
-    }, 4000);
+    }, 3000);
   }
 });
 
 async function autoSaveComment(rowIndex) {
+  // Spinner en el encabezado
+  const heading = document.getElementById(`heading-${rowIndex}`);
+  let spinner;
+  if (heading) {
+    const button = heading.querySelector("button");
+    if (button) {
+      spinner = document.createElement("span");
+      spinner.className = "saving-spinner";
+      button.appendChild(spinner);
+    }
+  }
   try {
     await saveAllComments(true);
     console.log(`Autosave: comentario de la fila ${rowIndex} guardado.`);
   } catch (error) {
     console.error("Error en auto-guardado:", error);
+  } finally {
+    if (spinner) spinner.remove();
   }
 }
 
 /*****************************************************
- *  ========== EVENTOS DE CLIC ==========
+ *  ========== EVENTOS DE CLIC (FOTOS) ==========
  *****************************************************/
 document.addEventListener("click", (e) => {
   if (e.target && (e.target.classList.contains("agregar-foto-btn") || e.target.classList.contains("cambiar-foto-btn"))) {
@@ -914,7 +1213,7 @@ document.addEventListener("click", (e) => {
 });
 
 /*****************************************************
- *  ========== DESCARGAR ARCHIVO ==========
+ *  ========== DESCARGAR ARCHIVO (ADMIN) ==========
  *****************************************************/
 async function downloadRechazosFile() {
   if (!AppState.isAdmin) return;
@@ -939,7 +1238,7 @@ async function downloadRechazosFile() {
 }
 
 /*****************************************************
- *  ========== ENVIAR ARCHIVO POR CORREO ==========
+ *  ========== ENVIAR ARCHIVO POR CORREO (ADMIN) ==========
  *****************************************************/
 async function sendFileByEmail() {
   if (!AppState.isAdmin) return;
@@ -947,7 +1246,6 @@ async function sendFileByEmail() {
     if (!AppState.selectedFileData || !AppState.selectedFileData.ref) {
       return showAlert("error", "Error", "No se ha seleccionado ningún archivo.");
     }
-    
     const defaultRecipients = "agavila@liverpool.com.mx,babanuelosr@liverpool.com.mx";
     const fileRef = AppState.selectedFileData.ref;
     const fileUrl = await fileRef.getDownloadURL();
@@ -955,18 +1253,17 @@ async function sendFileByEmail() {
     const body = encodeURIComponent(
 `Estimado/a,
 
-Adjunto encontrará el enlace para descargar el archivo de rechazos:
+Adjunto encontrarás el enlace para descargar el archivo de rechazos:
 
 ${fileUrl}
 
-Quedo a su disposición para cualquier consulta o aclaración.
+Quedo a tu disposición para cualquier consulta o aclaración.
 
 Atentamente,
-[Su Nombre]`
+[Tu Nombre]`
     );
     const mailtoLink = `mailto:${defaultRecipients}?subject=${subject}&body=${body}`;
     window.location.href = mailtoLink;
-    
     showAlert("success", "Abrir correo", "Se ha abierto su cliente de correo para enviar el mensaje.");
   } catch (error) {
     console.error("Error al enviar el archivo por correo:", error);
@@ -982,9 +1279,9 @@ async function saveAllComments(silent = false) {
   isSaving = true;
   try {
     if (!silent) {
-      await showAlert("info", "Guardando cambios...", "Por favor espera");
+      await showAlert("info", "Guardando cambios...", "Por favor espera", { timer: 3000, timerProgressBar: false });
     }
-    const fileRef = AppState.selectedFileData.ref;
+    const fileRef = AppState.selectedFileData?.ref;
     if (!fileRef) {
       isSaving = false;
       if (!silent) showAlert("error", "Archivo no encontrado", "No se encontró el archivo seleccionado en Firebase.");
@@ -1012,31 +1309,41 @@ async function saveAllComments(silent = false) {
           return;
         }
         let actualRechazos = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
         const comentariosEditados = {};
+        const fotosEditadas = {};
+
         AppState.rechazosGlobal.forEach(fila => {
           if (fila.Remisión) {
             comentariosEditados[fila.Remisión] = fila.Comentarios || "";
+            fotosEditadas[fila.Remisión] = fila.Fotos || "";
           }
         });
+
+        // Actualizar datos en la hoja
         actualRechazos = actualRechazos.map(row => {
           if (row.Remisión && comentariosEditados.hasOwnProperty(row.Remisión)) {
-            const updated = AppState.rechazosGlobal.find(f => f.Remisión === row.Remisión);
-            return { 
-              ...row, 
+            return {
+              ...row,
               Comentarios: comentariosEditados[row.Remisión],
-              Fotos: updated ? updated.Fotos : row.Fotos
+              Fotos: fotosEditadas[row.Remisión] ?? row.Fotos
             };
           }
           return row;
         });
+
+        // Reescribir la hoja "Rechazos"
         const newSheet = XLSX.utils.json_to_sheet(actualRechazos);
         workbook.Sheets["Rechazos"] = newSheet;
         const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const newBlob = new Blob([wbout], { type: "application/octet-stream" });
+
+        // Subir de nuevo el archivo con nueva versión
         const newVersion = (parseInt(currentVersion) + 1).toString();
         await fileRef.put(newBlob, { customMetadata: { version: newVersion } });
         AppState.selectedFileData = { name: "rechazos.xlsx", ref: fileRef };
         AppState.fileVersion = newVersion;
+
         if (!silent) {
           showAlert("success", "Guardado", "Los cambios se han guardado correctamente.");
         } else {

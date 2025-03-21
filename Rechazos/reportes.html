@@ -12,7 +12,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
   <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.15/dist/sweetalert2.min.css" rel="stylesheet">
-  
+
   <!-- Animaciones AOS -->
   <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
   
@@ -26,6 +26,7 @@
       --gris-oscuro: #333333;
       --gris-claro: #f8f9fa;
     }
+
     /* Estilo general */
     body {
       font-family: 'Poppins', Arial, sans-serif;
@@ -34,7 +35,9 @@
       padding: 0;
       color: var(--gris-oscuro);
       min-height: 100vh;
+      overflow-x: hidden;
     }
+
     /* Header */
     header {
       background-color: var(--rosa-principal);
@@ -61,7 +64,7 @@
       border: none;
       cursor: pointer;
     }
-    /* Botón de Cerrar Sesión */
+    /* Botón de Cerrar Sesión con estilo personalizado */
     #logout-btn {
       font-size: 1rem;
       display: flex;
@@ -70,21 +73,16 @@
       padding: 0.5rem 1rem;
       border-radius: 8px;
       transition: background-color 0.3s ease;
-      background-color: #c82333; /* Rojo oscuro */
+      background-color: #c82333;
       border: none;
       color: #ffffff;
+      font-weight: 600;
     }
     #logout-btn:hover {
       background-color: #a71d2a;
-      color: #ffffff;
     }
-    .has-comment {
-      background-color: #d4edda;
-    }
-    .has-comment-header {
-      background-color: #d4edda !important;
-    }
-    /* Menú Lateral (sin cambios) */
+
+    /* Menú Lateral (Offcanvas) */
     .offcanvas {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -103,19 +101,19 @@
       background-color: var(--rosa-secundario);
       color: var(--gris-oscuro);
     }
-    /* Contenedor Principal Mejorado */
+
+    /* Contenedor Principal */
     .main-container {
       max-width: 1000px;
       margin: 3rem auto;
-      padding: 2rem 3rem;
-      background: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
+      padding: 2.5rem 3rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
       position: relative;
       overflow: hidden;
       animation: containerSlide 0.8s ease-out both;
     }
-    /* Animación de entrada del contenedor */
     @keyframes containerSlide {
       from { opacity: 0; transform: translateY(50px); }
       to { opacity: 1; transform: translateY(0); }
@@ -140,24 +138,76 @@
       z-index: 1;
     }
     .main-container h2 {
-      font-size: 2.5rem;
+      font-size: 2.3rem;
       font-weight: 600;
       margin-bottom: 1.5rem;
       color: var(--rosa-principal);
       text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+      text-align: center;
     }
+
+    /* Indicador de usuario logueado */
     #correoUsuario {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       margin-bottom: 2rem;
-      color: var(--gris-oscuro);
+      text-align: center;
+      color: #555;
     }
-    /* Espaciado interno para contenedores */
+
+    /* Listas y contenedores */
     #fileListContainer,
     #selectedFileContainer,
     #rechazosContainer {
       margin-bottom: 2rem;
     }
-    /* Dropzone */
+
+    /* Cards para archivos */
+    .list-group-item {
+      border: none;
+      margin-bottom: 0.5rem;
+      border-radius: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .list-group-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Resaltar si tiene comentario */
+    .has-comment {
+      background-color: #eaf8ea !important;
+    }
+
+    /* ================= ESTILOS PERSONALIZADOS PARA BOTONES ================= */
+    .btn-custom {
+      border-radius: 30px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      padding: 0.6rem 1.5rem;
+    }
+    .btn-custom:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .btn-custom-primary {
+      background-color: #E6007E;
+      color: #fff;
+      border: none;
+    }
+    .btn-custom-secondary {
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+    }
+    .btn-custom-outline {
+      border: 2px solid #E6007E;
+      color: #E6007E;
+      background-color: transparent;
+    }
+
+    /* ================= DROPZONE ================= */
     #dropzone {
       border: 2px dashed var(--rosa-principal);
       border-radius: 12px;
@@ -168,17 +218,39 @@
       cursor: pointer;
       transition: background-color 0.3s ease, transform 0.3s ease;
       margin-bottom: 2rem;
+      outline: none;
     }
-    #dropzone:hover {
-      background-color: #e0f0ff;
+    #dropzone:hover,
+    #dropzone:focus {
+      background-color: #fdfdfd;
       transform: scale(1.02);
     }
+    #dropzone i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    #dropzoneInstructions {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #666;
+    }
+
     /* Botones de Acción */
     .action-btn {
-      font-size: 1.2rem;
-      padding: 0.8rem 1.5rem;
+      font-size: 1.1rem;
+      padding: 0.6rem 1.2rem;
       border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.2s ease-in-out;
     }
+    .action-btn i {
+      margin-right: 0.3rem;
+    }
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
     /* Responsividad */
     @media (max-width: 576px) {
       .main-container {
@@ -190,6 +262,13 @@
       #logout-btn {
         padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
+      }
+      .action-btn {
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+      }
+      #dropzone i {
+        font-size: 2rem;
       }
     }
   </style>
@@ -208,70 +287,77 @@
     </button>
   </header>
 
-<!-- Offcanvas (Menú Lateral) -->
-<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+  <!-- Menú Lateral (Offcanvas) -->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+      <nav class="nav flex-column">
+        <ul class="navbar-nav" style="padding-left: 0; margin-left: 0;">
+          <li class="nav-item" data-aos="fade-right" data-aos-delay="100">
+            <a class="nav-link active d-flex align-items-center" href="../index.html" style="padding-left: 1rem;">
+              <i class="bi bi-house-door-fill me-2"></i>
+              <span>Inicio</span>
+            </a>
+          </li>
+          <li class="nav-item" data-aos="fade-right" data-aos-delay="200">
+            <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html" style="padding-left: 1rem;">
+              <i class="bi bi-tags me-2"></i>
+              <span>Checar Precios</span>
+            </a>
+          </li>
+          <li class="nav-item" data-aos="fade-right" data-aos-delay="300">
+            <a class="nav-link d-flex align-items-center" href="reportes.html" style="padding-left: 1rem;">
+              <i class="bi bi-x-octagon-fill me-2"></i>
+              <span>Rechazos</span>
+            </a>
+          </li>
+          <li class="nav-item" data-aos="fade-right" data-aos-delay="400">
+            <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html" style="padding-left: 1rem;">
+              <i class="bi bi-archive me-2"></i>
+              <span>Inventarios</span>
+            </a>
+          </li>
+          <li class="nav-item" data-aos="fade-right" data-aos-delay="500">
+            <a class="nav-link d-flex align-items-center" href="../Configuraciones/Configuracion.html" style="padding-left: 1rem;">
+              <i class="bi bi-sliders me-2"></i>
+              <span>Configuración</span>
+            </a>
+          </li>
+          <li class="nav-item" data-aos="fade-right" data-aos-delay="600">
+            <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html" style="padding-left: 1rem;">
+              <i class="bi bi-file-earmark-check me-2"></i>
+              <span>Manifiestos</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
   </div>
-  <div class="offcanvas-body p-0">
-    <nav class="nav flex-column">
-      <ul class="navbar-nav" style="padding-left: 0; margin-left: 0;">
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="100">
-          <a class="nav-link active d-flex align-items-center" href="../index.html" style="padding-left: 1rem;">
-            <i class="bi bi-house-door-fill me-2"></i>
-            <span>Inicio</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="200">
-          <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html" style="padding-left: 1rem;">
-            <i class="bi bi-tags me-2"></i>
-            <span>Checar Precios</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="300">
-          <a class="nav-link d-flex align-items-center" href="reportes.html" style="padding-left: 1rem;">
-            <i class="bi bi-x-octagon-fill me-2"></i>
-            <span>Rechazos</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="400">
-          <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html" style="padding-left: 1rem;">
-            <i class="bi bi-archive me-2"></i>
-            <span>Inventarios</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="500">
-          <a class="nav-link d-flex align-items-center" href="../Configuraciones/Configuracion.html" style="padding-left: 1rem;">
-            <i class="bi bi-sliders me-2"></i>
-            <span>Configuración</span>
-          </a>
-        </li>
-        <li class="nav-item" data-aos="fade-right" data-aos-delay="600">
-          <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html" style="padding-left: 1rem;">
-            <i class="bi bi-file-earmark-check me-2"></i>
-            <span>Manifiestos</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</div>
-
 
   <!-- Sección Principal con Animaciones AOS -->
   <section class="container main-container" data-aos="fade-up" data-aos-duration="1000">
-    <h2 data-aos="fade-right" data-aos-duration="1000"><i class="bi bi-file-earmark-text me-2"></i>Lista de Reportes</h2>
-    <p id="correoUsuario" data-aos="fade-left" data-aos-duration="1000"><i class="bi bi-person-circle me-2"></i>Cargando usuario...</p>
+    <h2 data-aos="fade-right" data-aos-duration="1000">
+      <i class="bi bi-file-earmark-text me-2"></i>Lista de Reportes
+    </h2>
+    <p id="correoUsuario" data-aos="fade-left" data-aos-duration="1000">
+      <i class="bi bi-person-circle me-2"></i>Cargando usuario...
+    </p>
 
     <!-- Contenedor de Lista de Archivos -->
-    <div id="fileListContainer" class="list-group" data-aos="zoom-in" data-aos-duration="1000"></div>
+    <div id="fileListContainer" class="list-group" data-aos="zoom-in" data-aos-duration="1000">
+      <!-- Se llena dinámicamente -->
+    </div>
 
     <!-- Contenedor de Archivo Seleccionado -->
     <div id="selectedFileContainer" data-aos="zoom-in" data-aos-duration="1000">
-      <div id="selectedFileName" class="text-muted">No hay archivo seleccionado</div>
+      <div id="selectedFileName" class="text-muted">
+        No hay archivo seleccionado
+      </div>
       <div class="mt-3">
-        <button id="confirmFileSelection" class="btn btn-primary action-btn" disabled>
+        <button id="confirmFileSelection" class="btn btn-primary action-btn btn-custom btn-custom-secondary" disabled>
           <i class="bi bi-check-circle"></i> Confirmar Selección
         </button>
       </div>
@@ -279,19 +365,23 @@
 
     <!-- Dropzone para Subir Archivos -->
     <div id="dropzone" tabindex="0" aria-describedby="dropzoneInstructions" data-aos="flip-up" data-aos-duration="1000">
-      <i class="bi bi-cloud-upload"></i>
-      <p id="dropzoneInstructions">Arrastra y suelta el archivo aquí, o haz clic para seleccionar uno.</p>
+      <i class="bi bi-cloud-upload-fill"></i>
+      <p id="dropzoneInstructions">
+        Arrastra y suelta el archivo aquí, o haz clic para seleccionar uno.
+      </p>
     </div>
 
     <!-- Contenedor de Rechazos -->
-    <div id="rechazosContainer" class="list-group" data-aos="fade-up" data-aos-duration="1000"></div>
+    <div id="rechazosContainer" class="list-group" data-aos="fade-up" data-aos-duration="1000">
+      <!-- Se llena dinámicamente -->
+    </div>
 
     <!-- Botones de Acción -->
     <div class="d-flex flex-wrap gap-3 mt-4" data-aos="fade-up" data-aos-duration="1000">
-      <button id="saveCommentsBtn" class="btn btn-success action-btn">
+      <button id="saveCommentsBtn" class="btn btn-success action-btn btn-custom btn-custom-primary">
         <i class="bi bi-save2"></i> Guardar Cambios
       </button>
-      <button id="downloadRechazosBtn" class="btn btn-secondary action-btn" style="display:none;">
+      <button id="downloadRechazosBtn" class="btn btn-secondary action-btn btn-custom btn-custom-outline" style="display:none;">
         <i class="bi bi-download"></i> Descargar Rechazos
       </button>
     </div>
@@ -310,6 +400,7 @@
   <script>
     AOS.init();
   </script>
+  <!-- Archivo con la lógica principal (main.js) -->
   <script src="main.js" defer></script>
 </body>
 </html>

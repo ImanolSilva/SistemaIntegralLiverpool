@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seguimiento Artículos - Página Protegida</title>
+
+  <!-- Fuentes y Bootstrap -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+
+  <!-- Firebase (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- SheetJS (para generar Excel) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --rosa-principal: #E6007E;
+      --rosa-secundario: #F8BBD0;
+      --negro: #000000;
+      --blanco: #ffffff;
+      --gris-oscuro: #333333;
+      --gris-claro: #f8f9fa;
+      /* Colores para estados */
+      --color-enproceso: #ffc107; /* amarillo */
+      --color-terminado: #28a745; /* verde */
+      --color-overdue: #800020;   /* guinda */
+    }
+    body {
+      font-family: 'Poppins', Arial, sans-serif;
+      background: linear-gradient(to right, var(--rosa-principal), var(--negro));
+      margin: 0;
+      padding: 0;
+      color: var(--gris-oscuro);
+      min-height: 100vh;
+    }
+    header {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+      padding: 15px 25px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    .header-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-menu {
+      background: none;
+      border: none;
+      color: var(--blanco);
+      font-size: 1.8rem;
+      cursor: pointer;
+    }
+    .btn-menu:hover {
+      color: var(--rosa-secundario);
+    }
+    #logout-btn {
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 8px 15px;
+      border-radius: 8px;
+      background-color: #c82333;
+      border: none;
+      color: var(--blanco);
+      transition: background-color 0.3s ease;
+    }
+    #logout-btn:hover {
+      background-color: #a71d2a;
+    }
+    .offcanvas {
+      background-color: var(--rosa-principal);
+      color: var(--blanco);
+    }
+    .offcanvas-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+    .nav-link {
+      color: var(--blanco);
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      transition: background-color 0.3s ease;
+    }
+    .nav-link:hover {
+      background-color: var(--rosa-secundario);
+      color: var(--gris-oscuro);
+    }
+    .main-container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 2rem 3rem;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .main-container h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--rosa-principal);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-size: 1rem;
+    }
+    .table-responsive {
+      margin-top: 2rem;
+    }
+    .modal-img {
+      width: 100%;
+      border-radius: 10px;
+    }
+    #searchContainer {
+      margin-bottom: 1rem;
+    }
+    #searchInput {
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      width: 100%;
+      font-size: 1rem;
+    }
+    .btn-eliminar {
+      border: none;
+      background: transparent;
+      color: #dc3545;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    .btn-eliminar:hover {
+      color: #a71d2a;
+    }
+
+    /* Vista móvil: transformar la tabla en tarjetas verticales */
+    @media (max-width: 576px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead tr {
+        display: none; /* Oculta el encabezado */
+      }
+      tr {
+        margin-bottom: 1rem;
+        border: 1px solid #ddd;
+        padding: 0.5rem;
+        border-radius: 5px;
+      }
+      td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+        white-space: normal;
+        border: none;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 0.5rem;
+      }
+      td:last-child {
+        border-bottom: 0;
+      }
+      td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-left: 10px;
+        font-weight: bold;
+        text-align: left;
+      }
+      /* Ajustes en el contenedor principal y elementos de formulario */
+      .main-container {
+        padding: 1rem;
+        margin: 1rem;
+      }
+      .header-title {
+        font-size: 1.5rem;
+      }
+      .form-control, .form-select, #searchInput {
+        font-size: 0.9rem;
+        padding: 8px;
+      }
+      .table-responsive {
+        font-size: 0.8rem;
+      }
+      table.table td, table.table th {
+        padding: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="d-flex align-items-center">
+      <button 
+        class="btn-menu me-3" 
+        type="button" 
+        data-bs-toggle="offcanvas" 
+        data-bs-target="#menuLateral" 
+        aria-controls="menuLateral"
+      >
+        <i class="bi bi-list"></i>
+      </button>
+      <div class="header-title">
+        <i class="bi bi-card-checklist"></i> Seguimiento Artículos
+      </div>
+    </div>
+    <button 
+      class="btn btn-danger d-flex align-items-center" 
+      id="logout-btn" 
+      aria-label="Cerrar sesión"
+    >
+      <i class="bi bi-power"></i> 
+    </button>
+  </header>
+
+  <!-- Menú Lateral (Offcanvas) -->
+  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
+      <button 
+        type="button" 
+        class="btn-close btn-close-white" 
+        data-bs-dismiss="offcanvas" 
+        aria-label="Cerrar"
+      ></button>
+    </div>
+    <div class="offcanvas-body p-0">
+      <nav>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active d-flex align-items-center" href="../index.html">
+              <i class="bi bi-house-door-fill me-2"></i>
+              <span>Inicio</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html">
+              <i class="bi bi-tags me-2"></i>
+              <span>Checar Precios</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Rechazos/reportes.html">
+              <i class="bi bi-x-octagon-fill me-2"></i>
+              <span>Rechazos</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Inventarios/Inventarios.html">
+              <i class="bi bi-archive me-2"></i>
+              <span>Inventarios</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Configuraciones/Configuracion.html">
+              <i class="bi bi-sliders me-2"></i>
+              <span>Configuración</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html">
+              <i class="bi bi-file-earmark-check me-2"></i>
+              <span>Manifiestos</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Contenedor Principal -->
+  <div class="main-container">
+    <h2><i class="bi bi-pencil-square"></i> Registrar Artículo</h2>
+    <!-- Formulario sin campos de estado ni fecha de registro -->
+    <form id="articleForm">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="skuInput" class="form-label">SKU</label>
+          <input type="text" class="form-control" id="skuInput" placeholder="Ej: ABC12345" required>
+        </div>
+        <div class="col-md-4">
+          <label for="cantidadInput" class="form-label">Cantidad</label>
+          <input type="number" class="form-control" id="cantidadInput" placeholder="Ej: 10" required>
+        </div>
+        <div class="col-md-4">
+          <label for="jefeInput" class="form-label">Jefe</label>
+          <input type="text" class="form-control" id="jefeInput" placeholder="Nombre del jefe" required>
+        </div>
+        <div class="col-md-4">
+          <label for="usuarioInput" class="form-label">Usuario (quien recoge)</label>
+          <input type="text" class="form-control" id="usuarioInput" placeholder="Nombre del usuario" required>
+        </div>
+        <div class="col-md-4">
+          <label for="fotoInput" class="form-label">Foto del Artículo</label>
+          <input type="file" class="form-control" id="fotoInput" accept="image/*">
+        </div>
+        <div class="col-md-4">
+          <label for="ajusteInput" class="form-label">Ajuste</label>
+          <!-- Campo en readonly -->
+          <input type="text" class="form-control" id="ajusteInput" placeholder="Se llenará al finalizar" readonly>
+        </div>
+      </div>
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save me-2"></i> Guardar Artículo
+        </button>
+      </div>
+    </form>
+
+    <!-- Barra de búsqueda (filtra por Jefe) -->
+    <div id="searchContainer" class="mt-4">
+      <input type="text" id="searchInput" placeholder="Buscar por Jefe..." />
+    </div>
+
+    <!-- BOTÓN PARA DESCARGAR LA TABLA EN EXCEL -->
+    <div class="text-end mb-3">
+      <button id="downloadExcelBtn" class="btn btn-success">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Descargar Excel
+      </button>
+    </div>
+
+    <!-- Tabla para mostrar los artículos registrados -->
+    <div class="table-responsive">
+      <table class="table table-striped table-hover mt-2">
+        <thead class="table-dark">
+          <tr>
+            <th>SKU</th>
+            <th>Cantidad</th>
+            <th>Jefe</th>
+            <th>Usuario</th>
+            <th>Foto</th>
+            <th>Estado</th>
+            <th>Ajuste</th>
+            <th>Fecha Registro</th>
+            <th>Fecha Final</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="articlesTable">
+          <!-- Las filas se llenarán dinámicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal para ampliar imagen -->
+  <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="photoModalLabel">Foto del Artículo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <img src="" id="modalImage" class="modal-img" alt="Foto ampliada">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS (Bundle) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- SheetJS (para Excel) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+
+  <!-- Lógica de la página -->
+  <script>
+    // CONFIGURACIÓN DE FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+      authDomain: "loginliverpool.firebaseapp.com",
+      projectId: "loginliverpool",
+      storageBucket: "loginliverpool.appspot.com",
+      messagingSenderId: "704223815941",
+      appId: "1:704223815941:web:c871525230fb61caf96f6c",
+      measurementId: "G-QFEPQ4TSPY",
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+
+    const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Referencias de elementos
+    const articleForm = document.getElementById("articleForm");
+    const articlesTable = document.getElementById("articlesTable");
+    const searchInput = document.getElementById("searchInput");
+    const photoModal = new bootstrap.Modal(document.getElementById("photoModal"));
+    const modalImage = document.getElementById("modalImage");
+    const downloadExcelBtn = document.getElementById("downloadExcelBtn");
+
+    // === Función para DESCARGAR la tabla en Excel ===
+    function downloadExcel() {
+      const data = [[
+        "SKU",
+        "Cantidad",
+        "Jefe",
+        "Usuario",
+        "Foto (URL)",
+        "Estado",
+        "Ajuste",
+        "Fecha Registro",
+        "Fecha Final"
+      ]];
+
+      const rows = articlesTable.querySelectorAll("tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const rowData = [];
+        cells.forEach((cell, index) => {
+          if(index === 9) return;
+          else if(index === 4) {
+            const img = cell.querySelector("img");
+            rowData.push(img ? img.src : "Sin foto");
+          } else rowData.push(cell.innerText);
+        });
+        data.push(rowData);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Articulos");
+      XLSX.writeFile(wb, "articulos.xlsx");
+    }
+    downloadExcelBtn.addEventListener("click", downloadExcel);
+
+    // Función para mostrar imagen en el modal
+    function mostrarImagen(url) {
+      modalImage.src = url;
+      photoModal.show();
+    }
+
+    // Función para eliminar un artículo
+    async function eliminarArticulo(docId, tr) {
+      const result = await Swal.fire({
+        title: '¿Eliminar?',
+        text: "Se eliminará el artículo de la base de datos.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      });
+      if (result.isConfirmed) {
+        try {
+          await db.collection("articulos").doc(docId).delete();
+          tr.remove();
+          Swal.fire({
+            icon: 'success',
+            title: 'Eliminado',
+            text: 'El artículo se eliminó correctamente.'
+          });
+        } catch (error) {
+          console.error("Error al eliminar el artículo:", error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo eliminar el artículo.'
+          });
+        }
+      }
+    }
+
+    // Función para actualizar el color de la fila según estado
+    function actualizarColorFila(tr, estado) {
+      tr.classList.remove("table-success", "table-warning");
+      if (estado === "terminado") tr.classList.add("table-success");
+      else if (estado === "enproceso") tr.classList.add("table-warning");
+    }
+
+    // Agregar fila en la tabla
+    function agregarFilaArticulo(articulo, docId) {
+      const tr = document.createElement("tr");
+      tr.setAttribute("data-id", docId);
+      actualizarColorFila(tr, articulo.status);
+
+      // Crear select inline para estado (solo "En Proceso" y "Terminado")
+      const inlineSelect = document.createElement("select");
+      inlineSelect.className = "form-select status-select-inline";
+      inlineSelect.innerHTML = `
+        <option value="enproceso" ${articulo.status === "enproceso" ? "selected" : ""}>En Proceso</option>
+        <option value="terminado" ${articulo.status === "terminado" ? "selected" : ""}>Terminado</option>
+      `;
+      // Si ya está terminado, deshabilitar el select
+      if (articulo.status === "terminado") inlineSelect.disabled = true;
+
+      inlineSelect.addEventListener("change", async (e) => {
+        const newStatus = e.target.value;
+        const updateData = { status: newStatus };
+        if(newStatus === "terminado") {
+          const now = new Date();
+          updateData.fechaFinal = now.toISOString();
+        }
+        try {
+          await db.collection("articulos").doc(docId).update(updateData);
+          actualizarColorFila(tr, newStatus);
+          // Si se cambia a terminado, actualizar la celda de Fecha Final y deshabilitar el select
+          if(newStatus === "terminado") {
+            const fechaFinalCell = tr.getElementsByTagName("td")[8];
+            fechaFinalCell.textContent = new Date().toLocaleString();
+            inlineSelect.disabled = true;
+          }
+          Swal.fire({
+            icon: 'success',
+            title: 'Estado actualizado',
+            text: 'El estado se actualizó correctamente.',
+            toast: true,
+            position: 'top-end',
+            timer: 1500,
+            timerProgressBar: true,
+            showConfirmButton: false
+          });
+        } catch (error) {
+          console.error("Error al actualizar el estado:", error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudo actualizar el estado.',
+            toast: true,
+            position: 'top-end',
+            timer: 1500,
+            timerProgressBar: true,
+            showConfirmButton: false
+          });
+        }
+      });
+
+      // Botón eliminar
+      const btnEliminar = document.createElement("button");
+      btnEliminar.className = "btn btn-sm btn-outline-danger btn-eliminar";
+      btnEliminar.innerHTML = `<i class="bi bi-trash"></i>`;
+      btnEliminar.addEventListener("click", () => {
+        eliminarArticulo(docId, tr);
+      });
+
+      // Agregar atributos data-label a cada celda para la vista móvil
+      tr.innerHTML = `
+        <td data-label="SKU">${articulo.sku}</td>
+        <td data-label="Cantidad">${articulo.cantidad}</td>
+        <td data-label="Jefe">${articulo.jefe}</td>
+        <td data-label="Usuario">${articulo.usuario}</td>
+        <td data-label="Foto">
+          ${articulo.fotoUrl ? `<img src="${articulo.fotoUrl}" alt="Foto" style="width:50px; cursor:pointer;" onclick="mostrarImagen('${articulo.fotoUrl}')">` : 'Sin foto'}
+        </td>
+        <td data-label="Estado"></td>
+        <td data-label="Ajuste">${articulo.ajuste || '-'}</td>
+        <td data-label="Fecha Registro">${articulo.fechaRegistro || '-'}</td>
+        <td data-label="Fecha Final">${articulo.fechaFinal || '-'}</td>
+        <td data-label="Acciones"></td>
+      `;
+      // Insertar el select en la celda "Estado" (índice 5)
+      tr.getElementsByTagName("td")[5].appendChild(inlineSelect);
+      // Insertar el botón de eliminar en la celda "Acciones" (índice 9)
+      tr.getElementsByTagName("td")[9].appendChild(btnEliminar);
+      articlesTable.appendChild(tr);
+    }
+
+    // Cargar artículos desde Firestore
+    async function cargarArticulos() {
+      try {
+        const snapshot = await db.collection("articulos").orderBy("createdAt", "asc").get();
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const fechaRegistroDisplay = data.fechaRegistro ? new Date(data.fechaRegistro).toLocaleString() : '-';
+          const fechaFinalDisplay = data.fechaFinal ? new Date(data.fechaFinal).toLocaleString() : '-';
+          const articuloParaTabla = {
+            sku: data.sku,
+            cantidad: data.cantidad,
+            jefe: data.jefe,
+            usuario: data.usuario,
+            status: data.status || 'enproceso',
+            ajuste: data.ajuste,
+            fechaRegistro: fechaRegistroDisplay,
+            fechaFinal: fechaFinalDisplay,
+            fotoUrl: data.fotoUrl
+          };
+          agregarFilaArticulo(articuloParaTabla, doc.id);
+        });
+      } catch (error) {
+        console.error("Error al cargar los artículos:", error);
+      }
+    }
+
+    // Filtrar tabla por Jefe
+    function filtrarTabla() {
+      const filter = searchInput.value.toLowerCase();
+      const rows = articlesTable.getElementsByTagName("tr");
+      Array.from(rows).forEach(row => {
+        const jefeCell = row.getElementsByTagName("td")[2];
+        if(jefeCell) {
+          const cellText = jefeCell.textContent.toLowerCase();
+          row.style.display = (cellText.indexOf(filter) > -1) ? "" : "none";
+        }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      cargarArticulos();
+      searchInput.addEventListener("input", filtrarTabla);
+    });
+
+    // Guardar nuevo artículo
+    articleForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const sku = document.getElementById("skuInput").value.trim();
+      const cantidad = document.getElementById("cantidadInput").value.trim();
+      const jefe = document.getElementById("jefeInput").value.trim();
+      const usuario = document.getElementById("usuarioInput").value.trim();
+      const now = new Date().toISOString();
+      const ajuste = "";
+      const fotoFile = document.getElementById("fotoInput").files[0];
+
+      let fotoUrl = "";
+      try {
+        if(fotoFile) {
+          const timestamp = Date.now();
+          const storageRef = storage.ref().child(`articulos/${timestamp}_${fotoFile.name}`);
+          const snapshot = await storageRef.put(fotoFile);
+          fotoUrl = await snapshot.ref.getDownloadURL();
+        }
+
+        const articuloData = {
+          sku,
+          cantidad,
+          jefe,
+          usuario,
+          status: "enproceso", // estado inicial
+          ajuste,
+          fechaRegistro: now,
+          fechaFinal: null,
+          fotoUrl,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const docRef = await db.collection("articulos").add(articuloData);
+        Swal.fire({
+          icon: 'success',
+          title: 'Guardado',
+          text: 'El artículo se guardó correctamente.',
+          toast: true,
+          position: 'top-end',
+          timer: 1500,
+          timerProgressBar: true,
+          showConfirmButton: false
+        });
+
+        const fechaRegistroDisplay = new Date(now).toLocaleString();
+        const articuloParaTabla = {
+          sku,
+          cantidad,
+          jefe,
+          usuario,
+          status: "enproceso",
+          ajuste,
+          fechaRegistro: fechaRegistroDisplay,
+          fechaFinal: '-',
+          fotoUrl
+        };
+        agregarFilaArticulo(articuloParaTabla, docRef.id);
+        articleForm.reset();
+      } catch (error) {
+        console.error("Error al guardar el artículo: ", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo guardar el artículo. Intenta nuevamente.',
+          toast: true,
+          position: 'top-end',
+          timer: 1500,
+          timerProgressBar: true,
+          showConfirmButton: false
+        });
+      }
+    });
+
+    // Cerrar sesión
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      auth.signOut().then(() => {
+        window.location.href = "Login/login.html";
+      }).catch((error) => {
+        console.error("Error al cerrar sesión:", error);
+      });
+    });
+  </script>
+</body>
+</html>

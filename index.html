@@ -49,9 +49,10 @@
       font-size: 1rem;
       transition: all 0.3s ease;
     }
+    /* Hover modificado para evitar fondo blanco */
     .navbar-nav .nav-link:hover {
-      color: #000;
-      background: #fff;
+      color: #fff;
+      background: rgba(0,0,0,0.2);
       border-radius: 5px;
     }
     .navbar-toggler-icon {
@@ -183,11 +184,16 @@
               <i class="bi bi-file-earmark-check"></i> Manifiestos
             </a>
           </li>
-
-          <!-- Pestaña Administrar (solo para admin) -->
+          <!-- Opción Administrar (solo para admin) -->
           <li class="nav-item" id="adminTab" style="display: none;">
             <a class="nav-link" href="Adminroles/admin.html">
               <i class="bi bi-gear-fill"></i> Administrar
+            </a>
+          </li>
+          <!-- Nueva opción: Seguimiento Artículos (solo para admin) -->
+          <li class="nav-item" id="seguimientoArticulos" style="display: none;">
+            <a class="nav-link" href="Seguimiento/Seguimiento.html">
+              <i class="bi bi-graph-up-arrow"></i> Seguimiento Artículos
             </a>
           </li>
         </ul>
@@ -243,13 +249,11 @@
         auth.signOut().then(() => {
           console.log("Sesión cerrada");
           authButton.textContent = "Acceder";
-          // Ocultamos la pestaña Admin si se cierra sesión
-          const adminTab = document.getElementById("adminTab");
-          if (adminTab) adminTab.style.display = "none";
-
+          // Ocultamos las pestañas de Admin si se cierra sesión
+          document.getElementById("adminTab").style.display = "none";
+          document.getElementById("seguimientoArticulos").style.display = "none";
           // Borramos la info de tienda, depto y rol
-          const storeRoleInfo = document.getElementById("storeRoleInfo");
-          storeRoleInfo.textContent = "";
+          document.getElementById("storeRoleInfo").textContent = "";
         }).catch((error) => {
           console.error("Error al cerrar sesión:", error);
         });
@@ -263,6 +267,7 @@
     auth.onAuthStateChanged(async (user) => {
       const authButton = document.getElementById("authButton");
       const adminTab = document.getElementById("adminTab");
+      const seguimientoArticulos = document.getElementById("seguimientoArticulos");
       const storeRoleInfo = document.getElementById("storeRoleInfo");
 
       if (user) {
@@ -274,6 +279,7 @@
         // Si es el admin principal
         if (user.uid === ADMIN_UID) {
           adminTab.style.display = "block";
+          seguimientoArticulos.style.display = "block";
           // Mostrar info "Administrador"
           storeRoleInfo.innerHTML = `
             Hola, <strong>${displayName}</strong><br>
@@ -281,9 +287,10 @@
             <i class="bi bi-building"></i> Dept: <strong>---</strong> |
             <i class="bi bi-person-badge"></i> Rol: <strong>Administrador</strong>
           `;
-          return; // No necesitamos más
+          return; // No es necesario procesar más
         } else {
           adminTab.style.display = "none";
+          seguimientoArticulos.style.display = "none";
         }
 
         // Para usuarios normales, obtener tienda, depto, rol, status desde Firestore
@@ -291,8 +298,7 @@
           const docRef = db.collection("usuarios").doc(user.uid);
           const docSnap = await docRef.get();
           if (!docSnap.exists) {
-            // No existe => se asume no completó registro
-            // Redirigir a login
+            // No existe => se asume que no completó registro
             window.location.href = "Login/login.html";
             return;
           }
@@ -326,6 +332,7 @@
         // Usuario no logueado
         authButton.textContent = "Acceder";
         adminTab.style.display = "none";
+        seguimientoArticulos.style.display = "none";
         storeRoleInfo.textContent = "";
       }
     });
