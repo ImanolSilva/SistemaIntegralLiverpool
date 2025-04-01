@@ -175,11 +175,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* Resaltar si tiene comentario */
-    .has-comment {
-      background-color: #eaf8ea !important;
-    }
-
     /* ================= ESTILOS PERSONALIZADOS PARA BOTONES ================= */
     .btn-custom {
       border-radius: 30px;
@@ -242,6 +237,7 @@
       border-radius: 8px;
       font-weight: 600;
       transition: all 0.2s ease-in-out;
+      min-width: 200px; /* Tamaño fijo para escritorio */
     }
     .action-btn i {
       margin-right: 0.3rem;
@@ -251,7 +247,23 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
-    /* Responsividad */
+    /* ================= RESPONSIVIDAD PARA BOTONES EN MÓVILES ================= */
+    @media (max-width: 576px) {
+      .d-flex.flex-wrap.gap-3.mt-4 > button {
+        flex: 1 1 100%;
+        max-width: 100%;
+        margin-bottom: 0.5rem;
+      }
+      .action-btn {
+        min-width: unset;
+        width: 100%;
+        text-align: center;
+        font-size: 1rem;
+        padding: 0.5rem 1rem;
+      }
+    }
+
+    /* Responsividad general */
     @media (max-width: 576px) {
       .main-container {
         padding: 1.5rem;
@@ -262,10 +274,6 @@
       #logout-btn {
         padding: 0.4rem 0.8rem;
         font-size: 0.9rem;
-      }
-      .action-btn {
-        font-size: 1rem;
-        padding: 0.5rem 1rem;
       }
       #dropzone i {
         font-size: 2rem;

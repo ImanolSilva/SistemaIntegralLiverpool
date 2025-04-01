@@ -25,42 +25,37 @@
 
   <style>
     :root {
-      --rosa-principal: #E6007E;
-      --rosa-secundario: #F8BBD0;
-      --negro: #000000;
-      --blanco: #ffffff;
-      --gris-oscuro: #333333;
-      --gris-claro: #f8f9fa;
-      /* Colores para estados */
-      --color-enproceso: #ffc107; /* amarillo */
-      --color-terminado: #28a745; /* verde */
-      --color-overdue: #800020;   /* guinda */
+      --rosa-principal: #E6007E;   /* Rosa fuerte */
+      --negro: #000;
+      --blanco: #fff;
+      --gris-oscuro: #333;
     }
+
     body {
-      font-family: 'Poppins', Arial, sans-serif;
+      font-family: 'Poppins', sans-serif;
       background: linear-gradient(to right, var(--rosa-principal), var(--negro));
       margin: 0;
       padding: 0;
       color: var(--gris-oscuro);
       min-height: 100vh;
     }
+
+    /* Header */
     header {
       background-color: var(--rosa-principal);
       color: var(--blanco);
       padding: 15px 25px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       position: sticky;
       top: 0;
       z-index: 1000;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     .header-title {
       font-size: 1.8rem;
       font-weight: 600;
-      margin: 0;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -71,27 +66,31 @@
       color: var(--blanco);
       font-size: 1.8rem;
       cursor: pointer;
+      transition: color 0.3s;
     }
     .btn-menu:hover {
-      color: var(--rosa-secundario);
+      color: #fff1f1;
     }
     #logout-btn {
-      font-size: 1rem;
+      font-size: 0.9rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
       padding: 8px 15px;
-      border-radius: 8px;
+      border-radius: 50px;
       background-color: #c82333;
       border: none;
       color: var(--blanco);
-      transition: background-color 0.3s ease;
+      transition: background-color 0.3s, transform 0.2s;
     }
     #logout-btn:hover {
       background-color: #a71d2a;
+      transform: scale(1.05);
     }
+
+    /* Offcanvas (menú lateral) */
     .offcanvas {
-      background-color: var(--rosa-principal);
+      background: var(--rosa-principal);
       color: var(--blanco);
     }
     .offcanvas-title {
@@ -102,22 +101,24 @@
       color: var(--blanco);
       font-size: 1rem;
       padding: 0.75rem 1.5rem;
-      transition: background-color 0.3s ease;
+      transition: background 0.3s;
     }
     .nav-link:hover {
-      background-color: var(--rosa-secundario);
-      color: var(--gris-oscuro);
+      background: #fa86c7; /* Rosa más claro al hover */
+      color: var(--negro);
     }
+
+    /* Contenedor principal */
     .main-container {
       max-width: 1100px;
       margin: 2rem auto;
       padding: 2rem 3rem;
-      background: #fff;
+      background: var(--blanco);
       border-radius: 20px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.15);
     }
     .main-container h2 {
-      font-size: 2.5rem;
+      font-size: 2.2rem;
       font-weight: 600;
       margin-bottom: 1.5rem;
       color: var(--rosa-principal);
@@ -125,93 +126,177 @@
       align-items: center;
       gap: 10px;
     }
+
+    /* Formularios */
     .form-control, .form-select {
       border-radius: 10px;
       border: 1px solid #ccc;
       padding: 10px;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
-    .table-responsive {
-      margin-top: 2rem;
-    }
-    .modal-img {
-      width: 100%;
-      border-radius: 10px;
-    }
-    #searchContainer {
-      margin-bottom: 1rem;
+    .form-control:focus, .form-select:focus {
+      border-color: var(--rosa-principal);
+      box-shadow: 0 0 5px rgba(230,0,126,0.5);
     }
     #searchInput {
       border-radius: 10px;
       border: 1px solid #ccc;
-      padding: 10px;
+      padding: 8px;
       width: 100%;
-      font-size: 1rem;
-    }
-    .btn-eliminar {
-      border: none;
-      background: transparent;
-      color: #dc3545;
-      font-size: 1.2rem;
-      cursor: pointer;
-    }
-    .btn-eliminar:hover {
-      color: #a71d2a;
+      font-size: 0.9rem;
     }
 
-    /* Vista móvil: transformar la tabla en tarjetas verticales */
+    /* ------------------------------ */
+    /* FORZAR TABLA EN ROSA COMPLETO */
+    /* ------------------------------ */
+    .table-responsive {
+      margin-top: 2rem;
+      overflow-x: auto;
+    }
+    /* Para que la tabla y todo su contenido sea rosa con texto blanco */
+    table.table,
+    table.table thead,
+    table.table tbody,
+    table.table tr,
+    table.table th,
+    table.table td {
+      background-color: var(--rosa-principal) !important;
+      color: var(--blanco) !important;
+      border-color: #ffd7ee !important; /* Borde rosa claro */
+    }
+    table.table {
+      border-collapse: collapse;
+      width: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    thead tr {
+      background-color: var(--rosa-principal) !important;
+    }
+    thead th {
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+      border-right: 1px solid #ffd7ee !important;
+    }
+    thead th:last-child {
+      border-right: none;
+    }
+    tbody tr:hover {
+      background-color: #d60072 !important; /* Un poco más oscuro al hover */
+    }
+    /* Evitar que imágenes queden invertidas */
+    tbody td img {
+      border-radius: 5px;
+      transition: transform 0.2s ease;
+      max-width: 50px;
+      cursor: pointer;
+      background-color: transparent !important;
+    }
+    tbody td img:hover {
+      transform: scale(1.1);
+    }
+
+    /* Botones generales */
+    .btn, button {
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-primary {
+      background-color: var(--rosa-principal);
+      border: none;
+      color: var(--blanco);
+    }
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(230,0,126,0.4);
+    }
+    .btn-success {
+      background-color: #28a745;
+      border: none;
+      color: var(--blanco);
+    }
+    .btn-success:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(40,167,69,0.4);
+    }
+    .btn-danger {
+      background-color: #dc3545;
+      border: none;
+      color: var(--blanco);
+    }
+    .btn-danger:hover {
+      background-color: #b72b38;
+      transform: scale(1.05);
+    }
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+      border-width: 0.2em;
+    }
+
+    /* Modo lista en móviles */
     @media (max-width: 576px) {
-      table, thead, tbody, th, td, tr {
+      thead {
+        display: none !important;
+      }
+      table.table, table.table tbody, table.table tr, table.table td {
         display: block;
-      }
-      thead tr {
-        display: none; /* Oculta el encabezado */
-      }
-      tr {
-        margin-bottom: 1rem;
-        border: 1px solid #ddd;
-        padding: 0.5rem;
-        border-radius: 5px;
-      }
-      td {
-        text-align: right;
-        padding-left: 50%;
-        position: relative;
-        white-space: normal;
+        width: 100%;
         border: none;
-        border-bottom: 1px solid #eee;
-        margin-bottom: 0.5rem;
+        background-color: var(--rosa-principal) !important;
       }
-      td:last-child {
-        border-bottom: 0;
+      table.table tr {
+        margin-bottom: 1rem;
+        border-radius: 10px;
+        overflow: hidden;
+        background-color: var(--rosa-principal) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       }
-      td:before {
-        content: attr(data-label);
-        position: absolute;
-        left: 0;
-        width: 45%;
-        padding-left: 10px;
-        font-weight: bold;
+      table.table td {
+        position: relative;
         text-align: left;
+        border-bottom: 1px solid #ffd7ee !important;
+        padding: 0.75rem 1rem;
+        color: var(--blanco) !important;
       }
-      /* Ajustes en el contenedor principal y elementos de formulario */
-      .main-container {
-        padding: 1rem;
-        margin: 1rem;
+      table.table td:last-child {
+        border-bottom: none;
       }
-      .header-title {
-        font-size: 1.5rem;
+      table.table td::before {
+        content: attr(data-label);
+        display: block;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #ffe4f2; /* Texto un poco más claro para la etiqueta */
+        margin-bottom: 3px;
       }
-      .form-control, .form-select, #searchInput {
-        font-size: 0.9rem;
-        padding: 8px;
+      /* Ajuste para las imágenes en móviles */
+      table.table td img {
+        background-color: transparent !important;
       }
-      .table-responsive {
-        font-size: 0.8rem;
-      }
-      table.table td, table.table th {
-        padding: 0.5rem;
-      }
+    }
+
+    /* Ajuste para el campo Estado (select) */
+    .status-select-inline {
+      min-width: 120px; /* Asegura suficiente espacio para "En Proceso" o "Terminado" */
+      text-align: center;
+      border-radius: 8px;
+    }
+
+    /* NUEVO: Ajuste para la imagen en modal en pantallas móviles */
+    .modal-body {
+      text-align: center; /* Centra la imagen dentro del modal */
+    }
+    .modal-img {
+      width: 100%;
+      max-width: 100%;
+      max-height: 80vh;  /* Limita la altura para que no se vea recortada en pantallas pequeñas */
+      object-fit: contain;
+      border-radius: 8px;
     }
   </style>
 </head>
@@ -219,25 +304,15 @@
   <!-- Header -->
   <header>
     <div class="d-flex align-items-center">
-      <button 
-        class="btn-menu me-3" 
-        type="button" 
-        data-bs-toggle="offcanvas" 
-        data-bs-target="#menuLateral" 
-        aria-controls="menuLateral"
-      >
+      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" title="Abrir menú">
         <i class="bi bi-list"></i>
       </button>
       <div class="header-title">
         <i class="bi bi-card-checklist"></i> Seguimiento Artículos
       </div>
     </div>
-    <button 
-      class="btn btn-danger d-flex align-items-center" 
-      id="logout-btn" 
-      aria-label="Cerrar sesión"
-    >
-      <i class="bi bi-power"></i> 
+    <button class="btn btn-danger pulse" id="logout-btn" aria-label="Cerrar sesión" title="Cerrar sesión">
+      <i class="bi bi-power"></i>
     </button>
   </header>
 
@@ -245,12 +320,7 @@
   <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
     <div class="offcanvas-header">
       <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button 
-        type="button" 
-        class="btn-close btn-close-white" 
-        data-bs-dismiss="offcanvas" 
-        aria-label="Cerrar"
-      ></button>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
     </div>
     <div class="offcanvas-body p-0">
       <nav>
@@ -297,9 +367,9 @@
   </div>
 
   <!-- Contenedor Principal -->
-  <div class="main-container">
+  <main class="main-container">
     <h2><i class="bi bi-pencil-square"></i> Registrar Artículo</h2>
-    <!-- Formulario sin campos de estado ni fecha de registro -->
+    <!-- Formulario para registrar artículo -->
     <form id="articleForm">
       <div class="row g-3">
         <div class="col-md-4">
@@ -324,52 +394,53 @@
         </div>
         <div class="col-md-4">
           <label for="ajusteInput" class="form-label">Ajuste</label>
-          <!-- Campo en readonly -->
           <input type="text" class="form-control" id="ajusteInput" placeholder="Se llenará al finalizar" readonly>
         </div>
       </div>
+      <!-- Contenedor para vista previa de imagen (opcional) -->
+      <div id="previewContainer" class="mt-3"></div>
       <div class="mt-4">
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary pulse" id="saveBtn" title="Guardar artículo">
           <i class="bi bi-save me-2"></i> Guardar Artículo
         </button>
       </div>
     </form>
 
-    <!-- Barra de búsqueda (filtra por Jefe) -->
-    <div id="searchContainer" class="mt-4">
-      <input type="text" id="searchInput" placeholder="Buscar por Jefe..." />
-    </div>
-
-    <!-- BOTÓN PARA DESCARGAR LA TABLA EN EXCEL -->
-    <div class="text-end mb-3">
-      <button id="downloadExcelBtn" class="btn btn-success">
+    <!-- Botón para descargar Excel -->
+    <div class="mt-4">
+      <button id="downloadExcelBtn" class="btn btn-success pulse" title="Descargar Excel">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Descargar Excel
       </button>
     </div>
 
-    <!-- Tabla para mostrar los artículos registrados -->
-    <div class="table-responsive">
-      <table class="table table-striped table-hover mt-2">
-        <thead class="table-dark">
+    <!-- Barra de búsqueda -->
+    <div id="searchContainer" class="mt-4">
+      <input type="text" id="searchInput" placeholder="Buscar por Jefe..." aria-label="Buscar por Jefe">
+    </div>
+
+    <!-- Tabla de artículos -->
+    <div class="table-responsive mt-4">
+      <table class="table table-hover" id="miTablaRosa">
+        <thead>
           <tr>
-            <th>SKU</th>
-            <th>Cantidad</th>
-            <th>Jefe</th>
-            <th>Usuario</th>
-            <th>Foto</th>
-            <th>Estado</th>
-            <th>Ajuste</th>
-            <th>Fecha Registro</th>
-            <th>Fecha Final</th>
-            <th>Acciones</th>
+            <th data-label="SKU">SKU <i class="bi bi-upc-scan"></i></th>
+            <th data-label="Cant.">Cant. <i class="bi bi-hash"></i></th>
+            <th data-label="Jefe">Jefe <i class="bi bi-person-badge"></i></th>
+            <th data-label="Usuario">Usuario <i class="bi bi-person"></i></th>
+            <th data-label="Foto">Foto <i class="bi bi-image"></i></th>
+            <th data-label="Estado">Estado <i class="bi bi-info-circle"></i></th>
+            <th data-label="Ajuste">Ajuste <i class="bi bi-sliders"></i></th>
+            <th data-label="Registro">Registro <i class="bi bi-calendar-check"></i></th>
+            <th data-label="Final">Final <i class="bi bi-calendar-event"></i></th>
+            <th data-label="Acciones">Acciones <i class="bi bi-gear"></i></th>
           </tr>
         </thead>
         <tbody id="articlesTable">
-          <!-- Las filas se llenarán dinámicamente -->
+          <!-- Filas generadas dinámicamente -->
         </tbody>
       </table>
     </div>
-  </div>
+  </main>
 
   <!-- Modal para ampliar imagen -->
   <div class="modal fade" id="photoModal" tabindex="-1" aria-labelledby="photoModalLabel" aria-hidden="true">
@@ -380,7 +451,8 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
-          <img src="" id="modalImage" class="modal-img" alt="Foto ampliada">
+          <!-- NUEVO: la clase .modal-img ajustada para verse mejor en móviles -->
+          <img src="" id="modalImage" class="modal-img" alt="Vista ampliada de la foto del artículo">
         </div>
       </div>
     </div>
@@ -389,12 +461,10 @@
   <!-- Bootstrap JS (Bundle) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- SheetJS (para Excel) -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-
   <!-- Lógica de la página -->
   <script>
-    // CONFIGURACIÓN DE FIREBASE
+    'use strict';
+
     const firebaseConfig = {
       apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
       authDomain: "loginliverpool.firebaseapp.com",
@@ -413,56 +483,24 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Referencias de elementos
+    // Referencias a elementos del DOM
     const articleForm = document.getElementById("articleForm");
     const articlesTable = document.getElementById("articlesTable");
     const searchInput = document.getElementById("searchInput");
+    const previewContainer = document.getElementById("previewContainer");
+    const fotoInput = document.getElementById("fotoInput");
+    const saveBtn = document.getElementById("saveBtn");
+    const downloadExcelBtn = document.getElementById("downloadExcelBtn");
     const photoModal = new bootstrap.Modal(document.getElementById("photoModal"));
     const modalImage = document.getElementById("modalImage");
-    const downloadExcelBtn = document.getElementById("downloadExcelBtn");
 
-    // === Función para DESCARGAR la tabla en Excel ===
-    function downloadExcel() {
-      const data = [[
-        "SKU",
-        "Cantidad",
-        "Jefe",
-        "Usuario",
-        "Foto (URL)",
-        "Estado",
-        "Ajuste",
-        "Fecha Registro",
-        "Fecha Final"
-      ]];
-
-      const rows = articlesTable.querySelectorAll("tr");
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        const rowData = [];
-        cells.forEach((cell, index) => {
-          if(index === 9) return;
-          else if(index === 4) {
-            const img = cell.querySelector("img");
-            rowData.push(img ? img.src : "Sin foto");
-          } else rowData.push(cell.innerText);
-        });
-        data.push(rowData);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Articulos");
-      XLSX.writeFile(wb, "articulos.xlsx");
-    }
-    downloadExcelBtn.addEventListener("click", downloadExcel);
-
-    // Función para mostrar imagen en el modal
+    // Mostrar imagen en el modal
     function mostrarImagen(url) {
       modalImage.src = url;
       photoModal.show();
     }
 
-    // Función para eliminar un artículo
+    // Eliminar artículo
     async function eliminarArticulo(docId, tr) {
       const result = await Swal.fire({
         title: '¿Eliminar?',
@@ -492,43 +530,41 @@
       }
     }
 
-    // Función para actualizar el color de la fila según estado
+    // Actualizar color de la fila según estado (aplicando .table-success o .table-warning)
     function actualizarColorFila(tr, estado) {
       tr.classList.remove("table-success", "table-warning");
       if (estado === "terminado") tr.classList.add("table-success");
       else if (estado === "enproceso") tr.classList.add("table-warning");
     }
 
-    // Agregar fila en la tabla
+    // Agregar fila a la tabla
     function agregarFilaArticulo(articulo, docId) {
       const tr = document.createElement("tr");
       tr.setAttribute("data-id", docId);
+
+      // Establecemos el color de fondo según el estado
       actualizarColorFila(tr, articulo.status);
 
-      // Crear select inline para estado (solo "En Proceso" y "Terminado")
+      // Select inline para el estado
       const inlineSelect = document.createElement("select");
       inlineSelect.className = "form-select status-select-inline";
       inlineSelect.innerHTML = `
         <option value="enproceso" ${articulo.status === "enproceso" ? "selected" : ""}>En Proceso</option>
         <option value="terminado" ${articulo.status === "terminado" ? "selected" : ""}>Terminado</option>
       `;
-      // Si ya está terminado, deshabilitar el select
       if (articulo.status === "terminado") inlineSelect.disabled = true;
 
       inlineSelect.addEventListener("change", async (e) => {
         const newStatus = e.target.value;
         const updateData = { status: newStatus };
-        if(newStatus === "terminado") {
-          const now = new Date();
-          updateData.fechaFinal = now.toISOString();
+        if (newStatus === "terminado") {
+          updateData.fechaFinal = new Date().toISOString();
         }
         try {
           await db.collection("articulos").doc(docId).update(updateData);
           actualizarColorFila(tr, newStatus);
-          // Si se cambia a terminado, actualizar la celda de Fecha Final y deshabilitar el select
-          if(newStatus === "terminado") {
-            const fechaFinalCell = tr.getElementsByTagName("td")[8];
-            fechaFinalCell.textContent = new Date().toLocaleString();
+          if (newStatus === "terminado") {
+            tr.cells[8].textContent = new Date().toLocaleString();
             inlineSelect.disabled = true;
           }
           Swal.fire({
@@ -556,33 +592,37 @@
         }
       });
 
-      // Botón eliminar
+      // Botón eliminar (rojo sólido)
       const btnEliminar = document.createElement("button");
-      btnEliminar.className = "btn btn-sm btn-outline-danger btn-eliminar";
+      btnEliminar.className = "btn btn-sm btn-danger btn-eliminar pulse";
+      btnEliminar.title = "Eliminar artículo";
       btnEliminar.innerHTML = `<i class="bi bi-trash"></i>`;
       btnEliminar.addEventListener("click", () => {
         eliminarArticulo(docId, tr);
       });
 
-      // Agregar atributos data-label a cada celda para la vista móvil
+      // Construir la fila
       tr.innerHTML = `
         <td data-label="SKU">${articulo.sku}</td>
-        <td data-label="Cantidad">${articulo.cantidad}</td>
+        <td data-label="Cant.">${articulo.cantidad}</td>
         <td data-label="Jefe">${articulo.jefe}</td>
         <td data-label="Usuario">${articulo.usuario}</td>
         <td data-label="Foto">
-          ${articulo.fotoUrl ? `<img src="${articulo.fotoUrl}" alt="Foto" style="width:50px; cursor:pointer;" onclick="mostrarImagen('${articulo.fotoUrl}')">` : 'Sin foto'}
+          ${articulo.fotoUrl
+            ? `<img src="${articulo.fotoUrl}" alt="Foto del artículo" onclick="mostrarImagen('${articulo.fotoUrl}')" />`
+            : 'Sin foto'}
         </td>
         <td data-label="Estado"></td>
         <td data-label="Ajuste">${articulo.ajuste || '-'}</td>
-        <td data-label="Fecha Registro">${articulo.fechaRegistro || '-'}</td>
-        <td data-label="Fecha Final">${articulo.fechaFinal || '-'}</td>
+        <td data-label="Registro">${articulo.fechaRegistro || '-'}</td>
+        <td data-label="Final">${articulo.fechaFinal || '-'}</td>
         <td data-label="Acciones"></td>
       `;
-      // Insertar el select en la celda "Estado" (índice 5)
-      tr.getElementsByTagName("td")[5].appendChild(inlineSelect);
-      // Insertar el botón de eliminar en la celda "Acciones" (índice 9)
-      tr.getElementsByTagName("td")[9].appendChild(btnEliminar);
+      // Insertar select y botón en las celdas correspondientes
+      tr.cells[5].appendChild(inlineSelect);
+      tr.cells[9].appendChild(btnEliminar);
+
+      // Agregar fila a la tabla
       articlesTable.appendChild(tr);
     }
 
@@ -592,8 +632,12 @@
         const snapshot = await db.collection("articulos").orderBy("createdAt", "asc").get();
         snapshot.forEach(doc => {
           const data = doc.data();
-          const fechaRegistroDisplay = data.fechaRegistro ? new Date(data.fechaRegistro).toLocaleString() : '-';
-          const fechaFinalDisplay = data.fechaFinal ? new Date(data.fechaFinal).toLocaleString() : '-';
+          const fechaRegistroDisplay = data.fechaRegistro
+            ? new Date(data.fechaRegistro).toLocaleString()
+            : '-';
+          const fechaFinalDisplay = data.fechaFinal
+            ? new Date(data.fechaFinal).toLocaleString()
+            : '-';
           const articuloParaTabla = {
             sku: data.sku,
             cantidad: data.cantidad,
@@ -612,19 +656,25 @@
       }
     }
 
-    // Filtrar tabla por Jefe
+    // Filtrar la tabla por Jefe
     function filtrarTabla() {
       const filter = searchInput.value.toLowerCase();
       const rows = articlesTable.getElementsByTagName("tr");
       Array.from(rows).forEach(row => {
         const jefeCell = row.getElementsByTagName("td")[2];
-        if(jefeCell) {
+        if (jefeCell) {
           const cellText = jefeCell.textContent.toLowerCase();
-          row.style.display = (cellText.indexOf(filter) > -1) ? "" : "none";
+          row.style.display = cellText.includes(filter) ? "" : "none";
         }
       });
     }
 
+    // Limpiar vista previa de imagen
+    function clearImagePreview() {
+      previewContainer.innerHTML = "";
+    }
+
+    // Eventos al cargar la página
     document.addEventListener("DOMContentLoaded", () => {
       cargarArticulos();
       searchInput.addEventListener("input", filtrarTabla);
@@ -633,17 +683,21 @@
     // Guardar nuevo artículo
     articleForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...`;
+
       const sku = document.getElementById("skuInput").value.trim();
       const cantidad = document.getElementById("cantidadInput").value.trim();
       const jefe = document.getElementById("jefeInput").value.trim();
       const usuario = document.getElementById("usuarioInput").value.trim();
       const now = new Date().toISOString();
       const ajuste = "";
-      const fotoFile = document.getElementById("fotoInput").files[0];
-
+      const fotoFile = fotoInput.files[0];
       let fotoUrl = "";
+
       try {
-        if(fotoFile) {
+        if (fotoFile) {
           const timestamp = Date.now();
           const storageRef = storage.ref().child(`articulos/${timestamp}_${fotoFile.name}`);
           const snapshot = await storageRef.put(fotoFile);
@@ -655,7 +709,7 @@
           cantidad,
           jefe,
           usuario,
-          status: "enproceso", // estado inicial
+          status: "enproceso",
           ajuste,
           fechaRegistro: now,
           fechaFinal: null,
@@ -688,9 +742,11 @@
           fotoUrl
         };
         agregarFilaArticulo(articuloParaTabla, docRef.id);
+
         articleForm.reset();
+        clearImagePreview();
       } catch (error) {
-        console.error("Error al guardar el artículo: ", error);
+        console.error("Error al guardar el artículo:", error);
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -701,6 +757,9 @@
           timerProgressBar: true,
           showConfirmButton: false
         });
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i class="bi bi-save me-2"></i> Guardar Artículo`;
       }
     });
 

@@ -568,20 +568,39 @@ async function renderFilesManagement(files) {
   
   // Grupo de botones de acción con colores vibrantes y minimalistas
   const actionRow = document.createElement("div");
-  actionRow.className = "d-flex justify-content-end gap-2 flex-wrap";
+  // Se añade la clase personalizada "action-row" para estilos en móviles
+  actionRow.className = "d-flex action-row justify-content-end gap-2 flex-wrap";
   
+  // Inyectar estilos para botones en móviles (100% ancho, mismos tamaños)
+  const style = document.createElement("style");
+  style.innerHTML = `
+    @media (max-width: 576px) {
+      .action-row {
+        flex-direction: column;
+      }
+      .action-row > button {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 0.5rem;
+        text-align: center;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  // Estilos base para botones
   const btnStyle = "border-radius: 30px; font-weight: 600; padding: 0.5rem 1.2rem; transition: all 0.3s ease;";
   const btnHoverStyle = "transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15);";
   
   // Botón Descargar (rosa vibrante)
   const downloadBtn = document.createElement("button");
-  downloadBtn.style = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
+  downloadBtn.style.cssText = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
   downloadBtn.innerHTML = `<i class="bi bi-download me-1"></i> Descargar`;
   downloadBtn.addEventListener("mouseover", () => {
-    downloadBtn.style = btnStyle + "background-color: #D4006F; color: #fff; border: none; " + btnHoverStyle;
+    downloadBtn.style.cssText = btnStyle + "background-color: #D4006F; color: #fff; border: none; " + btnHoverStyle;
   });
   downloadBtn.addEventListener("mouseout", () => {
-    downloadBtn.style = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
+    downloadBtn.style.cssText = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
   });
   downloadBtn.addEventListener("click", async () => {
     try {
@@ -600,25 +619,25 @@ async function renderFilesManagement(files) {
   
   // Botón Enviar por correo (verde vibrante)
   const emailBtn = document.createElement("button");
-  emailBtn.style = btnStyle + "background-color: #28a745; color: #fff; border: none;";
+  emailBtn.style.cssText = btnStyle + "background-color: #28a745; color: #fff; border: none;";
   emailBtn.innerHTML = `<i class="bi bi-envelope me-1"></i> Enviar por correo`;
   emailBtn.addEventListener("mouseover", () => {
-    emailBtn.style = btnStyle + "background-color: #218838; color: #fff; border: none; " + btnHoverStyle;
+    emailBtn.style.cssText = btnStyle + "background-color: #218838; color: #fff; border: none; " + btnHoverStyle;
   });
   emailBtn.addEventListener("mouseout", () => {
-    emailBtn.style = btnStyle + "background-color: #28a745; color: #fff; border: none;";
+    emailBtn.style.cssText = btnStyle + "background-color: #28a745; color: #fff; border: none;";
   });
   emailBtn.addEventListener("click", sendFileByEmail);
   
   // Botón Eliminar (rojo vibrante)
   const deleteBtn = document.createElement("button");
-  deleteBtn.style = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
+  deleteBtn.style.cssText = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
   deleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i> Eliminar`;
   deleteBtn.addEventListener("mouseover", () => {
-    deleteBtn.style = btnStyle + "background-color: #c82333; color: #fff; border: none; " + btnHoverStyle;
+    deleteBtn.style.cssText = btnStyle + "background-color: #c82333; color: #fff; border: none; " + btnHoverStyle;
   });
   deleteBtn.addEventListener("mouseout", () => {
-    deleteBtn.style = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
+    deleteBtn.style.cssText = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
   });
   deleteBtn.addEventListener("click", async () => {
     const result = await Swal.fire({
