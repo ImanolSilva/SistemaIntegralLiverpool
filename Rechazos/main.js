@@ -41,105 +41,165 @@ const ADMIN_UIDS = [
 const autoSaveTimers = {};
 
 /*****************************************************
- *  ========== INYECTAR ESTILOS PERSONALIZADOS ==========
+ *  ========== INYECTAR ESTILOS PERSONALIZADOS (NUEVO DISEÑO) ==========
  *****************************************************/
 function injectCustomStyles() {
   const css = `
-    /* ====== LIQUID DOT (efecto onda) ====== */
-    .liquid-dot {
+    /* ======== Body con gradiente y tipografía ======== */
+    body {
+      background: linear-gradient(160deg, #ffd6e0 0%, #ffffff 100%);
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      color: #333;
+      transition: background 0.6s ease;
+    }
+
+    /* ======== Tarjetas, sombras y contenedores ======== */
+    .card {
+      border-radius: 14px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border: none;
+    }
+    .card-body {
       position: relative;
-      width: 14px; /* Tamaño fijo para consistencia */
-      height: 14px; 
-      background: #28a745; /* punto verde */
+      z-index: 1;
+    }
+
+    /* ======== Botones Pill con gradientes en tonos rosados ======== */
+    .btn-pill {
+      border-radius: 30px !important;
+      font-weight: 600;
+      padding: 0.5rem 1.5rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: none;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    .btn-pill:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+    .btn-select {
+      background-image: linear-gradient(45deg, #f06292, #ec407a);
+    }
+    .btn-download {
+      background-image: linear-gradient(45deg, #ab47bc, #ba68c8);
+    }
+    .btn-email {
+      background-image: linear-gradient(45deg, #66bb6a, #43a047);
+    }
+    .btn-delete {
+      background-image: linear-gradient(45deg, #ef5350, #e53935);
+    }
+    .btn-photo {
+      background-image: linear-gradient(45deg, #42a5f5, #1e88e5);
+    }
+    .btn-photo-delete {
+      background-image: linear-gradient(45deg, #ef5350, #e53935);
+    }
+
+    /* ======== Dropzone con estilo rosa ======== */
+    #dropzone {
+      border: 3px dashed #f06292;
+      border-radius: 14px;
+      text-align: center;
+      padding: 20px;
+      background-color: #ffe4ec;
+      color: #f06292;
+      cursor: pointer;
+      margin-bottom: 1rem;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+    #dropzone:hover {
+      background-color: #fff0f5;
+      transform: scale(1.02);
+    }
+    .dropzone-dragover {
+      border-color: #66bb6a !important;
+      background-color: rgba(102,187,106,0.1);
+    }
+
+    /* ======== Accordion con fondo rosa claro y bordes redondeados ======== */
+    .accordion-item {
+      border: none !important;
+      border-radius: 14px;
+      background: #ffe0eb;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .accordion-button {
+      background: #ffc1d9 !important;
+      color: #ad1457;
+      border-radius: 14px;
+      margin: 0.5rem;
+      border: 2px solid #f06292 !important;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    .accordion-button:not(.collapsed) {
+      background: #fff !important;
+      color: #c2185b;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .accordion-button:hover {
+      background: #ffe4ec !important;
+      transform: scale(1.02);
+    }
+    .accordion-body {
+      background: #fff !important;
+      border-radius: 10px;
+      margin: 0.5rem;
+      padding: 1.5rem;
+    }
+
+    /* ======== Indicador de Reporte y Comentarios ======== */
+    .badge-reporte {
+      background-color: #d81b60;
+      color: #fff;
+      border-radius: 20px;
+      padding: 0.35rem 0.7rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+    .state-indicator {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       margin-left: 0.5rem;
-      overflow: hidden;
+      background-color: #e53935; /* rojo por defecto */
+      box-shadow: 0 0 4px rgba(0,0,0,0.15);
     }
-    .liquid-dot::before,
-    .liquid-dot::after {
-      content: "";
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      border-radius: 50%;
-      background-color: rgba(255,255,255,0.3);
-      animation: liquidDotRipple 2.5s infinite ease-in-out;
+    .state-indicator.has-comment {
+      background-color: #66bb6a;
+      animation: pulseIndicator 1.8s infinite;
     }
-    .liquid-dot::after {
-      animation-delay: 1.25s;
-    }
-    @keyframes liquidDotRipple {
-      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-      70% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-      100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+    @keyframes pulseIndicator {
+      0% { transform: scale(1); box-shadow: 0 0 4px rgba(102,187,106,0.3); }
+      50% { transform: scale(1.2); box-shadow: 0 0 10px rgba(102,187,106,0.5); }
+      100% { transform: scale(1); box-shadow: 0 0 4px rgba(102,187,106,0.3); }
     }
 
-    /* ====== Spinner (guardando) ====== */
-    .saving-spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #ccc;
-      border-top: 2px solid #28a745;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-left: 8px;
-      vertical-align: middle;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    /* ======== Imágenes SKU ======== */
+    .img-fluid.rounded {
+      border: 2px solid #ffc1d9;
+      padding: 4px;
+      background-color: #fff;
     }
 
-    /* ====== Icono de comentario ====== */
-    .comment-icon {
-      color: #17a2b8; /* azul clarito */
-      margin-left: 0.5rem;
-      font-size: 1rem; /* tamaño fijo para consistencia */
-    }
-
-    /* ====== Remisión Liquid Efecto ====== */
-    .remision-liquid {
-      display: inline-block;
-      position: relative;
-      padding: 4px 10px;
-      background: #fff;
-      border: 2px solid #E6007E;
-      border-radius: 12px;
-      color: #E6007E;
-      font-weight: 700;
-      margin-left: 6px;
-      overflow: hidden;
-    }
-    .remision-liquid::before,
-    .remision-liquid::after {
-      content: "";
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      top: -100%;
-      left: -100%;
-      background: rgba(230, 0, 126, 0.15);
-      border-radius: 50%;
-      animation: liquidRemision 6s infinite linear;
-    }
-    .remision-liquid::after {
-      animation-delay: 3s;
-    }
-    @keyframes liquidRemision {
-      0% { transform: translate(0, 0) scale(0.7); }
-      50% { transform: translate(50%, 50%) scale(1.2); }
-      100% { transform: translate(0, 0) scale(0.7); }
-    }
-
-    /* ====== Ajustes responsivos mínimos ====== */
+    /* ======== Ajustes Responsivos ======== */
     @media (max-width: 576px) {
-      .accordion-button { font-size: 0.9rem; }
-      .accordion-body { font-size: 0.9rem; }
-      .comment-icon { font-size: 0.9rem; }
+      .accordion-button {
+        font-size: 0.9rem;
+      }
+      .accordion-body {
+        font-size: 0.9rem;
+      }
     }
   `;
   if (!document.getElementById("custom-styles")) {
@@ -186,6 +246,26 @@ function isMobile() {
 }
 
 /*****************************************************
+ *  ========== CONVERSIÓN DE FECHA (Excel num / String) ==========
+ *****************************************************/
+function parseExcelDate(value) {
+  if (!value) return "";
+  // Si es número, se asume formato Excel (días desde 1899-12-30)
+  if (typeof value === "number") {
+    const dateObj = new Date(Math.round((value - 25569) * 86400 * 1000));
+    return dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString();
+  }
+  // Si es string reconocible
+  const parsed = Date.parse(value);
+  if (!isNaN(parsed)) {
+    const dateObj = new Date(parsed);
+    return dateObj.toLocaleDateString() + " " + dateObj.toLocaleTimeString();
+  }
+  // Caso contrario, se devuelve tal cual
+  return value;
+}
+
+/*****************************************************
  *  ========== CARGA DINÁMICA DE IMÁGENES ==========
  *****************************************************/
 function loadDynamicImage(sku, seccion, containerId) {
@@ -193,13 +273,14 @@ function loadDynamicImage(sku, seccion, containerId) {
   if (!container) return;
 
   const imageUrl = `https://ss${seccion}.liverpool.com.mx/xl/${sku}.jpg`;
-  const funnyImageUrl = "https://michelacosta.com/wp-content/uploads/2017/03/Cristiano-llorando.gif";
+  const fallbackUrl = "https://michelacosta.com/wp-content/uploads/2017/03/Cristiano-llorando.gif";
 
   const imgElement = document.createElement("img");
   imgElement.alt = "Imagen del artículo";
   imgElement.className = "img-fluid rounded";
   imgElement.style.maxWidth = "200px";
   imgElement.style.display = "none";
+  imgElement.style.transition = "opacity 0.5s ease";
 
   const fallbackElement = document.createElement("div");
   fallbackElement.className = "no-image";
@@ -217,6 +298,7 @@ function loadDynamicImage(sku, seccion, containerId) {
   imgElement.src = imageUrl;
   imgElement.onload = function () {
     this.style.display = "block";
+    this.style.opacity = "1";
     fallbackElement.style.display = "none";
     const successMsg = document.createElement("div");
     successMsg.textContent = "Imagen cargada correctamente";
@@ -230,7 +312,7 @@ function loadDynamicImage(sku, seccion, containerId) {
     imgElement.style.display = "none";
     fallbackElement.innerHTML = `
       <div>
-        <img src="${funnyImageUrl}" alt="Imagen graciosa" style="max-width: 100px; margin-bottom: 10px;">
+        <img src="${fallbackUrl}" alt="Imagen graciosa" style="max-width: 100px; margin-bottom: 10px;">
         <p>¡Ups! No se encontró la imagen original. ¡Mira esto!</p>
       </div>
     `;
@@ -239,7 +321,7 @@ function loadDynamicImage(sku, seccion, containerId) {
 }
 
 /*****************************************************
- *  ========== CARGAR ARCHIVOS EXCEL ==========
+ *  ========== CARGAR ARCHIVOS EXCEL (Usuarios, Relaciones) ==========
  *****************************************************/
 async function loadUsuariosFile() {
   try {
@@ -280,7 +362,6 @@ async function loadRelacionesFile() {
         return;
       }
       AppState.relacionesData = XLSX.utils.sheet_to_json(sheet);
-      // Si el usuario es admin, se omite el filtrado por relaciones
       if (ADMIN_UIDS.includes(auth.currentUser.uid)) {
         loadRechazosFile([]);
         return;
@@ -316,7 +397,6 @@ async function loadRelacionesFile() {
  *  ========== DOMContentLoaded PRINCIPAL ==========
  *****************************************************/
 document.addEventListener("DOMContentLoaded", () => {
-  // Inyecta los estilos personalizados
   injectCustomStyles();
 
   const logoutButton = document.getElementById("logout-btn");
@@ -325,7 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveCommentsBtn = document.getElementById("saveCommentsBtn");
   const downloadRechazosBtn = document.getElementById("downloadRechazosBtn");
 
-  // Cerrar sesión
+  // Botón de Logout
   logoutButton.addEventListener("click", () => {
     auth.signOut().then(() => {
       window.location.href = "../Login/login.html";
@@ -350,13 +430,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Guardar comentarios manualmente
   saveCommentsBtn.addEventListener("click", () => saveAllComments());
 
-  /********************
-   * CONFIGURACIÓN DEL DROPZONE
-   ********************/
+  // Configuración del Dropzone
   if (dropzone) {
     dropzone.innerHTML = `
-      <i class="bi bi-cloud-upload-fill" style="font-size: 2rem; color: #007bff;"></i>
-      <p>Arrastra y suelta el archivo aquí o haz clic para seleccionarlo.</p>
+      <div style="text-align:center; padding:20px;">
+        <i class="bi bi-cloud-upload-fill" style="font-size: 2.5rem; color: #f06292;"></i>
+        <p style="margin: 0; font-weight: bold;">Arrastra y suelta el archivo aquí o haz clic para seleccionarlo.</p>
+      </div>
     `;
     dropzone.addEventListener("click", () => {
       if (!AppState.isAdmin) return;
@@ -403,7 +483,7 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadRechazosBtn.addEventListener("click", downloadRechazosFile);
   }
 
-  // Manejo del estado de autenticación
+  // Observa el estado de autenticación
   auth.onAuthStateChanged(async (user) => {
     if (user) {
       const correoElem = document.getElementById("correoUsuario");
@@ -470,7 +550,6 @@ async function renderFileSelectOptions(files) {
   fileListContainer.innerHTML = "";
 
   files.forEach(async (file) => {
-    // Card principal con sombra suave y borde minimalista
     const card = document.createElement("div");
     card.className = "card mb-2 shadow-sm fade-in border-0";
     card.style.transition = "transform 0.2s ease, box-shadow 0.2s";
@@ -483,32 +562,26 @@ async function renderFileSelectOptions(files) {
       card.style.boxShadow = "0 2px 6px rgba(0,0,0,0.05)";
     };
 
-    // Cuerpo de la card
     const cardBody = document.createElement("div");
     cardBody.className = "card-body d-flex justify-content-between align-items-center p-3";
 
-    // Información del archivo
     const fileInfo = document.createElement("div");
     fileInfo.innerHTML = `
-      <i class="bi bi-file-earmark-excel me-2" style="color:#28a745; font-size:1.2rem;"></i>
+      <i class="bi bi-file-earmark-excel me-2" style="color:#43a047; font-size:1.2rem;"></i>
       <span class="fw-bold">${file.name}</span>
     `;
 
-    // Botón para seleccionar el archivo
     const selectBtn = document.createElement("button");
-    selectBtn.className = "btn btn-sm btn-primary";
-    selectBtn.innerHTML = `<i class="bi bi-check-lg me-1"></i> Seleccionar`;
+    selectBtn.className = "btn btn-sm btn-pill btn-select";
+    selectBtn.innerHTML = `<i class="bi bi-check-lg"></i> Seleccionar`;
     selectBtn.addEventListener("click", () => {
       document.getElementById("selectedFileName").textContent = `Seleccionado: ${file.name}`;
       document.getElementById("confirmFileSelection").disabled = false;
       AppState.selectedFileData = file;
     });
 
-    // Añadimos la info y el botón al cuerpo de la card
     cardBody.appendChild(fileInfo);
     cardBody.appendChild(selectBtn);
-
-    // Ensamblamos la card
     card.appendChild(cardBody);
     fileListContainer.appendChild(card);
   });
@@ -523,11 +596,10 @@ async function renderFilesManagement(files) {
     fileListContainer.parentNode.insertBefore(managementContainer, fileListContainer.nextSibling);
   }
   
-  // Card principal con header en degradado
   managementContainer.innerHTML = `
     <div class="card shadow-sm mb-4">
-      <div class="card-header" style="background: linear-gradient(135deg, #E6007E, #F8BBD0); border: none;">
-        <h4 class="mb-0 text-white">
+      <div class="card-header" style="background: linear-gradient(135deg, #ec407a, #f48fb1); color:#fff;">
+        <h4 class="mb-0">
           <i class="bi bi-file-earmark-excel me-2"></i>
           Administración del Archivo 'Rechazos'
         </h4>
@@ -545,7 +617,6 @@ async function renderFilesManagement(files) {
     console.error("Error al obtener metadata:", err);
   }
   
-  // Card para mostrar la información del archivo
   const fileCard = document.createElement("div");
   fileCard.className = "card mb-3 border-0";
   fileCard.style.backgroundColor = "#ffffff";
@@ -553,12 +624,11 @@ async function renderFilesManagement(files) {
   const cardBody = document.createElement("div");
   cardBody.className = "card-body d-flex flex-column p-3";
   
-  // Encabezado de la card
   const headerRow = document.createElement("div");
   headerRow.className = "d-flex justify-content-between align-items-center mb-3";
   headerRow.innerHTML = `
-    <h5 class="card-title mb-0" style="color: #E6007E;">
-      <i class="bi bi-file-earmark-excel me-2" style="color:#28a745;"></i> ${file.name}
+    <h5 class="card-title mb-0" style="color: #c2185b;">
+      <i class="bi bi-file-earmark-excel me-2" style="color:#66bb6a;"></i> ${file.name}
     </h5>
     <span class="text-muted" style="font-size: 0.9rem;">
       Versión: ${(metadata.customMetadata && metadata.customMetadata.version) || "1"}
@@ -566,42 +636,12 @@ async function renderFilesManagement(files) {
   `;
   cardBody.appendChild(headerRow);
   
-  // Grupo de botones de acción con colores vibrantes y minimalistas
   const actionRow = document.createElement("div");
-  // Se añade la clase personalizada "action-row" para estilos en móviles
   actionRow.className = "d-flex action-row justify-content-end gap-2 flex-wrap";
   
-  // Inyectar estilos para botones en móviles (100% ancho, mismos tamaños)
-  const style = document.createElement("style");
-  style.innerHTML = `
-    @media (max-width: 576px) {
-      .action-row {
-        flex-direction: column;
-      }
-      .action-row > button {
-        width: 100%;
-        max-width: 100%;
-        margin-bottom: 0.5rem;
-        text-align: center;
-      }
-    }
-  `;
-  document.head.appendChild(style);
-  
-  // Estilos base para botones
-  const btnStyle = "border-radius: 30px; font-weight: 600; padding: 0.5rem 1.2rem; transition: all 0.3s ease;";
-  const btnHoverStyle = "transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15);";
-  
-  // Botón Descargar (rosa vibrante)
   const downloadBtn = document.createElement("button");
-  downloadBtn.style.cssText = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
-  downloadBtn.innerHTML = `<i class="bi bi-download me-1"></i> Descargar`;
-  downloadBtn.addEventListener("mouseover", () => {
-    downloadBtn.style.cssText = btnStyle + "background-color: #D4006F; color: #fff; border: none; " + btnHoverStyle;
-  });
-  downloadBtn.addEventListener("mouseout", () => {
-    downloadBtn.style.cssText = btnStyle + "background-color: #E6007E; color: #fff; border: none;";
-  });
+  downloadBtn.className = "btn btn-pill btn-download";
+  downloadBtn.innerHTML = `<i class="bi bi-download"></i> Descargar`;
   downloadBtn.addEventListener("click", async () => {
     try {
       const url = await file.ref.getDownloadURL();
@@ -617,28 +657,14 @@ async function renderFilesManagement(files) {
     }
   });
   
-  // Botón Enviar por correo (verde vibrante)
   const emailBtn = document.createElement("button");
-  emailBtn.style.cssText = btnStyle + "background-color: #28a745; color: #fff; border: none;";
-  emailBtn.innerHTML = `<i class="bi bi-envelope me-1"></i> Enviar por correo`;
-  emailBtn.addEventListener("mouseover", () => {
-    emailBtn.style.cssText = btnStyle + "background-color: #218838; color: #fff; border: none; " + btnHoverStyle;
-  });
-  emailBtn.addEventListener("mouseout", () => {
-    emailBtn.style.cssText = btnStyle + "background-color: #28a745; color: #fff; border: none;";
-  });
+  emailBtn.className = "btn btn-pill btn-email";
+  emailBtn.innerHTML = `<i class="bi bi-envelope"></i> Enviar por correo`;
   emailBtn.addEventListener("click", sendFileByEmail);
   
-  // Botón Eliminar (rojo vibrante)
   const deleteBtn = document.createElement("button");
-  deleteBtn.style.cssText = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
-  deleteBtn.innerHTML = `<i class="bi bi-trash me-1"></i> Eliminar`;
-  deleteBtn.addEventListener("mouseover", () => {
-    deleteBtn.style.cssText = btnStyle + "background-color: #c82333; color: #fff; border: none; " + btnHoverStyle;
-  });
-  deleteBtn.addEventListener("mouseout", () => {
-    deleteBtn.style.cssText = btnStyle + "background-color: #dc3545; color: #fff; border: none;";
-  });
+  deleteBtn.className = "btn btn-pill btn-delete";
+  deleteBtn.innerHTML = `<i class="bi bi-trash"></i> Eliminar`;
   deleteBtn.addEventListener("click", async () => {
     const result = await Swal.fire({
       title: "¿Estás seguro?",
@@ -675,7 +701,6 @@ async function renderFilesManagement(files) {
   contentContainer.appendChild(fileCard);
 }
 
-
 /*****************************************************
  *  ========== FILTRO POR JEFE (SOLO PARA ADMIN) ==========
  *****************************************************/
@@ -688,21 +713,26 @@ function renderBossFilter(allRechazos) {
     rechazosContainer.parentNode.insertBefore(container, rechazosContainer);
   }
   container.innerHTML = "";
+  
   const jefesUnicos = [...new Set(allRechazos.map(r => fixEncoding(r["Jefatura"])).filter(j => j && j.trim() !== ""))];
   const select = document.createElement("select");
   select.className = "form-select mb-3";
+  
   const allOption = document.createElement("option");
   allOption.value = "";
   allOption.textContent = "Todos los Jefes";
   select.appendChild(allOption);
+  
   jefesUnicos.forEach(jefatura => {
     const option = document.createElement("option");
     option.value = jefatura;
     option.textContent = jefatura;
     select.appendChild(option);
   });
+  
   select.value = adminBossFilter;
   container.appendChild(select);
+  
   select.addEventListener("change", (e) => {
     adminBossFilter = e.target.value;
     let filtrados = allRechazos;
@@ -736,7 +766,7 @@ async function handleFileUpload(file) {
       const uploadTask = fileRef.put(file, { customMetadata: { version: "1" } });
       Swal.fire({
         title: 'Subiendo archivo...',
-        html: '<div id="progress-container" style="width: 100%; background: #eee;"><div id="progress-bar" style="width: 0%; height: 20px; background: green;"></div></div>',
+        html: '<div id="progress-container" style="width: 100%; background: #eee;"><div id="progress-bar" style="width: 0%; height: 20px; background: #f06292;"></div></div>',
         allowOutsideClick: false,
         allowEscapeKey: false,
         showConfirmButton: false
@@ -833,17 +863,17 @@ function updatePhotoPreview(rowIndex, url) {
       previewContainer.innerHTML = `
         <img src="${imageUrl}" alt="Evidencia" class="img-fluid rounded mb-2" style="max-width:200px;">
         <div>
-          <button class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2" data-row-index="${rowIndex}">
+          <button class="btn btn-sm btn-pill btn-photo me-2 cambiar-foto-btn" data-row-index="${rowIndex}">
             <i class="bi bi-camera"></i> Cambiar Foto
           </button>
-          <button class="btn btn-sm btn-outline-danger eliminar-foto-btn" data-row-index="${rowIndex}">
+          <button class="btn btn-sm btn-pill btn-photo-delete eliminar-foto-btn" data-row-index="${rowIndex}">
             <i class="bi bi-trash"></i> Eliminar Foto
           </button>
         </div>
       `;
     } else {
       previewContainer.innerHTML = `
-        <button class="btn btn-outline-primary btn-sm agregar-foto-btn" data-row-index="${rowIndex}">
+        <button class="btn btn-sm btn-pill btn-photo agregar-foto-btn" data-row-index="${rowIndex}">
           <i class="bi bi-camera"></i> Agregar Foto
         </button>
       `;
@@ -874,7 +904,7 @@ async function deletePhoto(rowIndex) {
 }
 
 /*****************************************************
- *  ========== MANEJO DE ARCHIVOS EXCEL (RECHAZOS) ==========
+ *  ========== CARGAR RECHAZOS DESDE EXCEL Y MOSTRAR ==========
  *****************************************************/
 async function loadRechazosFile(secciones) {
   try {
@@ -896,6 +926,7 @@ async function loadRechazosFile(secciones) {
       }
       AppState.allRechazosEnExcel = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
+      // Filtrar por secciones (si no es admin)
       let rechazosFiltrados = AppState.allRechazosEnExcel;
       if (secciones && secciones.length > 0) {
         rechazosFiltrados = rechazosFiltrados.filter(row =>
@@ -903,6 +934,7 @@ async function loadRechazosFile(secciones) {
         );
       }
 
+      // Si es admin, renderiza el filtro por jefe
       if (AppState.isAdmin) {
         renderBossFilter(AppState.allRechazosEnExcel);
         if (adminBossFilter && adminBossFilter.trim() !== "") {
@@ -910,6 +942,7 @@ async function loadRechazosFile(secciones) {
         }
       }
 
+      // Render final
       renderRechazos(rechazosFiltrados);
     };
     reader.readAsBinaryString(blob);
@@ -920,22 +953,18 @@ async function loadRechazosFile(secciones) {
 }
 
 /*****************************************************
- *  ========== RENDERIZAR REMISIONES (ACORDEÓN) ==========
- *  - Contenido alineado a la izquierda
- *  - Imagen a la derecha
- *  - Remisión, punto verde y ícono de mensaje con tamaño y ubicación fijos
- *  - Colapsado por defecto
- *****************************************************/function renderRechazos(rechazosFiltrados) {
+ *  ========== RENDERIZAR RECHAZOS EN ACORDEÓN ==========
+ *****************************************************/
+function renderRechazos(rechazosFiltrados) {
   const container = document.getElementById("rechazosContainer");
   container.innerHTML = "";
-  
-  // Actualizamos el estado global de remisiones
+
   AppState.rechazosGlobal = rechazosFiltrados.map((item, index) => ({
     ...item,
     _rowIndex: index,
     Comentarios: item.Comentarios || ""
   }));
-  
+
   if (!AppState.rechazosGlobal.length) {
     container.innerHTML = `
       <div class="alert alert-warning text-center">
@@ -943,20 +972,25 @@ async function loadRechazosFile(secciones) {
       </div>`;
     return;
   }
-  
-  // Acordeón para agrupar las remisiones
+
+  // Crea el contenedor accordion
   const accordion = document.createElement("div");
   accordion.className = "accordion";
   accordion.id = "rechazosAccordion";
-  
+
   AppState.rechazosGlobal.forEach((rechazo, i) => {
-    // Variables
-    const fecha = fixEncoding(rechazo["Fecha y Hora de Asignación"] || "");
+    let fechaValue = rechazo["Fecha y Hora Rechazo"];
+    let fecha = parseExcelDate(fechaValue);
+    if (!fecha || fecha.trim() === "") {
+      fecha = "Sin fecha (Verifique el Excel)";
+    }
+
     const seccion = fixEncoding(rechazo["Sección"] || "");
     const remision = fixEncoding(rechazo["Remisión"] || "");
     const sku = fixEncoding(rechazo["Sku"] || "");
     const descripcionSku = fixEncoding(rechazo["Descripción Sku"] || "");
     const piezas = fixEncoding(rechazo["Piezas"] || "");
+
     let usuarioCode = fixEncoding(rechazo["Usuario de Rechazo"] || "");
     const userCodeNormalized = usuarioCode.trim().toLowerCase();
     let usuarioName = usuarioCode;
@@ -966,30 +1000,20 @@ async function loadRechazosFile(secciones) {
       );
       if (foundUser?.Nombre) usuarioName = foundUser.Nombre;
     }
+
     const jefatura = fixEncoding(rechazo["Jefatura"] || "");
     const hasComment = rechazo.Comentarios.trim() !== "";
-    
-    // Indicador de estado: verde si tiene comentarios, rojo si no
-    const stateIndicator = `
-      <span style="
-        display:inline-block; 
-        width:12px; 
-        height:12px; 
-        border-radius:50%; 
-        background-color:${hasComment ? "#28a745" : "#dc3545"};
-        margin-left:0.5rem;">
-      </span>
-    `;
-    
-    // Estructura del acordeón
+
+    const stateIndicator = `<span class="state-indicator ${hasComment ? 'has-comment' : ''}"></span>`;
+
+    // Estructura del accordion item
     const accordionItem = document.createElement("div");
     accordionItem.className = "accordion-item mb-3 border-0";
-    
-    // Header
+
     const header = document.createElement("h2");
     header.className = "accordion-header";
     header.id = `heading-${i}`;
-    
+
     const headerButton = document.createElement("button");
     headerButton.className = "accordion-button collapsed";
     headerButton.type = "button";
@@ -997,56 +1021,43 @@ async function loadRechazosFile(secciones) {
     headerButton.setAttribute("data-bs-target", `#collapse-${i}`);
     headerButton.setAttribute("aria-expanded", "false");
     headerButton.setAttribute("aria-controls", `collapse-${i}`);
-    headerButton.style.backgroundColor = "#fff";
-    headerButton.style.border = "1px solid #E6007E";
     headerButton.style.borderRadius = "10px";
     headerButton.style.fontWeight = "600";
     headerButton.style.padding = "1rem";
     headerButton.style.transition = "transform 0.3s ease";
     headerButton.onmouseover = () => headerButton.style.transform = "scale(1.02)";
     headerButton.onmouseout = () => headerButton.style.transform = "scale(1)";
-    
+
+    // Cabecera: "Reporte: XXX" + indicador de estado
     headerButton.innerHTML = `
       <div class="d-flex align-items-center justify-content-between w-100">
         <div>
           <span>Reporte:</span>
-          <span style="
-            padding: 0.25rem 0.75rem;
-            background-color: #E6007E;
-            color: #fff;
-            border-radius: 20px;
-            margin-left:0.5rem;">
-            ${remision}
-          </span>
+          <span class="badge-reporte">${remision}</span>
         </div>
         <div class="d-flex align-items-center">
           ${stateIndicator}
-          ${
-            hasComment
-              ? `<i class="bi bi-chat-dots-fill ms-2" style="color:#17a2b8;" title="Tiene comentarios"></i>`
-              : ""
-          }
+          ${hasComment ? '<i class="bi bi-chat-dots-fill ms-2 comment-icon" title="Tiene comentarios"></i>' : ''}
         </div>
       </div>
     `;
+
     header.appendChild(headerButton);
     accordionItem.appendChild(header);
-    
-    // Contenido del acordeón
+
     const collapseDiv = document.createElement("div");
     collapseDiv.id = `collapse-${i}`;
     collapseDiv.className = "accordion-collapse collapse";
     collapseDiv.setAttribute("aria-labelledby", `heading-${i}`);
     collapseDiv.setAttribute("data-bs-parent", "#rechazosAccordion");
-    
+
     const bodyDiv = document.createElement("div");
     bodyDiv.className = "accordion-body p-4";
-    bodyDiv.style.backgroundColor = "#fdfdfd";
-    
-    // Aquí definimos la fila (row) con align-items-start
+
+    // Contenido del accordion
     bodyDiv.innerHTML = `
       <div class="row g-3 align-items-start">
-        <!-- Columna de Datos (Lista) -->
+        <!-- Columna Izquierda (Datos) -->
         <div class="col-md-7">
           <ul class="list-unstyled mb-0">
             <li class="mb-1"><strong>Fecha:</strong> ${fecha}</li>
@@ -1058,7 +1069,6 @@ async function loadRechazosFile(secciones) {
             <li class="mb-1"><strong>Jefatura:</strong> ${jefatura}</li>
           </ul>
           
-          <!-- Botones de búsqueda -->
           <div class="mt-3">
             <a
               href="https://www.liverpool.com.mx/tienda?s=${sku}"
@@ -1075,59 +1085,39 @@ async function loadRechazosFile(secciones) {
               <i class="bi bi-google"></i> Buscar en Google
             </a>
           </div>
-          
-          <!-- Comentarios -->
+
           <div class="mt-3">
-            <label
-              for="comentario-${rechazo._rowIndex}"
-              class="form-label fw-semibold"
-            >
+            <label for="comentario-${rechazo._rowIndex}" class="form-label fw-semibold">
               <i class="bi bi-chat-left-dots me-1"></i> Comentarios:
             </label>
             <textarea
               id="comentario-${rechazo._rowIndex}"
               rows="3"
-              class="form-control comentario-input ${
-                rechazo.Comentarios.trim() !== "" ? "has-comment" : ""
-              }"
+              class="form-control comentario-input ${rechazo.Comentarios.trim() !== "" ? "has-comment" : ""}"
               data-row-index="${rechazo._rowIndex}"
             >${rechazo.Comentarios}</textarea>
           </div>
         </div>
-        
-        <!-- Columna de Imagen y Acciones -->
+
+        <!-- Columna Derecha (Imagen, Fotos) -->
         <div class="col-md-5 text-center">
           <div id="imgContainer-${sku}-${i}" class="mb-3"></div>
           <div id="evidencia-preview-${rechazo._rowIndex}">
             ${
               rechazo.Fotos && rechazo.Fotos.trim() !== ""
                 ? `
-                  <img
-                    src="${rechazo.Fotos}"
-                    alt="Evidencia"
-                    class="img-fluid rounded mb-2"
-                    style="max-width:180px;"
-                  >
+                  <img src="${rechazo.Fotos}" alt="Evidencia" class="img-fluid rounded mb-2" style="max-width:180px;">
                   <div>
-                    <button
-                      class="btn btn-sm btn-outline-secondary cambiar-foto-btn me-2"
-                      data-row-index="${rechazo._rowIndex}"
-                    >
+                    <button class="btn btn-sm btn-pill btn-photo me-2 cambiar-foto-btn" data-row-index="${rechazo._rowIndex}">
                       <i class="bi bi-camera"></i> Cambiar
                     </button>
-                    <button
-                      class="btn btn-sm btn-outline-danger eliminar-foto-btn"
-                      data-row-index="${rechazo._rowIndex}"
-                    >
+                    <button class="btn btn-sm btn-pill btn-photo-delete eliminar-foto-btn" data-row-index="${rechazo._rowIndex}">
                       <i class="bi bi-trash"></i> Eliminar
                     </button>
                   </div>
                 `
                 : `
-                  <button
-                    class="btn btn-sm btn-outline-primary agregar-foto-btn"
-                    data-row-index="${rechazo._rowIndex}"
-                  >
+                  <button class="btn btn-sm btn-pill btn-photo agregar-foto-btn" data-row-index="${rechazo._rowIndex}">
                     <i class="bi bi-camera"></i> Agregar Foto
                   </button>
                 `
@@ -1136,18 +1126,17 @@ async function loadRechazosFile(secciones) {
         </div>
       </div>
     `;
-    
+
     collapseDiv.appendChild(bodyDiv);
     accordionItem.appendChild(collapseDiv);
     accordion.appendChild(accordionItem);
-    
-    // Carga dinámica de la imagen
+
+    // Carga dinámica de imagen
     setTimeout(() => loadDynamicImage(sku, seccion, `imgContainer-${sku}-${i}`), 50);
   });
-  
+
   container.appendChild(accordion);
 }
-
 
 /*****************************************************
  *  ========== AUTO-GUARDADO DE COMENTARIOS ==========
@@ -1161,49 +1150,66 @@ document.addEventListener("input", (e) => {
     }
     e.target.classList.toggle("has-comment", newComment.trim() !== "");
 
-    // Actualizar encabezado (punto e ícono si hay comentario)
+    // Actualizar indicador en la cabecera
     const heading = document.getElementById(`heading-${rowIndex}`);
     if (heading) {
       const button = heading.querySelector("button");
       if (button) {
-        const existingDot = button.querySelector(".liquid-dot");
-        const existingIcon = button.querySelector(".comment-icon");
+        const indicator = button.querySelector(".state-indicator");
         if (newComment.trim() !== "") {
-          if (!existingDot) {
-            const dotSpan = document.createElement("span");
-            dotSpan.className = "liquid-dot";
-            button.appendChild(dotSpan);
-          }
-          if (!existingIcon) {
-            const icon = document.createElement("i");
-            icon.className = "bi bi-chat-dots-fill comment-icon";
-            icon.title = "Hay comentarios";
-            button.appendChild(icon);
-          }
+          indicator?.classList.add("has-comment");
         } else {
-          if (existingDot) existingDot.remove();
-          if (existingIcon) existingIcon.remove();
+          indicator?.classList.remove("has-comment");
         }
       }
     }
 
-    // Programar auto-guardado
+    // Debounce
     if (autoSaveTimers[rowIndex]) clearTimeout(autoSaveTimers[rowIndex]);
     autoSaveTimers[rowIndex] = setTimeout(() => {
       autoSaveComment(rowIndex);
-    }, 3000);
+    }, 1000);
+  }
+});
+
+document.addEventListener("blur", (e) => {
+  if (e.target && e.target.classList.contains("comentario-input")) {
+    const rowIndex = e.target.getAttribute("data-row-index");
+    autoSaveComment(rowIndex);
+  }
+}, true);
+
+window.addEventListener("beforeunload", () => {
+  if (!isSaving) {
+    saveAllComments(true);
   }
 });
 
 async function autoSaveComment(rowIndex) {
-  // Spinner en el encabezado
   const heading = document.getElementById(`heading-${rowIndex}`);
   let spinner;
   if (heading) {
     const button = heading.querySelector("button");
     if (button) {
       spinner = document.createElement("span");
-      spinner.className = "saving-spinner";
+      spinner.style.marginLeft = "10px";
+      spinner.innerHTML = `
+        <div class="saving-spinner" style="
+          display: inline-block;
+          width: 18px;
+          height: 18px;
+          border: 3px solid rgba(0,0,0,0.1);
+          border-top: 3px solid #28a745;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;">
+        </div>
+        <style>
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        </style>
+      `;
       button.appendChild(spinner);
     }
   }
@@ -1265,7 +1271,7 @@ async function sendFileByEmail() {
     if (!AppState.selectedFileData || !AppState.selectedFileData.ref) {
       return showAlert("error", "Error", "No se ha seleccionado ningún archivo.");
     }
-    const defaultRecipients = "agavila@liverpool.com.mx,babanuelosr@liverpool.com.mx";
+    const defaultRecipients = "ejemplo1@liverpool.com.mx,ejemplo2@liverpool.com.mx";
     const fileRef = AppState.selectedFileData.ref;
     const fileUrl = await fileRef.getDownloadURL();
     const subject = encodeURIComponent("Envío de Archivo - Rechazos");
@@ -1329,6 +1335,7 @@ async function saveAllComments(silent = false) {
         }
         let actualRechazos = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
+        // Actualizar Comentarios y Fotos en base al "Remisión"
         const comentariosEditados = {};
         const fotosEditadas = {};
 
@@ -1339,7 +1346,6 @@ async function saveAllComments(silent = false) {
           }
         });
 
-        // Actualizar datos en la hoja
         actualRechazos = actualRechazos.map(row => {
           if (row.Remisión && comentariosEditados.hasOwnProperty(row.Remisión)) {
             return {
@@ -1351,13 +1357,11 @@ async function saveAllComments(silent = false) {
           return row;
         });
 
-        // Reescribir la hoja "Rechazos"
         const newSheet = XLSX.utils.json_to_sheet(actualRechazos);
         workbook.Sheets["Rechazos"] = newSheet;
         const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
         const newBlob = new Blob([wbout], { type: "application/octet-stream" });
 
-        // Subir de nuevo el archivo con nueva versión
         const newVersion = (parseInt(currentVersion) + 1).toString();
         await fileRef.put(newBlob, { customMetadata: { version: newVersion } });
         AppState.selectedFileData = { name: "rechazos.xlsx", ref: fileRef };
