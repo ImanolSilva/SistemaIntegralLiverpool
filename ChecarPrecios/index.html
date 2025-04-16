@@ -26,22 +26,22 @@
   <script>
     // ========== CONFIGURACIÓN DE FIREBASE ==========
     const firebaseConfig = {
-  apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
-  authDomain: "loginliverpool.firebaseapp.com",
-  projectId: "loginliverpool",
-  storageBucket: "loginliverpool.appspot.com",
-  messagingSenderId: "704223815941",
-  appId: "1:704223815941:web:c871525230fb61caf96f6c",
-  measurementId: "G-QFEPQ4TSPY",
-};
+      apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+      authDomain: "loginliverpool.firebaseapp.com",
+      projectId: "loginliverpool",
+      storageBucket: "loginliverpool.appspot.com",
+      messagingSenderId: "704223815941",
+      appId: "1:704223815941:web:c871525230fb61caf96f6c",
+      measurementId: "G-QFEPQ4TSPY",
+    };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
 
-const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
-const db = firebase.firestore();
-const auth = firebase.auth();
+    const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
+    const db = firebase.firestore();
+    const auth = firebase.auth();
   </script>
 
   <style>
@@ -55,13 +55,14 @@ const auth = firebase.auth();
     }
     body {
       font-family: 'Poppins', Arial, sans-serif;
+      /* Fondo en degradado para un look moderno */
       background: linear-gradient(to right, var(--rosa-principal), var(--negro));
       margin: 0;
       padding: 0;
       color: var(--gris-oscuro);
       min-height: 100vh;
     }
-
+    /* Header mejorado */
     header {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -80,10 +81,11 @@ const auth = firebase.auth();
       font-weight: 600;
       margin: 0;
     }
+    /* Botón de menú (hamburguesa) - se conserva intacto */
     .btn-menu {
       background: none;
       border: none;
-      color: #fff;
+      color: var(--blanco);
       font-size: 1.5rem;
       padding: 0;
       cursor: pointer;
@@ -91,6 +93,7 @@ const auth = firebase.auth();
     .btn-menu:hover {
       color: var(--rosa-secundario);
     }
+    /* Botón de logout */
     #logout-btn {
       font-size: 1rem;
       display: flex;
@@ -101,11 +104,12 @@ const auth = firebase.auth();
       transition: background-color 0.3s ease;
       background-color: #c82333;
       border: none;
-      color: #fff;
+      color: var(--blanco);
     }
     #logout-btn:hover {
       background-color: #a71d2a;
     }
+    /* Estilos para el Offcanvas (Menú Lateral) */
     .offcanvas {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -124,7 +128,7 @@ const auth = firebase.auth();
       background-color: var(--rosa-secundario);
       color: var(--gris-oscuro);
     }
-
+    /* Contenedor Principal */
     .main-container {
       max-width: 1000px;
       margin: 2rem auto;
@@ -141,6 +145,7 @@ const auth = firebase.auth();
       margin-bottom: 1.5rem;
       color: var(--rosa-principal);
     }
+    /* Sección de carga de archivos */
     #adminUploadSection {
       margin-bottom: 2rem;
     }
@@ -164,9 +169,11 @@ const auth = firebase.auth();
       color: var(--blanco);
       border-color: var(--blanco);
     }
+    /* Sección para seleccionar archivos ya subidos */
     #userFilePickerSection {
       margin-bottom: 2rem;
     }
+    /* Sección de registro de SKUs */
     #seccionRegistro {
       margin-top: 2rem;
       display: none;
@@ -180,6 +187,7 @@ const auth = firebase.auth();
   <!-- Header -->
   <header>
     <div class="d-flex align-items-center">
+      <!-- Botón para menú móvil (hamburguesa) -->
       <button 
         class="btn-menu me-3" 
         type="button" 
@@ -191,6 +199,7 @@ const auth = firebase.auth();
       </button>
       <div class="header-title">Verificar</div>
     </div>
+    <!-- Botón de Cerrar Sesión -->
     <button 
       class="btn btn-danger d-flex align-items-center" 
       id="logout-btn" 

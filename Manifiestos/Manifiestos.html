@@ -4,17 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Manifestar Mercancía - Versión Avanzada</title>
-  <!-- Fuente Poppins -->
+  <!-- Fuentes y CSS externos -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
-  <!-- Material Icons de Google -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <!-- SweetAlert2 CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-  <!-- AOS CSS -->
   <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-  <!-- Animate.css -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
   <style>
     :root {
@@ -77,6 +72,26 @@
     .btn-info:hover {
       background: linear-gradient(45deg, #138496, #4ab3c8) !important;
     }
+
+    /* ===== Nuevo: Botones circulares para Condiciones, Foto y Acciones ===== */
+    .btn-circle {
+      border-radius: 50% !important;
+      width: 2.4rem;
+      height: 2.4rem;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .btn-circle .badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      font-size: 0.7rem;
+      padding: 0.2em 0.4em;
+    }
+
     /* HEADER */
     header {
       background-color: var(--rosa-principal);
@@ -323,7 +338,6 @@
               <span>Inicio</span>
             </a>
           </li>
-          <!-- Otros enlaces según proyecto -->
           <li class="nav-item">
             <a class="nav-link d-flex align-items-center btn-anim" href="../ChecarPrecios/index.html">
               <i class="material-icons">local_offer</i>
@@ -568,10 +582,9 @@
         let currentEmployeeNumber = "";
         let debounceTimerBusqueda = null;
         let debounceTimerScan = null;
-        // Variable para cachear la lista de archivos (se llena una única vez)
         let allFilesList = null;
-        // Variable para almacenar el agrupamiento de búsqueda por contenedor (global para usar en la función de selección)
         let globalContainerMap = {};
+        let currentDanioSKU = null;
 
         /***************************************************
          * REFERENCIAS DEL DOM
@@ -600,13 +613,10 @@
         const btnCambiarEmpleado = document.getElementById("btnCambiarEmpleado");
         const btnCambiarContenedor = document.getElementById("btnCambiarContenedor");
         const searchContainerSection = document.getElementById("searchContainerSection");
-
-        // Modal de Condiciones de la Mcia
         const modalDanios = new bootstrap.Modal(document.getElementById("modalDanios"));
         const danioCantidadInput = document.getElementById("danioCantidad");
         const danioFotoInput = document.getElementById("danioFoto");
         const btnGuardarDanio = document.getElementById("btnGuardarDanio");
-        let currentDanioSKU = null;
 
         /***************************************************
          * AUTH / LOGOUT
@@ -625,14 +635,14 @@
             currentUserStore = "ALL";
             currentUserRole = "admin";
             adminUploadSection.style.display = "block";
-            if (userInfoEl) userInfoEl.textContent = "Usuario: Admin (ALL - admin)";
+            userInfoEl.textContent = "Usuario: Admin (ALL - admin)";
           } else {
             let docSnap = await db.collection("usuarios").doc(user.uid).get();
             if (!docSnap.exists) {
               Swal.fire({
                 icon: "warning",
                 title: "Sin datos",
-                html: `<i class="material-icons" style="color:#FFC107;">warning</i> No se encontró tu registro en "usuarios".`
+                html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró tu registro en "usuarios".`
               }).then(() => window.location.href = "../Login/login.html");
               return;
             }
@@ -650,9 +660,7 @@
             if (["jefe", "auxiliar"].includes(currentUserRole)) {
               adminUploadSection.style.display = "block";
             }
-            if (userInfoEl) {
-              userInfoEl.textContent = `Usuario: ${user.email} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
-            }
+            userInfoEl.textContent = `Usuario: ${user.email} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
           }
         });
         logoutBtn.addEventListener("click", () => {
@@ -908,64 +916,74 @@
           });
         };
 
-        /***********************************************************
-         * CAMBIAR DE CONTENEDOR
-         ***********************************************************/
-        btnCambiarContenedor.addEventListener("click", async () => {
-          if (!currentContenedor) {
-            Swal.fire({
-              icon: "info",
-              title: "No hay Contenedor",
-              html: `<i class="material-icons" style="color:#2196F3;">info</i> No hay contenedor abierto para cambiar.`
-            });
-            return;
-          }
-          let summaryHTML = getContainerSummaryDetailed(currentContainerRecords);
-          let containerStatus = getContainerStateFromRecords(currentContainerRecords);
-          let colorIcon = "#2196F3";
-          if (containerStatus === "INCOMPLETO" || containerStatus === "COMPLETO CON MERCANCÍA DE MÁS") {
-            colorIcon = "#F44336";
-          } else if (containerStatus === "COMPLETO") {
-            colorIcon = "#4CAF50";
-          }
-          let { isConfirmed } = await Swal.fire({
-            title: `<i class="material-icons" style="vertical-align:middle;color:${colorIcon};">switch_account</i> ¡Cambio de Contenedor!`,
-            html: `
-              <div style="background: linear-gradient(135deg, #fff, #fdfdfd); padding: 1rem; border-radius: 10px; text-align: left;">
-                <h4 style="color: #E6007E; margin-bottom: 1rem;">
-                  <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
-                  Contenedor Actual: <span style="color:#E6007E;">${currentContenedor}</span>
-                </h4>
-                <div style="font-size: 0.95rem; color: #333; margin-bottom: 1rem; padding: 0.5rem; background:#f7f7f7; border-radius:8px;">
-                  ${summaryHTML}
-                </div>
-                <p style="font-size:1.1rem; font-weight:600; color:#E6007E;">
-                  <i class="material-icons" style="vertical-align:middle;">help_outline</i>
-                  ¿Desea cambiar de contenedor?
-                </p>
-              </div>`,
-            icon: "info",
-            showCancelButton: true,
-            confirmButtonText: `<i class="material-icons" style="vertical-align:middle;">check_circle</i> Sí, cambiar`,
-            cancelButtonText: `<i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar`,
-            width: "600px"
-          });
-          if (!isConfirmed) return;
-          currentContenedor = null;
-          currentContainerRecords = [];
-          if (selectedFileToWorkEl) selectedFileToWorkEl.textContent = "";
-          Swal.fire({
-            icon: "success",
-            title: "Contenedor cambiado",
-            html: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">check_circle</i> Ahora puede buscar un nuevo contenedor.`
-          });
-          searchContainerSection.style.display = "block";
-          document.getElementById("inputBusqueda").focus();
-        });
+/***********************************************************
+ * CAMBIAR DE CONTENEDOR
+ ***********************************************************/
+ btnCambiarContenedor.addEventListener("click", async () => {
+  if (!currentContenedor) {
+    Swal.fire({
+      icon: "info",
+      title: "No hay Contenedor",
+      html: `<i class="material-icons" style="color:#2196F3;">info</i> No hay contenedor abierto para cambiar.`
+    });
+    return;
+  }
+
+  // Generar resumen y color de ícono según estado
+  const summaryHTML = getContainerSummaryDetailed(currentContainerRecords);
+  const containerStatus = getContainerStateFromRecords(currentContainerRecords);
+  let colorIcon = "#2196F3";
+  if (containerStatus === "INCOMPLETO" || containerStatus === "COMPLETO CON MERCANCÍA DE MÁS") {
+    colorIcon = "#F44336";
+  } else if (containerStatus === "COMPLETO") {
+    colorIcon = "#4CAF50";
+  }
+
+  // Mostrar alerta con resumen detallado
+  const { isConfirmed } = await Swal.fire({
+    title: `<i class="material-icons" style="vertical-align:middle;color:${colorIcon};">switch_account</i> ¡Cambio de Contenedor!`,
+    html: `
+      <div style="background: linear-gradient(135deg, #fff, #fdfdfd); padding: 1rem; border-radius: 10px; text-align: left;">
+        <h4 style="color: #E6007E; margin-bottom: 1rem;">
+          <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
+          Contenedor Actual: <span style="color:#E6007E;">${currentContenedor}</span>
+        </h4>
+        <div style="font-size: 0.95rem; color: #333; margin-bottom: 1rem; padding: 0.5rem; background:#f7f7f7; border-radius:8px;">
+          ${summaryHTML}
+        </div>
+        <p style="font-size:1.1rem; font-weight:600; color:#E6007E;">
+          <i class="material-icons" style="vertical-align:middle;">help_outline</i>
+          ¿Desea cambiar de contenedor?
+        </p>
+      </div>`,
+    icon: "info",
+    showCancelButton: true,
+    confirmButtonText: `<i class="material-icons" style="vertical-align:middle;">check_circle</i> Sí, cambiar`,
+    cancelButtonText: `<i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar`,
+    width: "600px"
+  });
+
+  if (!isConfirmed) return;
+
+  // Resetear estado
+  currentContenedor = null;
+  currentContainerRecords = [];
+  selectedFileToWorkEl.textContent = "";
+
+  // Notificar éxito
+  await Swal.fire({
+    icon: "success",
+    title: "Contenedor cambiado",
+    html: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">check_circle</i> Ahora puede buscar un nuevo contenedor.`
+  });
+
+  // Mostrar sección de búsqueda y enfocar el cursor
+  searchContainerSection.style.display = "block";
+  document.getElementById("inputBusqueda").focus();
+});
 
         /***********************************************************
          * BUSCAR CONTENEDOR / SKU
-         * Se detecta si el primer carácter es letra (Contenedor) o no (SKU)
          ***********************************************************/
         inputBusqueda.addEventListener("keyup", () => {
           clearTimeout(debounceTimerBusqueda);
@@ -973,10 +991,8 @@
             let val = inputBusqueda.value.trim().toUpperCase();
             if (val.length < 5) return;
             if (/^[A-Z]/.test(val)) {
-              // Si empieza con letra: búsqueda de contenedor
               buscarContenedor(val);
             } else {
-              // Si no empieza con letra: búsqueda de SKU
               buscarSKUenArchivos(val);
             }
             inputBusqueda.value = "";
@@ -995,7 +1011,6 @@
           }, 10);
         });
 
-        // Función de búsqueda para contenedores: agrupa resultados por código único
         async function buscarContenedor(ref) {
           let candidates = await checkFileForReference(null, ref, true);
           if (!candidates) {
@@ -1009,12 +1024,10 @@
           if (!Array.isArray(candidates)) {
             candidates = [candidates];
           }
-          // Agrupar todos los registros de contenedores por código único
           let containersMap = {};
           candidates.forEach(candidate => {
             candidate.matchedRecords.forEach(record => {
               let cont = String(record.CONTENEDOR || "").trim().toUpperCase();
-              // Se puede aplicar "includes" si la búsqueda es parcial:
               if (cont.includes(ref)) {
                 if (!containersMap[cont]) {
                   containersMap[cont] = [];
@@ -1023,7 +1036,6 @@
               }
             });
           });
-          // Guardamos el agrupamiento globalmente para usar al seleccionar
           globalContainerMap = containersMap;
           let containerKeys = Object.keys(containersMap);
           if (containerKeys.length === 0) {
@@ -1035,7 +1047,6 @@
             return;
           }
           if (containerKeys.length === 1) {
-            // Si solo hay un contenedor único, lo abre directamente
             let cont = containerKeys[0];
             let candidateObj = {
               fileName: containersMap[cont][0].fileName,
@@ -1043,7 +1054,6 @@
             };
             openContainerDirect(candidateObj, 0);
           } else {
-            // Si hay más de uno, se muestra una lista para elegir
             let html = "<p>Se encontraron los siguientes contenedores:</p><ul class='list-group'>";
             containerKeys.forEach((cont, idx) => {
               html += `<li class="list-group-item d-flex justify-content-between align-items-center">
@@ -1067,8 +1077,6 @@
             });
           }
         }
-
-        // Función global para seleccionar un contenedor de la lista
         window.selectContainer = function(cont) {
           let candidateObj = {
             fileName: globalContainerMap[cont][0].fileName,
@@ -1078,7 +1086,6 @@
           openContainerDirect(candidateObj, 0);
         };
 
-        // Función para búsqueda de SKU: muestra TODOS los registros que coincidan en CONTENEDOR o SKU
         async function buscarSKUenArchivos(sku) {
           try {
             let candidates = await checkFileForReference(null, sku, false);
@@ -1124,15 +1131,12 @@
             console.error(err);
           }
         }
-
-        // Función global para elegir un registro específico (SKU)
         window.chooseCandidateRecordCustom = function(fileName, recordIndex) {
           let candidate = window.candidatesForSKU.find(item => item.fileName === fileName);
           Swal.close();
           openContainerDirect(candidate, recordIndex);
         };
 
-        // Función para buscar en los archivos (siempre devuelve un arreglo con candidatos)
         async function checkFileForReference(folderName, code, isContainer = false) {
           let finalFiles = [];
           let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
@@ -1191,7 +1195,6 @@
             let matched = arr.filter(r => {
               let cont = String(r.CONTENEDOR || "").trim().toUpperCase();
               let sku = String(r.SKU || "").trim().toUpperCase();
-              // En contenedor search, ignoramos la columna EUROPEO
               return (cont.includes(sr) || sku.includes(sr));
             });
             if (matched.length > 0) {
@@ -1222,6 +1225,7 @@
             return;
           }
           adminUploadSection.style.display = "none";
+          searchContainerSection.style.display = "none";
           currentContenedor = cont;
           let dataObj = excelDataGlobal[fileName];
           let arr = dataObj.data;
@@ -1235,25 +1239,23 @@
             return;
           }
           currentContainerRecords = matched;
-          searchContainerSection.style.display = "none";
           if (selectedFileToWorkEl) selectedFileToWorkEl.textContent = fileName;
           currentFileName = fileName;
-          let lastU = dataObj.lastUser || "Desconocido";
-          let store = dataObj.lastUserStore || "?";
-          let role = dataObj.lastUserRole || "?";
           let closedBy = dataObj.closedContainers && dataObj.closedContainers[cont] ? dataObj.closedContainers[cont] : "";
           if (closedBy) {
             lastUserUpdateEl.textContent = `Contenedor ${cont} cerrado por: ${closedBy}`;
             inputScanCode.disabled = true;
             btnCerrarContenedor.innerHTML = `<i class="material-icons" style="vertical-align:middle;">lock_open</i> Abrir Contenedor`;
           } else {
+            let lastU = dataObj.lastUser || "Desconocido";
+            let store = dataObj.lastUserStore || "?";
+            let role = dataObj.lastUserRole || "?";
             lastUserUpdateEl.textContent = `Último cambio por: ${lastU} (Tienda: ${store}, Rol: ${role})`;
             inputScanCode.disabled = (currentEmployeeNumber === "");
             btnCerrarContenedor.innerHTML = `<i class="material-icons" style="vertical-align:middle;">lock</i> Cerrar Contenedor`;
           }
           containerResultsSection.style.display = "block";
           scanEntrySection.style.display = "block";
-          inputScanCode.focus();
           if (currentUser && (currentUser.uid === ADMIN_UID || ["admin", "jefe", "auxiliar"].includes(currentUserRole))) {
             downloadSection.style.display = "block";
           } else {
@@ -1261,6 +1263,7 @@
           }
           document.getElementById("containerHeader").innerHTML = `<i class="material-icons" style="vertical-align:middle;">inventory_2</i> Detalles del Contenedor (${cont})`;
           mostrarDetallesContenedor(currentContainerRecords);
+          inputScanCode.focus();
         }
 
         /***********************************************************
@@ -1269,24 +1272,22 @@
         btnCerrarContenedor.addEventListener("click", async () => {
           let fn = selectedFileToWorkEl.textContent;
           if (!fn || !excelDataGlobal[fn]) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay contenedor abierto.`
             });
-            return;
           }
           if (!currentContenedor) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay contenedor seleccionado.`
             });
-            return;
           }
           let dataObj = excelDataGlobal[fn];
           if (dataObj.closedContainers && dataObj.closedContainers[currentContenedor]) {
-            let { isConfirmed } = await Swal.fire({
+            const { isConfirmed } = await Swal.fire({
               title: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">lock_open</i> Reabrir Contenedor`,
               html: `<p>El contenedor <strong>${currentContenedor}</strong> fue cerrado por: <span style="color:var(--rosa-principal);">${dataObj.closedContainers[currentContenedor]}</span>.</p>
                      <p style="color:#666;">Se abrirá para registrar solo mercancía faltante. Se cerrará al cambiar de contenedor o recargar.</p>`,
@@ -1310,8 +1311,8 @@
             return;
           }
           let summary = getContainerSummaryDetailed(currentContainerRecords);
-          let { isConfirmed } = await Swal.fire({
-            title: `<i class="material-icons" style="vertical-align:middle;">lock</i> Cerrar Contenedor`,
+          const { isConfirmed } = await Swal.fire({
+            title: `<i class="material-icons" style="vertical-align:middle;color:#F44336;">lock</i> Cerrar Contenedor`,
             html: `<div style="text-align:left;">
                      <h5 style="margin-bottom:10px;">
                        <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
@@ -1382,38 +1383,34 @@
         });
         function handleScanCode(code) {
           if (!currentEmployeeNumber || employeeNumberInput.value.trim().length !== 8) {
-            Swal.fire({
+            return Swal.fire({
               icon: "warning",
               title: "Número de Empleado",
               html: `<i class="material-icons" style="color:#FFC107;">badge</i> Debe ingresar 8 dígitos.`
             });
-            return;
           }
           if (!currentContenedor || !currentContainerRecords.length) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay contenedor abierto.`
             });
-            return;
           }
           let fn = selectedFileToWorkEl.textContent;
           if (!fn || !excelDataGlobal[fn]) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay un archivo abierto.`
             });
-            return;
           }
           let dataObj = excelDataGlobal[fn];
           if (dataObj.closedContainers && dataObj.closedContainers[currentContenedor]) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Contenedor Cerrado",
               html: `<i class="material-icons" style="color:#F44336;">lock</i> El contenedor está cerrado y no se puede editar.`
             });
-            return;
           }
           let matchingRows = currentContainerRecords.filter(r => {
             let cont = String(r.CONTENEDOR || "").trim().toUpperCase();
@@ -1433,7 +1430,7 @@
               if (!result.isConfirmed) return;
               let fechaActual = new Date();
               let newRow = {
-                FECHA: fechaActual,  // Se registra la fecha actual
+                FECHA: fechaActual,
                 SECCION: "",
                 MANIFIESTO: "",
                 CONTENEDOR: currentContenedor,
@@ -1444,7 +1441,7 @@
                 SCANNER: 1,
                 ENTREGADO_A: currentEmployeeNumber,
                 LAST_SCANNED_BY: currentUser.email || currentUser.uid,
-                FECHA_ESCANEO: fechaActual,  // Registro de la evidencia en tiempo real
+                FECHA_ESCANEO: fechaActual,
                 DANIO_CANTIDAD: 0,
                 DANIO_FOTO_URL: ""
               };
@@ -1452,7 +1449,7 @@
               dataObj.lastUser = currentUser.email || currentUser.uid;
               excelDataGlobal[fn] = dataObj;
               await reuploadFileWithScannerChanges(fn);
-              currentContainerRecords = dataObj.data.filter(rr => String(rr.CONTENEDOR || "").toUpperCase() === currentContenedor);
+              currentContainerRecords = dataObj.data.filter(rr => String(rr.CONTENEDOR||"").toUpperCase()===currentContenedor);
               mostrarDetallesContenedor(currentContainerRecords);
               Swal.fire({
                 icon: "success",
@@ -1489,58 +1486,53 @@
             };
           }
         }
-        // Aquí se actualiza la fecha de escaneo en tiempo real
+
+        // **MODIFICACIÓN**: En vez de reescribir el XLSX en cada escaneo,
+        // solo actualizamos la interfaz y dejamos el reupload para el cierre.
         function incrementRow(rowObj, code) {
           let fn = selectedFileToWorkEl.textContent;
           let oldVal = rowObj.SCANNER || 0;
           rowObj.SCANNER = oldVal + 1;
           rowObj.LAST_SCANNED_BY = currentUser.email || currentUser.uid;
-          // Asigna siempre la fecha y hora actual para dejar evidencia en tiempo real
-          rowObj.FECHA_ESCANEO = new Date();
           if (!rowObj.ENTREGADO_A) {
             rowObj.ENTREGADO_A = currentEmployeeNumber;
           }
           let dataObj = excelDataGlobal[fn];
           dataObj.lastUser = currentUser.email || currentUser.uid;
           excelDataGlobal[fn] = dataObj;
-          reuploadFileWithScannerChanges(fn).then(() => {
-            currentContainerRecords = dataObj.data.filter(x =>
-              String(x.CONTENEDOR || "").trim().toUpperCase() === currentContenedor
-            );
-            mostrarDetallesContenedor(currentContainerRecords);
-            Swal.fire({
-              toast: true,
-              position: "top-end",
-              icon: "success",
-              title: `+1 para ${code}`,
-              showConfirmButton: false,
-              timer: 1500,
-              timerProgressBar: true
-            });
-          }).catch(e => {
-            console.error(e);
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No se pudo actualizar el archivo.`
-            });
+          // Solo refrescamos tabla sin subir XLSX
+          currentContainerRecords = dataObj.data.filter(x =>
+            String(x.CONTENEDOR || "").trim().toUpperCase() === currentContenedor
+          );
+          mostrarDetallesContenedor(currentContainerRecords);
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: `+1 para ${code}`,
+            showConfirmButton: false,
+            timer: 1500,
+            timerProgressBar: true
           });
         }
 
         /***********************************************************
-         * MOSTRAR DETALLES EN TABLA
+         * MOSTRAR DETALLES EN TABLA (mejoradas columnas)
          ***********************************************************/
         function mostrarDetallesContenedor(registros) {
           containerDetailsEl.innerHTML = "";
           if (!registros || registros.length === 0) return;
+
           let headers = [
             "Fecha", "Sección", "Manifiesto", "Contenedor", "SKU", "Europeo",
-            "Descripción", "SAP", "SCANNER", "Diferencia", "Fecha de Escaneo", "Condiciones de la Mcia", "FOTO DAÑOS", "Acciones"
+            "Descripción", "SAP", "SCANNER", "Diferencia", "Fecha de Escaneo",
+            "Condiciones de la Mcia", "FOTO DAÑOS", "Acciones"
           ];
           let table = document.createElement("table");
           table.className = "table table-bordered table-striped table-hover animate__animated animate__fadeInUp";
           table.style.borderRadius = "var(--ios-border-radius)";
           table.style.overflow = "hidden";
+
           let thead = document.createElement("thead");
           let trHead = document.createElement("tr");
           headers.forEach(h => {
@@ -1550,6 +1542,7 @@
           });
           thead.appendChild(trHead);
           table.appendChild(thead);
+
           let tbody = document.createElement("tbody");
           registros.forEach(r => {
             let tr = document.createElement("tr");
@@ -1573,100 +1566,113 @@
             let fechaEscaneo = r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : "";
             let danioCantidad = r.DANIO_CANTIDAD || 0;
             let danioFotoURL = r.DANIO_FOTO_URL || "";
-            let tdValues = [fecha, seccion, manifiesto, contenedor, sku, europeo, descripcion, SAP, SCANNER, diff, fechaEscaneo];
-            tdValues.forEach((val, i) => {
-              if (i < 11) {
-                let td = document.createElement("td");
-                td.textContent = val;
-                if (headers[i] === "Diferencia") {
-                  if (diff === "OK") {
-                    td.style.backgroundColor = "#66BB6A";
-                    td.style.color = "#FFF";
-                  } else if (diff.startsWith("FALTAN")) {
-                    td.style.backgroundColor = "#F44336";
-                    td.style.color = "#FFF";
-                  } else {
-                    td.style.backgroundColor = "#FFEB3B";
-                    td.style.color = "#000";
-                  }
+
+            // Columnas de datos
+            const vals = [fecha, seccion, manifiesto, contenedor, sku, europeo, descripcion, SAP, SCANNER, diff, fechaEscaneo];
+            vals.forEach((val, i) => {
+              let td = document.createElement("td");
+              td.textContent = val;
+              // color en Diferencia
+              if (headers[i] === "Diferencia") {
+                if (diff === "OK") {
+                  td.style.backgroundColor = "#66BB6A"; td.style.color = "#FFF";
+                } else if (diff.startsWith("FALTAN")) {
+                  td.style.backgroundColor = "#F44336"; td.style.color = "#FFF";
+                } else {
+                  td.style.backgroundColor = "#FFEB3B"; td.style.color = "#000";
                 }
-                tr.appendChild(td);
               }
+              tr.appendChild(td);
             });
-            let tdCondiciones = document.createElement("td");
-            if (danioCantidad > 0) {
-              tdCondiciones.innerHTML = `<button class="btn btn-warning btn-sm btn-anim btnDanio" data-sku="${sku.toUpperCase()}">
-                <i class="material-icons">warning</i> ${danioCantidad}
-              </button>`;
-            } else {
-              tdCondiciones.innerHTML = `<button class="btn btn-outline-warning btn-sm btn-anim btnDanio" data-sku="${sku.toUpperCase()}">
-                <i class="material-icons">warning</i> 0
-              </button>`;
-            }
-            tr.appendChild(tdCondiciones);
+
+            // Columna: Condiciones de la Mcia
+            let tdCond = document.createElement("td");
+            tdCond.innerHTML = danioCantidad > 0
+              ? `<button class="btn btn-warning btn-circle btn-anim btnDanio" data-sku="${sku.toUpperCase()}" title="Condiciones">
+                   <i class="material-icons">warning</i>
+                   <span class="badge bg-white text-warning">${danioCantidad}</span>
+                 </button>`
+              : `<button class="btn btn-outline-warning btn-circle btn-anim btnDanio" data-sku="${sku.toUpperCase()}" title="Condiciones">
+                   <i class="material-icons">warning</i>
+                 </button>`;
+            tr.appendChild(tdCond);
+
+            // Columna: FOTO DAÑOS
             let tdFoto = document.createElement("td");
-            if (danioFotoURL !== "") {
-              tdFoto.innerHTML = `<a href="${danioFotoURL}" target="_blank" class="btn btn-info btn-sm btn-anim">
-                <i class="material-icons">image</i> Ver
-              </a>`;
-            } else {
-              tdFoto.innerHTML = `<span class="text-muted">Sin foto</span>`;
-            }
+            tdFoto.innerHTML = danioFotoURL
+              ? `<button class="btn btn-info btn-circle btn-anim btnFoto" data-url="${danioFotoURL}" title="Ver foto">
+                   <i class="material-icons">image</i>
+                 </button>`
+              : `<span class="text-muted">-</span>`;
             tr.appendChild(tdFoto);
+
+            // Columna: Acciones (restar una pieza)
             let tdAcc = document.createElement("td");
-            tdAcc.innerHTML = `<button class="btn btn-warning btn-sm btn-anim removeOneBtn" data-sku="${sku.toUpperCase()}" style="margin-left:5px;">
-              <i class="material-icons">remove_circle</i>
-            </button>`;
+            tdAcc.innerHTML = `<button class="btn btn-danger btn-circle btn-anim removeOneBtn" data-sku="${sku.toUpperCase()}" title="Restar 1 pieza">
+                                 <i class="material-icons">remove</i>
+                               </button>`;
             tr.appendChild(tdAcc);
+
             tbody.appendChild(tr);
           });
+
           table.appendChild(tbody);
-          containerDetailsEl.innerHTML = "";
           containerDetailsEl.appendChild(table);
+
+          // Eventos: btnDanio abre modal condiciones
           containerDetailsEl.querySelectorAll(".btnDanio").forEach(btn => {
             btn.addEventListener("click", () => {
-              let sk = btn.dataset.sku || "";
-              currentDanioSKU = sk;
+              currentDanioSKU = btn.dataset.sku || "";
               danioCantidadInput.value = "1";
               danioFotoInput.value = "";
               modalDanios.show();
             });
           });
+
+          // Eventos: btnFoto abre foto en nueva pestaña
+          containerDetailsEl.querySelectorAll(".btnFoto").forEach(btn => {
+            btn.addEventListener("click", () => {
+              const url = btn.dataset.url;
+              window.open(url, "_blank");
+            });
+          });
+
+          // Eventos: removeOneBtn decrementa rápido con toast y persistencia en background
           containerDetailsEl.querySelectorAll(".removeOneBtn").forEach(btn => {
             btn.addEventListener("click", () => {
-              let sku = (btn.dataset.sku || "").trim().toUpperCase();
-              let fn = selectedFileToWorkEl.textContent;
-              if (!excelDataGlobal[fn]) return;
-              let dataObj = excelDataGlobal[fn];
-              let arr = dataObj.data;
-              let rowObj = arr.find(x =>
-                String(x.SKU || "").trim().toUpperCase() === sku &&
-                String(x.CONTENEDOR || "").trim().toUpperCase() === currentContenedor
+              const sku = btn.dataset.sku;
+              const fn  = selectedFileToWorkEl.textContent;
+              const dataObj = excelDataGlobal[fn];
+              const rowObj  = dataObj.data.find(x =>
+                String(x.SKU||"").trim().toUpperCase()===sku &&
+                String(x.CONTENEDOR||"").trim().toUpperCase()===currentContenedor
               );
-              if (!rowObj) return;
-              let oldVal = rowObj.SCANNER || 0;
-              if (oldVal === 0) return;
-              rowObj.SCANNER = oldVal - 1;
-              rowObj.LAST_SCANNED_BY = currentUser.email || currentUser.uid;
-              dataObj.lastUser = currentUser.email || currentUser.uid;
+              if (!rowObj || (rowObj.SCANNER||0)===0) return;
+
+              // Actualizar en memoria
+              rowObj.SCANNER -= 1;
+              rowObj.LAST_SCANNED_BY = currentUser.email||currentUser.uid;
+              dataObj.lastUser = rowObj.LAST_SCANNED_BY;
               excelDataGlobal[fn] = dataObj;
-              reuploadFileWithScannerChanges(fn).then(() => {
-                currentContainerRecords = arr.filter(z =>
-                  String(z.CONTENEDOR || "").trim().toUpperCase() === currentContenedor
-                );
-                mostrarDetallesContenedor(currentContainerRecords);
-                Swal.fire({
-                  icon: "success",
-                  title: "Actualizado",
-                  html: `<i class="material-icons" style="color:#4CAF50;">check_circle</i> -1 pieza registrada.`
-                });
-              }).catch(e => {
-                console.error(e);
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  html: `<i class="material-icons" style="color:#F44336;">error</i> No se pudo actualizar el archivo.`
-                });
+
+              // Refrescar UI
+              currentContainerRecords = dataObj.data.filter(z =>
+                String(z.CONTENEDOR||"").trim().toUpperCase()===currentContenedor
+              );
+              mostrarDetallesContenedor(currentContainerRecords);
+
+              // Persistir en background
+              reuploadFileWithScannerChanges(fn).catch(e=>console.error(e));
+
+              // Toast rápido
+              Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: `-1 ${sku}`,
+                showConfirmButton: false,
+                timer: 1200,
+                timerProgressBar: true
               });
             });
           });
@@ -1678,23 +1684,20 @@
         btnGuardarDanio.addEventListener("click", async () => {
           let cant = parseInt(danioCantidadInput.value) || 0;
           if (!cant || cant < 1) {
-            Swal.fire({
+            return Swal.fire({
               icon: "info",
               title: "Cantidad inválida",
               html: `<i class="material-icons" style="color:#2196F3;">info</i> Ingrese una cantidad válida.`
             });
-            return;
           }
           if (!currentDanioSKU) {
-            Swal.fire({
+            return Swal.fire({
               icon: "info",
               title: "Error interno",
               html: `<i class="material-icons" style="color:#2196F3;">info</i> No se puede guardar condiciones sin SKU.`
             });
-            return;
           }
           let fn = selectedFileToWorkEl.textContent;
-          if (!excelDataGlobal[fn]) return;
           let dataObj = excelDataGlobal[fn];
           let arr = dataObj.data;
           let rowObj = arr.find(r => {
@@ -1702,16 +1705,14 @@
             return s === currentDanioSKU && String(r.CONTENEDOR || "").toUpperCase() === currentContenedor;
           });
           if (!rowObj) {
-            Swal.fire({
+            return Swal.fire({
               icon: "info",
               title: "No encontrado",
               html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el SKU en el contenedor.`
             });
-            return;
           }
           rowObj.DANIO_CANTIDAD = cant;
           let file = danioFotoInput.files[0];
-          let photoURL = "";
           if (file) {
             Swal.fire({ title: "Subiendo foto...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             let safeSKU = currentDanioSKU.replace(/[^a-zA-Z0-9]/g, '_');
@@ -1719,8 +1720,7 @@
             let filePath = `Evidencias/${fn}/${currentContenedor}/${safeSKU}_${ts}.jpg`;
             let ref = storage.ref(filePath);
             let snap = await ref.put(file);
-            photoURL = await snap.ref.getDownloadURL();
-            rowObj.DANIO_FOTO_URL = photoURL;
+            rowObj.DANIO_FOTO_URL = await snap.ref.getDownloadURL();
           }
           rowObj.LAST_SCANNED_BY = currentUser.email || currentUser.uid;
           dataObj.lastUser = rowObj.LAST_SCANNED_BY;
@@ -1753,24 +1753,22 @@
         document.getElementById("btnDescargarArchivo").addEventListener("click", () => {
           let fn = selectedFileToWorkEl.textContent;
           if (!fn || !excelDataGlobal[fn]) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay archivo para descargar.`
             });
-            return;
           }
           descargarArchivoTotal(fn);
         });
         function descargarArchivoTotal(fileName) {
           let dataObj = excelDataGlobal[fileName];
           if (!dataObj || !dataObj.data) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay datos para descargar.`
             });
-            return;
           }
           let arr = dataObj.data.slice();
           arr.sort((a, b) => {
@@ -1778,9 +1776,7 @@
             let cb = String(b.CONTENEDOR || "").trim().toUpperCase();
             if (ca < cb) return -1;
             if (ca > cb) return 1;
-            let sa = String(a.SKU || "");
-            let sb = String(b.SKU || "");
-            return sa.localeCompare(sb);
+            return String(a.SKU||"").localeCompare(String(b.SKU||""));
           });
           arr = arr.map(r => {
             if (r.SCANNER > 0) r.ENTREGADO_A = r.ENTREGADO_A || currentEmployeeNumber;
@@ -1789,7 +1785,9 @@
           let exportData = arr.map(r => {
             let SAP = r.SAP || 0;
             let SCANNER = r.SCANNER || 0;
-            let diff = (SCANNER === SAP) ? "OK" : (SCANNER < SAP ? `FALTAN ${SAP - SCANNER} piezas` : `MERCANCIA DE MAS: ${SCANNER - SAP} piezas`);
+            let diff = (SCANNER === SAP) ? "OK"
+                     : (SCANNER < SAP) ? `FALTAN ${SAP - SCANNER} piezas`
+                     : `MERCANCIA DE MAS: ${SCANNER - SAP} piezas`;
             return {
               FECHA: formatFecha(r.FECHA),
               SECCION: r.SECCION || "",
@@ -1810,9 +1808,9 @@
           });
           let ws = XLSX.utils.json_to_sheet(exportData, {
             header: [
-              "FECHA", "SECCION", "MANIFIESTO", "CONTENEDOR", "SKU", "EUROPEO",
-              "DESCRIPCION", "SAP", "SCANNER", "LAST_SCANNED_BY", "ENTREGADO_A",
-              "DIFERENCIA", "Fecha de Escaneo", "CONDICIONES_MCIA", "FOTO_CONDICIONES"
+              "FECHA","SECCION","MANIFIESTO","CONTENEDOR","SKU","EUROPEO",
+              "DESCRIPCION","SAP","SCANNER","LAST_SCANNED_BY","ENTREGADO_A",
+              "DIFERENCIA","Fecha de Escaneo","CONDICIONES_MCIA","FOTO_CONDICIONES"
             ]
           });
           let wb = XLSX.utils.book_new();
@@ -1840,12 +1838,11 @@
         btnAnalisisGlobal.addEventListener("click", () => {
           let fn = selectedFileToWorkEl.textContent;
           if (!fn || !excelDataGlobal[fn]) {
-            Swal.fire({
+            return Swal.fire({
               icon: "error",
               title: "Error",
               html: `<i class="material-icons" style="color:#F44336;">error</i> No hay registros para analizar.`
             });
-            return;
           }
           let data = excelDataGlobal[fn].data;
           let closed = excelDataGlobal[fn].closedContainers || {};
@@ -1990,7 +1987,7 @@
               </div>
               <div class="analysis-item">
                 <i class="material-icons" style="color:${totalExtra > 0 ? "#F1C40F" : "#95A5A6"};">add_circle</i>
-                <strong>Excedentes:</strong> ${totalExtra} ${totalExtra > 0 ? "<em style='font-size:0.85rem;color:#555;'>(piezas agregadas de más)</em>" : ""}
+                <strong>Excedentes:</strong> ${totalExtra} ${totalExtra > 0 ? "<em style='font-size:0.85rem;color:#555;'>(piezas agregadas de más)</em>" : ""} 
               </div>
               <div class="analysis-item">
                 <i class="material-icons" style="color:#16A085;">person</i>
