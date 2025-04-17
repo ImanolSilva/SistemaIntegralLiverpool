@@ -32,7 +32,6 @@
       color: var(--gris-oscuro);
       min-height: 100vh;
     }
-    /* Botones y animaciones estilo Android */
     .btn-anim {
       transition: transform var(--ios-transition), box-shadow var(--ios-transition);
     }
@@ -73,17 +72,24 @@
       background: linear-gradient(45deg, #138496, #4ab3c8) !important;
     }
 
-    /* ===== Nuevo: Botones circulares para Condiciones, Foto y Acciones ===== */
+    /* Botones circulares */
     .btn-circle {
-      border-radius: 50% !important;
-      width: 2.4rem;
-      height: 2.4rem;
-      padding: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
+  border-radius: 50% !important;
+  width: 2.8rem;
+  height: 2.8rem;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.btn-circle i.material-icons {
+  font-size: 1.5rem;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+
     .btn-circle .badge {
       position: absolute;
       top: -4px;
@@ -92,7 +98,16 @@
       padding: 0.2em 0.4em;
     }
 
-    /* HEADER */
+    /* Barra de progreso para subida de manifiesto */
+    #uploadProgressContainer {      /* MODIFICADO */
+      display: none;                /* MODIFICADO */
+      margin-top: 1rem;             /* MODIFICADO */
+    }
+    #uploadProgressContainer .progress { /* MODIFICADO */
+      height: 25px;                     /* MODIFICADO */
+    }
+
+    /* Resto de tu CSS existente para header, menú, contenedor, tabla, etc. */
     header {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -133,7 +148,6 @@
     #logout-btn:hover {
       background-color: #a71d2a;
     }
-    /* MENÚ LATERAL */
     .offcanvas {
       background-color: var(--rosa-principal);
       color: var(--blanco);
@@ -157,7 +171,6 @@
       background-color: var(--rosa-secundario);
       color: var(--gris-oscuro);
     }
-    /* CONTENEDOR PRINCIPAL */
     .main-container {
       max-width: 1100px;
       margin: 3rem auto;
@@ -307,6 +320,19 @@
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    .swal2-file-list-modal .list-group-item {
+      position: relative;
+      padding-right: 6rem; /* espacio para los botones */
+    }
+    /* Zona de botones, siempre fija a la derecha y centrada vertical */
+    .swal2-file-list-modal .file-actions {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      gap: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -394,37 +420,56 @@
         </div>
       </div>
     </section>
-
-    <!-- Resto de la interfaz -->
+    <!-- RESTO DE INTERFAZ -->
     <div id="restoInterfaz" style="display:none;">
-      <!-- Subida de archivos (solo para admin, jefes, auxiliares) -->
-      <div id="adminUploadSection" data-aos="zoom-in" style="display:none;">
-        <div class="card mb-4" style="border-radius: var(--ios-border-radius); box-shadow: var(--ios-shadow);">
-          <div class="card-header text-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
-            <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
-              <i class="material-icons" style="vertical-align:middle;">upload_file</i>
-              Subir Archivo Manifiesto
-            </h2>
-          </div>
-          <div class="card-body text-center">
-            <p><i class="material-icons" style="font-size:2rem;">cloud_upload</i> Arrastra y suelta o haz clic para seleccionar.</p>
-            <div id="dropzone">
-              <i class="material-icons" style="font-size:2rem;">cloud_upload</i>
-              <p>Arrastra aquí</p>
-              <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
-            </div>
-            <p id="selectedFileName" class="text-muted"></p>
-            <div class="d-flex justify-content-center gap-2 mt-3">
-              <button id="uploadFileBtn" class="btn btn-primary btn-anim" disabled>
-                <i class="material-icons" style="vertical-align:middle;">file_upload</i> Subir
-              </button>
-              <button id="btnVerArchivos" class="btn btn-secondary btn-anim">
-                <i class="material-icons" style="vertical-align:middle;">folder_open</i> Ver Archivos
-              </button>
-            </div>
+
+<!-- SECCIÓN ADMIN: SUBIR MANIFIESTO -->
+<div id="adminUploadSection" data-aos="zoom-in" style="display:none;">
+  <div class="card mb-4 shadow" style="border-radius: var(--ios-border-radius); box-shadow: var(--ios-shadow);">
+    <div class="card-header text-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
+      <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
+        <i class="material-icons" style="font-size:2rem; vertical-align:middle;">upload_file</i>
+        Subir Archivo Manifiesto
+      </h2>
+    </div>
+    <div class="card-body text-center">
+      <div id="dropzone" class="mb-3" style="cursor:pointer;">
+        <div class="d-flex flex-column align-items-center justify-content-center p-3">
+          <i class="material-icons animate__animated animate__fadeIn" style="font-size:3.5rem; color:var(--rosa-principal);">cloud_upload</i>
+          <p class="mt-2 mb-0 fw-bold" style="color:#555;">Arrastra y suelta o haz clic para seleccionar un archivo Excel</p>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+      </div>
+
+      <p id="selectedFileName" class="text-muted mt-2 mb-0" style="font-size: 0.95rem;"></p>
+
+      <div class="d-flex justify-content-center gap-3 mt-3 flex-wrap">
+        <button id="uploadFileBtn" class="btn btn-primary btn-anim btn-same-size" disabled>
+          <i class="material-icons" style="vertical-align:middle;">file_upload</i> Subir
+        </button>
+        <button id="btnVerArchivos" class="btn btn-secondary btn-anim btn-same-size">
+          <i class="material-icons" style="vertical-align:middle;">folder_open</i> Ver Archivos
+        </button>
+      </div>
+
+      <!-- Barra de progreso moderna -->
+      <div id="uploadProgressContainer" class="mt-4" style="display: none;">
+        <div class="progress" style="height: 30px; border-radius: 30px; overflow: hidden;">
+          <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success text-white fw-bold"
+               role="progressbar" style="width: 0%; line-height: 30px;">0%
           </div>
         </div>
+        <div class="d-flex justify-content-between mt-2 px-2 small text-muted" style="font-size: 0.85rem;">
+          <span id="uploadSpeed">Velocidad: 0 KB/s</span>
+          <span id="uploadEta">Tiempo restante: --</span>
+        </div>
       </div>
+
+    </div>
+  </div>
+</div>
+
+
 
       <!-- Búsqueda de Contenedor / SKU -->
       <div id="searchContainerSection" class="mb-4">
@@ -523,10 +568,10 @@
         </div>
         <div class="modal-footer" style="border-top:none;">
           <button type="button" class="btn btn-secondary btn-anim" data-bs-dismiss="modal">
-            <i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar
+            <i class="material-icons">cancel</i> Cancelar
           </button>
           <button type="button" class="btn btn-primary btn-anim" id="btnGuardarDanio">
-            <i class="material-icons" style="vertical-align:middle;">check_circle</i> Guardar
+            <i class="material-icons">check_circle</i> Guardar
           </button>
         </div>
       </div>
@@ -541,6 +586,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
   <script>
@@ -598,6 +644,8 @@
         const fileInput = document.getElementById("fileInput");
         const selectedFileNameEl = document.getElementById("selectedFileName");
         const uploadFileBtn = document.getElementById("uploadFileBtn");
+        const uploadProgressContainer = document.getElementById("uploadProgressContainer");
+        const uploadProgressBar = document.getElementById("uploadProgressBar");
         const btnVerArchivos = document.getElementById("btnVerArchivos");
         const inputBusqueda = document.getElementById("inputBusqueda");
         const containerResultsSection = document.getElementById("containerResultsSection");
@@ -669,6 +717,65 @@
         });
 
         /***************************************************
+         * SECCIÓN: SUBIR ARCHIVO MANIFIESTO + BARRA DE PROGRESO
+         ***************************************************/
+        // Al hacer clic en la zona de dropzone, abrir selector de archivo
+        dropzone.addEventListener('click', () => fileInput.click());
+
+        // Mostrar nombre de archivo seleccionado y habilitar botón
+        fileInput.addEventListener('change', () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+          selectedFileNameEl.textContent = file.name;
+          uploadFileBtn.disabled = false;
+        });
+
+        // Manejar subida con progreso
+        uploadFileBtn.addEventListener('click', () => {
+          const file = fileInput.files[0];
+          if (!file) return;
+          uploadFileBtn.disabled = true;
+          uploadProgressContainer.style.display = 'block';
+
+          const folder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
+          const storageRef = storage.ref(`Manifiestos/${folder}/${file.name}`);
+          const uploadTask = storageRef.put(file);
+
+          uploadTask.on('state_changed',
+            snapshot => {
+              const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+              uploadProgressBar.style.width = percent + '%';
+              uploadProgressBar.textContent = percent + '%';
+            },
+            error => {
+              console.error(error);
+              Swal.fire({ icon:'error', title:'Error', text:'Error al subir el archivo.' });
+              uploadProgressContainer.style.display = 'none';
+              uploadFileBtn.disabled = false;
+            },
+            async () => {
+              // Al finalizar, obtener URL y guardar metadatos
+              const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+              await db.collection('manifiestos').doc(file.name).set({
+                fileName: file.name,
+                store: folder,
+                lastUser: currentUser.email || currentUser.uid,
+                lastUserStore: currentUserStore,
+                lastUserRole: currentUserRole,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              }, { merge: true });
+
+              Swal.fire({ icon:'success', title:'Archivo subido', text: file.name });
+              // Resetar barra y campos
+              uploadProgressContainer.style.display = 'none';
+              uploadProgressBar.style.width = '0%';
+              uploadProgressBar.textContent = '0%';
+              selectedFileNameEl.textContent = '';
+            }
+          );
+        });
+
+        /***************************************************
          * DETECCIÓN DE EMPLEADO (8 dígitos)
          ***************************************************/
         employeeNumberInput.addEventListener("input", () => {
@@ -716,271 +823,466 @@
             }
           });
         });
+   /***************************************************
+   * LISTAR / DESCARGAR / ELIMINAR MANIFIESTOS
+   ***************************************************/
+   const SUPER_ADMINS = [
+    "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
+    "doxhVo1D3aYQqqkqgRgfJ4qcKcU2"
+  ];
 
-        /***************************************************
-         * SUBIDA DE ARCHIVOS
-         ***************************************************/
-        async function checkDuplicateFile(fileName) {
-          let docSnap = await db.collection("manifiestos").doc(fileName).get();
-          return docSnap.exists;
-        }
-        dropzone.addEventListener("click", () => fileInput.click());
-        dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.style.backgroundColor = "#fafafa"; });
-        dropzone.addEventListener("dragleave", (e) => { e.preventDefault(); dropzone.style.backgroundColor = "#fff"; });
-        dropzone.addEventListener("drop", (e) => {
-          e.preventDefault();
-          dropzone.style.backgroundColor = "#fff";
-          let file = e.dataTransfer.files[0];
-          if (file) {
-            fileInput.files = e.dataTransfer.files;
-            selectedFileNameEl.textContent = file.name;
-            uploadFileBtn.disabled = false;
-          }
-        });
-        fileInput.addEventListener("change", function () {
-          let f = this.files[0];
-          if (f) {
-            selectedFileNameEl.textContent = f.name;
-            uploadFileBtn.disabled = false;
-          }
-        });
-        uploadFileBtn.addEventListener("click", async () => {
-          let f = fileInput.files[0];
-          if (!f) {
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No hay archivo seleccionado.`
-            });
-            return;
-          }
-          if (!currentUser || (!["admin", "jefe", "auxiliar"].includes(currentUserRole) && currentUser.uid !== ADMIN_UID)) {
-            Swal.fire({
-              icon: "error",
-              title: "Permisos",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No tienes permisos para subir.`
-            });
-            return;
-          }
-          let isDup = await checkDuplicateFile(f.name);
-          if (isDup) {
-            Swal.fire({
-              icon: "error",
-              title: "Archivo duplicado",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> El archivo <strong>${f.name}</strong> ya existe.<br>Renómbralo y reintenta.`
-            });
-            return;
-          }
-          try {
-            Swal.fire({ title: "Subiendo archivo...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            let arrBuff = await f.arrayBuffer();
-            let wb = XLSX.read(arrBuff, { type: "array", cellDates: true });
-            let sheet = wb.SheetNames[0];
-            let dataJson = XLSX.utils.sheet_to_json(wb.Sheets[sheet]);
-            excelDataGlobal[f.name] = {
-              data: dataJson,
-              lastUser: currentUser.email || currentUser.uid,
-              lastUserStore: currentUserStore,
-              lastUserRole: currentUserRole,
-              closedContainers: {}
-            };
-            let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
-            let storageRef = storage.ref(`Manifiestos/${storeFolder}/${f.name}`);
-            await storageRef.put(new Blob([arrBuff], { type: f.type }));
-            await db.collection("manifiestos").doc(f.name).set({
-              fileName: f.name,
-              store: storeFolder,
-              lastUser: currentUser.email || currentUser.uid,
-              lastUserStore: currentUserStore,
-              lastUserRole: currentUserRole,
-              closedContainers: {},
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-            Swal.fire({
-              icon: "success",
-              title: "Archivo subido",
-              html: `<i class="material-icons" style="color:#4CAF50;">check_circle</i> Subido correctamente.`
-            });
-            fileInput.value = "";
-            selectedFileNameEl.textContent = "";
-            uploadFileBtn.disabled = true;
-          } catch (err) {
-            console.error(err);
-            Swal.fire({
-              icon: "error",
-              title: "Error al subir",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> ${err}`
-            });
-          }
-        });
-        btnVerArchivos.addEventListener("click", () => listarArchivos());
-        async function listarArchivos() {
-          try {
-            let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
-            let finalFiles = [];
-            if (storeFolder === "ALL") {
-              let root = await storage.ref("Manifiestos").listAll();
-              for (const folderRef of root.prefixes) {
-                let stName = folderRef.name;
-                let storeFiles = await folderRef.listAll();
-                for (const itemRef of storeFiles.items) {
-                  finalFiles.push({ ref: itemRef, folderName: stName });
+  btnVerArchivos.addEventListener("click", listarArchivos);
+
+  async function listarArchivos() {
+  try {
+    const entries = [];
+    if (SUPER_ADMINS.includes(currentUser.uid)) {
+      const root = await storage.ref("Manifiestos").listAll();
+      for (const prefix of root.prefixes) {
+        const lst = await prefix.listAll();
+        lst.items.forEach(i =>
+          entries.push({ folder: prefix.name, name: i.name })
+        );
+      }
+    } else {
+      const lst = await storage
+        .ref(`Manifiestos/${currentUserStore}`)
+        .listAll();
+      lst.items.forEach(i =>
+        entries.push({ folder: currentUserStore, name: i.name })
+      );
+    }
+
+    if (!entries.length) {
+      return Swal.fire({
+        icon: "info",
+        title: "Sin manifiestos",
+        text: "No se encontraron archivos para tu tienda.",
+        toast: true,
+        position: "center",
+        timer: 2000
+      });
+    }
+
+    const detailed = await Promise.all(
+      entries.map(async e => {
+        const doc = await db.collection("manifiestos").doc(e.name).get();
+        const updated =
+          doc.exists && doc.data().updatedAt
+            ? doc.data().updatedAt.toDate()
+            : null;
+        return {
+          ...e,
+          dateStr: updated ? formatFecha(updated) : "–"
+        };
+      })
+    );
+
+    const canManage = SUPER_ADMINS.includes(currentUser.uid);
+    let html = `<div style="max-height: 420px; overflow-y: auto; padding-right: 5px;">`;
+
+    detailed.forEach(f => {
+      html += `
+        <div class="d-flex justify-content-between align-items-center border rounded shadow-sm p-3 mb-3 bg-white"
+             style="border-left: 5px solid var(--rosa-principal); border-radius: var(--ios-border-radius);">
+          <div style="flex: 1;">
+            <div class="fw-semibold text-dark" style="font-size: 1rem;">
+              <i class="material-icons align-middle me-1 text-rosa">insert_drive_file</i> ${f.name}
+            </div>
+            <div class="text-muted small mt-1">
+              <i class="material-icons align-middle" style="font-size:1rem;">store</i> ${f.folder} &nbsp;&nbsp;
+              <i class="material-icons align-middle" style="font-size:1rem;">date_range</i> ${f.dateStr}
+            </div>
+          </div>
+<div class="d-flex gap-2 ms-3">
+  <button class="btn btn-info btn-circle btn-anim"
+          onclick="verDashboardArchivo('${f.folder}','${f.name}')" title="Ver Dashboard">
+    <i class="material-icons">insights</i>
+  </button>
+  <button class="btn btn-success btn-circle btn-anim"
+          onclick="downloadFile('${f.folder}','${f.name}')" title="Descargar">
+    <i class="material-icons">download</i>
+  </button>
+  ${canManage
+    ? `<button class="btn btn-danger btn-circle btn-anim"
+               onclick="eliminarArchivo('${f.folder}','${f.name}')" title="Eliminar">
+         <i class="material-icons">delete</i>
+       </button>`
+    : ``
+  }
+</div>
+
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+
+    Swal.fire({
+      title: `<span style="display: flex; align-items: center; gap: 8px;">
+                <i class="material-icons" style="color:#E6007E;">folder_open</i> Manifiestos
+              </span>`,
+      html,
+      width: "650px",
+      showCloseButton: true,
+      confirmButtonText: "Cerrar",
+      customClass: { popup: "swal2-file-list-modal" }
+    });
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo listar los archivos."
+    });
+  }
+}
+window.verDashboardArchivo = async (folder, fileName) => {
+  try {
+    if (!excelDataGlobal[fileName]) {
+      const url = await storage.ref(`Manifiestos/${folder}/${fileName}`).getDownloadURL();
+      const buf = await (await fetch(url)).arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      excelDataGlobal[fileName] = { data };
+    }
+
+    const datos = excelDataGlobal[fileName].data;
+    let totalSAP = 0, totalSCAN = 0, faltantes = 0, excedentes = 0;
+    let totalSKUs = datos.length;
+    const contenedoresFaltantes = {};
+
+    datos.forEach(r => {
+      const sap = Number(r.SAP) || 0;
+      const sc = Number(r.SCANNER) || 0;
+      const cont = (r.CONTENEDOR || "SIN NOMBRE").toUpperCase().trim();
+
+      totalSAP += sap;
+      totalSCAN += sc;
+
+      if (sc < sap) {
+        faltantes += sap - sc;
+        if (!contenedoresFaltantes[cont]) contenedoresFaltantes[cont] = 0;
+        contenedoresFaltantes[cont] += sap - sc;
+      }
+
+      if (sc > sap) excedentes += sc - sap;
+    });
+
+    const avance = totalSAP === 0 ? 0 : Math.min(100, Math.round((totalSCAN / totalSAP) * 100));
+    const canvasId = `graficoDashboard_${Date.now()}`;
+    let colorFondo = "#fff";
+    let mensaje = "";
+
+    if (avance < 20) {
+      colorFondo = "#fdecea";
+      mensaje = `<div style="color:#c62828;font-weight:600;margin-bottom:10px;">
+                   <i class="material-icons" style="vertical-align:middle;">warning</i> Progreso muy bajo. ¡Vamos!
+                 </div>`;
+    } else if (avance < 50) {
+      colorFondo = "#fff8e1";
+      mensaje = `<div style="color:#f9a825;font-weight:600;margin-bottom:10px;">
+                   <i class="material-icons" style="vertical-align:middle;">hourglass_bottom</i> Avance en curso.
+                 </div>`;
+    } else if (avance >= 100) {
+      colorFondo = "#e8f5e9";
+      mensaje = `<div style="color:#2e7d32;font-weight:700;font-size:1.1rem;margin-bottom:10px;">
+                   🎉 ¡Contenedor completo! Excelente trabajo 🎉
+                 </div>`;
+    }
+
+    // Lista plegable de contenedores
+    const contKeys = Object.keys(contenedoresFaltantes);
+    let contHTML = '';
+    if (contKeys.length > 0) {
+      contHTML = `
+        <div class="text-center my-3">
+          <button id="toggleFaltantesBtn" class="btn btn-outline-secondary btn-sm" style="border-radius:20px;">
+            <i class="material-icons align-middle">visibility</i> Mostrar contenedores con faltantes
+          </button>
+        </div>
+        <div id="faltantesContainer" style="display:none; font-size:0.9rem; background:#fafafa; border:1px solid #ddd; border-radius:10px; padding:1rem; margin-top:0.5rem; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+          <strong>Contenedores con faltantes:</strong>
+          <ul style="list-style:none; padding-left:0; margin-top:0.5rem;">
+            ${contKeys.map(c => `
+              <li style="margin-bottom:6px;">
+                <i class="material-icons text-danger" style="font-size:1rem; vertical-align:middle;">inventory_2</i>
+                <strong>${c}</strong>: <span style="color:#d32f2f;">${contenedoresFaltantes[c]} piezas</span>
+              </li>
+            `).join("")}
+          </ul>
+        </div>
+      `;
+    }
+
+    const graficoHTML = `
+      <div style="background:${colorFondo}; border-radius:10px; padding:1rem;">
+        ${mensaje}
+        <h5 style="color:#E6007E; font-weight:700; margin-bottom:0.5rem;">
+          <i class="material-icons align-middle">analytics</i> ${fileName}
+        </h5>
+        <div class="d-flex justify-content-center flex-wrap gap-3 mb-3 text-start" style="font-size: 0.95rem; color:#333;">
+          <div><strong>SKUs:</strong> ${totalSKUs}</div>
+          <div><strong>Esperadas:</strong> ${totalSAP}</div>
+          <div><strong>Escaneadas:</strong> ${totalSCAN}</div>
+          <div><strong>Faltantes:</strong> <span style="color:#F44336">${faltantes}</span></div>
+          <div><strong>Excedentes:</strong> <span style="color:#FBC02D">${excedentes}</span></div>
+        </div>
+        <div class="progress mb-3" style="height: 20px; border-radius: 20px; overflow:hidden;">
+          <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar"
+               style="width: ${avance}%; font-weight:600;">
+            ${avance}%
+          </div>
+        </div>
+        <canvas id="${canvasId}" style="max-width:100%; height:280px;"></canvas>
+        ${contHTML}
+      </div>
+    `;
+
+    await Swal.fire({
+      title: '',
+      html: graficoHTML,
+      width: "680px",
+      showCloseButton: true,
+      confirmButtonText: "Cerrar",
+      customClass: { popup: "swal2-popup global-analysis" },
+      willOpen: () => {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Escaneado', 'Faltante', 'Excedente'],
+            datasets: [{
+              data: [totalSCAN, faltantes, excedentes],
+              backgroundColor: ['#66BB6A', '#EF5350', '#FFEB3B'],
+              borderColor: '#fff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { size: 13 }, color: "#333" }
+              },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.label}: ${ctx.raw} piezas`
                 }
               }
-            } else {
-              let storeFiles = await storage.ref(`Manifiestos/${storeFolder}`).listAll();
-              for (const itemRef of storeFiles.items) {
-                finalFiles.push({ ref: itemRef, folderName: storeFolder });
-              }
             }
-            if (finalFiles.length === 0) {
-              Swal.fire({
-                html: `<div class="text-center animate__animated animate__fadeInDown">
-                        <i class="material-icons" style="font-size:3rem;color:#E6007E;">folder_off</i>
-                        <h3>No hay archivos</h3>
-                        <p>No se encontraron archivos subidos para tu tienda.</p>
-                      </div>`,
-                icon: "info",
-                confirmButtonText: "Cerrar"
-              });
-              return;
-            }
-            let html = `<div class="text-center mb-3 animate__animated animate__fadeInDown">
-                           <i class="material-icons" style="font-size:3rem;color:#E6007E;">folder_open</i>
-                           <h3 style="color:#E6007E;">Lista de Archivos Subidos</h3>
-                         </div>
-                         <ul class="list-group">`;
-            finalFiles.forEach(f => {
-              let fName = f.ref.name;
-              html += `<li class="list-group-item d-flex justify-content-between align-items-center animate__animated animate__fadeInUp">
-                         <div>
-                           <i class="material-icons" style="vertical-align:middle;">description</i>
-                           <strong>${fName}</strong><br>
-                           <small>Tienda: ${f.folderName}</small>
-                         </div>
-                         <div>
-                           ${(currentUser?.uid === ADMIN_UID || ["admin", "jefe", "auxiliar"].includes(currentUserRole))
-                              ? `<button class="btn btn-danger btn-sm btn-anim" onclick="eliminarArchivo('${f.folderName}','${fName}')">
-                                    <i class="material-icons" style="vertical-align:middle;">delete</i>
-                                  </button>`
-                              : ""}  
-                         </div>
-                       </li>`;
-            });
-            html += "</ul>";
-            Swal.fire({
-              title: `<i class="material-icons" style="vertical-align:middle;">folder_open</i> Archivos Subidos`,
-              html,
-              icon: "info",
-              confirmButtonText: "Cerrar",
-              width: "600px"
-            });
-          } catch (err) {
-            console.error(err);
-            Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> Error al listar archivos.`
-            });
           }
-        }
-        window.eliminarArchivo = async (folderName, fileName) => {
-          Swal.fire({
-            title: "¿Está seguro?",
-            text: `Se eliminará el archivo: ${fileName}. Esta acción no se puede deshacer.`,
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: `<i class="material-icons" style="vertical-align:middle;">delete</i> Sí, eliminar`,
-            cancelButtonText: `<i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar`
-          }).then(async r => {
-            if (r.isConfirmed) {
-              try {
-                await storage.ref(`Manifiestos/${folderName}/${fileName}`).delete();
-                await db.collection("manifiestos").doc(fileName).delete().catch(() => {});
-                if (excelDataGlobal[fileName]) delete excelDataGlobal[fileName];
-                Swal.fire({
-                  icon: "success",
-                  title: "Eliminado",
-                  html: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">check_circle</i> Archivo eliminado.`
-                });
-                listarArchivos();
-              } catch (err) {
-                console.error(err);
-                Swal.fire({
-                  icon: "error",
-                  title: "Error",
-                  html: `<i class="material-icons" style="color:#F44336;">error</i> Error al eliminar archivo.`
-                });
-              }
-            }
+        });
+
+        const toggleBtn = document.getElementById("toggleFaltantesBtn");
+        if (toggleBtn) {
+          toggleBtn.addEventListener("click", () => {
+            const panel = document.getElementById("faltantesContainer");
+            const visible = panel.style.display === "block";
+            panel.style.display = visible ? "none" : "block";
+            toggleBtn.innerHTML = visible
+              ? `<i class="material-icons align-middle">visibility</i> Mostrar contenedores con faltantes`
+              : `<i class="material-icons align-middle">visibility_off</i> Ocultar contenedores con faltantes`;
           });
-        };
-
-/***********************************************************
- * CAMBIAR DE CONTENEDOR
- ***********************************************************/
- btnCambiarContenedor.addEventListener("click", async () => {
-  if (!currentContenedor) {
-    Swal.fire({
-      icon: "info",
-      title: "No hay Contenedor",
-      html: `<i class="material-icons" style="color:#2196F3;">info</i> No hay contenedor abierto para cambiar.`
+        }
+      }
     });
-    return;
+
+  } catch (e) {
+    console.error(e);
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'No se pudo generar el dashboard del archivo.'
+    });
+  }
+};
+
+
+  // Descargar un manifiesto (con columna DIFERENCIA)
+  window.downloadFile = async (folder, name) => {
+    try {
+      // 1) Cargar o reutilizar datos en memoria
+      if (!excelDataGlobal[name]) {
+        const url = await storage.ref(`Manifiestos/${folder}/${name}`).getDownloadURL();
+        const buf = await (await fetch(url)).arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array", cellDates: true });
+        const js = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        excelDataGlobal[name] = { data: js };
+      }
+      const data = excelDataGlobal[name].data;
+
+      // 2) Preparar exportación
+      const exportData = data.map(r => {
+        const sap = Number(r.SAP) || 0;
+        const sc = Number(r.SCANNER) || 0;
+        let diff = "";
+        if (sc === sap) diff = "OK";
+        else if (sc < sap) diff = `FALTAN ${sap - sc} piezas`;
+        else diff = `+${sc - sap} piezas`;
+
+        return {
+          FECHA: formatFecha(new Date(r.FECHA)),
+          SECCION: r.SECCION || "",
+          MANIFIESTO: r.MANIFIESTO || "",
+          CONTENEDOR: r.CONTENEDOR || "",
+          SKU: r.SKU || "",
+          EUROPEO: r.EUROPEO || "",
+          DESCRIPCION: r.DESCRIPCION || "",
+          SAP: sap,
+          SCANNER: sc,
+          LAST_SCANNED_BY: r.LAST_SCANNED_BY || "",
+          ENTREGADO_A: r.ENTREGADO_A || "",
+          DIFERENCIA: diff,
+          FechaEscaneo: formatFecha(new Date(r.FECHA_ESCANEO)),
+          CONDICIONES_MCIA: r.DANIO_CANTIDAD || 0,
+          FOTO_CONDICIONES: r.DANIO_FOTO_URL || ""
+        };
+      });
+
+      // 3) Generar y descargar XLSX
+      const ws = XLSX.utils.json_to_sheet(exportData, {
+        header: [
+          "FECHA","SECCION","MANIFIESTO","CONTENEDOR","SKU","EUROPEO",
+          "DESCRIPCION","SAP","SCANNER","LAST_SCANNED_BY","ENTREGADO_A",
+          "DIFERENCIA","FechaEscaneo","CONDICIONES_MCIA","FOTO_CONDICIONES"
+        ]
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      const out = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([out], { type: "application/octet-stream" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+
+      Swal.fire({
+        icon: "success",
+        title: "Descargado",
+        toast: true,
+        position: "center",
+        timer: 1200
+      });
+
+    } catch (e) {
+      console.error(e);
+      Swal.fire({ icon: "error", title: "Error", text: "No se pudo descargar." });
+    }
+  };
+
+  // Eliminar un manifiesto
+  window.eliminarArchivo = async (folder, name) => {
+    const { isConfirmed } = await Swal.fire({
+      title: "Eliminar manifiesto",
+      html: `¿Eliminar <strong>${name}</strong>?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar"
+    });
+    if (!isConfirmed) return;
+
+    try {
+      await storage.ref(`Manifiestos/${folder}/${name}`).delete();
+      await db.collection("manifiestos").doc(name).delete().catch(()=>{});
+      delete excelDataGlobal[name];
+      Swal.fire({
+        icon: "success",
+        title: "Eliminado",
+        toast: true,
+        position: "center",
+        timer: 1200
+      });
+      listarArchivos();
+    } catch {
+      Swal.fire({ icon: "error", title: "Error", text: "No se pudo eliminar." });
+    }
+  };
+
+  // Helper: formatea Date a dd/mm/yyyy
+  function formatFecha(d) {
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = d.getFullYear();
+    return `${dd}/${mm}/${yy}`;
   }
 
-  // Generar resumen y color de ícono según estado
-  const summaryHTML = getContainerSummaryDetailed(currentContainerRecords);
-  const containerStatus = getContainerStateFromRecords(currentContainerRecords);
-  let colorIcon = "#2196F3";
-  if (containerStatus === "INCOMPLETO" || containerStatus === "COMPLETO CON MERCANCÍA DE MÁS") {
-    colorIcon = "#F44336";
-  } else if (containerStatus === "COMPLETO") {
-    colorIcon = "#4CAF50";
-  }
+        /***********************************************************
+         * CAMBIAR DE CONTENEDOR
+         ***********************************************************/
+        btnCambiarContenedor.addEventListener("click", () => {
+          if (!currentContenedor) {
+            Swal.fire({
+              icon: "info",
+              title: "No hay Contenedor",
+              html: `<i class="material-icons" style="color:#2196F3;">info</i> No hay contenedor abierto para cambiar.`
+            });
+            return;
+          }
 
-  // Mostrar alerta con resumen detallado
-  const { isConfirmed } = await Swal.fire({
-    title: `<i class="material-icons" style="vertical-align:middle;color:${colorIcon};">switch_account</i> ¡Cambio de Contenedor!`,
-    html: `
-      <div style="background: linear-gradient(135deg, #fff, #fdfdfd); padding: 1rem; border-radius: 10px; text-align: left;">
-        <h4 style="color: #E6007E; margin-bottom: 1rem;">
-          <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
-          Contenedor Actual: <span style="color:#E6007E;">${currentContenedor}</span>
-        </h4>
-        <div style="font-size: 0.95rem; color: #333; margin-bottom: 1rem; padding: 0.5rem; background:#f7f7f7; border-radius:8px;">
-          ${summaryHTML}
-        </div>
-        <p style="font-size:1.1rem; font-weight:600; color:#E6007E;">
-          <i class="material-icons" style="vertical-align:middle;">help_outline</i>
-          ¿Desea cambiar de contenedor?
-        </p>
-      </div>`,
-    icon: "info",
-    showCancelButton: true,
-    confirmButtonText: `<i class="material-icons" style="vertical-align:middle;">check_circle</i> Sí, cambiar`,
-    cancelButtonText: `<i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar`,
-    width: "600px"
-  });
+          const summaryHTML = getContainerSummaryDetailed(currentContainerRecords);
+          const containerStatus = getContainerStateFromRecords(currentContainerRecords);
+          let colorIcon = "#2196F3";
+          if (containerStatus === "INCOMPLETO" || containerStatus === "COMPLETO CON MERCANCÍA DE MÁS") {
+            colorIcon = "#F44336";
+          } else if (containerStatus === "COMPLETO") {
+            colorIcon = "#4CAF50";
+          }
 
-  if (!isConfirmed) return;
+          Swal.fire({
+            title: `<i class="material-icons" style="vertical-align:middle;color:${colorIcon};">switch_account</i> ¡Cambio de Contenedor!`,
+            html: `
+              <div style="background: #fff; padding:1rem; border-radius:10px; text-align:left;">
+                <h4 style="color:#E6007E; margin-bottom:1rem;">
+                  <i class="material-icons">inventory_2</i>
+                  Contenedor Actual: <strong>${currentContenedor}</strong>
+                </h4>
+                <div style="font-size:0.95rem; color:#333; padding:0.5rem; background:#f7f7f7; border-radius:8px;">
+                  ${summaryHTML}
+                </div>
+                <p style="margin-top:1rem; font-weight:600; color:#E6007E;">
+                  <i class="material-icons">help_outline</i> ¿Desea cambiar de contenedor?
+                </p>
+              </div>`,
+            icon: "info",
+            showCancelButton: true,
+            confirmButtonText: `<i class="material-icons">check_circle</i> Sí, cambiar`,
+            cancelButtonText: `<i class="material-icons">cancel</i> Cancelar`,
+            width: "600px"
+          }).then(async (result) => {
+            if (!result.isConfirmed) return;
 
-  // Resetear estado
-  currentContenedor = null;
-  currentContainerRecords = [];
-  selectedFileToWorkEl.textContent = "";
+            // Guardar cualquier cambio pendiente antes de cambiar
+            try {
+              await reuploadFileWithScannerChanges(currentFileName);
+            } catch (e) {
+              console.error("Error al guardar cambios antes de cambiar contenedor:", e);
+            }
 
-  // Notificar éxito
-  await Swal.fire({
-    icon: "success",
-    title: "Contenedor cambiado",
-    html: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">check_circle</i> Ahora puede buscar un nuevo contenedor.`
-  });
+            // Resetear estado
+            currentContenedor = null;
+            currentContainerRecords = [];
+            selectedFileToWorkEl.textContent = "";
 
-  // Mostrar sección de búsqueda y enfocar el cursor
-  searchContainerSection.style.display = "block";
-  document.getElementById("inputBusqueda").focus();
-});
+            // Toast de éxito y reenfocar búsqueda
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Contenedor cambiado',
+              timer: 1200,
+              showConfirmButton: false
+            }).then(() => {
+              searchContainerSection.style.display = "block";
+              inputBusqueda.focus();
+            });
+          });
+        });
 
         /***********************************************************
          * BUSCAR CONTENEDOR / SKU
@@ -1010,6 +1312,7 @@
             inputBusqueda.value = "";
           }, 10);
         });
+
 
         async function buscarContenedor(ref) {
           let candidates = await checkFileForReference(null, ref, true);
@@ -1489,32 +1792,45 @@
 
         // **MODIFICACIÓN**: En vez de reescribir el XLSX en cada escaneo,
         // solo actualizamos la interfaz y dejamos el reupload para el cierre.
-        function incrementRow(rowObj, code) {
-          let fn = selectedFileToWorkEl.textContent;
-          let oldVal = rowObj.SCANNER || 0;
-          rowObj.SCANNER = oldVal + 1;
-          rowObj.LAST_SCANNED_BY = currentUser.email || currentUser.uid;
-          if (!rowObj.ENTREGADO_A) {
-            rowObj.ENTREGADO_A = currentEmployeeNumber;
-          }
-          let dataObj = excelDataGlobal[fn];
-          dataObj.lastUser = currentUser.email || currentUser.uid;
-          excelDataGlobal[fn] = dataObj;
-          // Solo refrescamos tabla sin subir XLSX
-          currentContainerRecords = dataObj.data.filter(x =>
-            String(x.CONTENEDOR || "").trim().toUpperCase() === currentContenedor
-          );
-          mostrarDetallesContenedor(currentContainerRecords);
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: `+1 para ${code}`,
-            showConfirmButton: false,
-            timer: 1500,
-            timerProgressBar: true
-          });
-        }
+/***********************************************************
+ * incrementRow (ahora asigna FECHA_ESCANEO correctamente)
+ ***********************************************************/
+ function incrementRow(rowObj, code) {
+  const now = new Date();
+
+  // Incrementar contador y asignar metadatos
+  rowObj.SCANNER         = (rowObj.SCANNER || 0) + 1;
+  rowObj.LAST_SCANNED_BY = currentUser.email || currentUser.uid;
+  rowObj.FECHA_ESCANEO   = now;                     // ← asignación de fecha de escaneo
+
+  if (!rowObj.ENTREGADO_A) {
+    rowObj.ENTREGADO_A = currentEmployeeNumber;
+  }
+
+  // Actualizar último usuario en memoria
+  const dataObj = excelDataGlobal[currentFileName];
+  dataObj.lastUser = rowObj.LAST_SCANNED_BY;
+  excelDataGlobal[currentFileName] = dataObj;
+
+  // Refrescar UI
+  currentContainerRecords = dataObj.data.filter(x =>
+    String(x.CONTENEDOR || "").trim().toUpperCase() === currentContenedor
+  );
+  mostrarDetallesContenedor(currentContainerRecords);
+
+  // Toast de confirmación
+  Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon: "success",
+    title: `+1 para ${code}`,
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true
+  });
+}
+
+
 
         /***********************************************************
          * MOSTRAR DETALLES EN TABLA (mejoradas columnas)
@@ -2033,14 +2349,13 @@
           return "INCOMPLETO";
         }
         function formatFecha(fecha) {
-          if (!fecha) return "";
-          if (fecha instanceof Date && !isNaN(fecha.getTime())) {
-            let corr = new Date(fecha.getTime() + fecha.getTimezoneOffset() * 60000);
-            let dia = corr.getDate().toString().padStart(2, "0");
-            let mes = (corr.getMonth() + 1).toString().padStart(2, "0");
-            let anio = corr.getFullYear();
-            return `${dia}/${mes}/${anio}`;
-          }
+  // Si es instancia de Date, usamos el día local sin correction de zona
+  if (fecha instanceof Date && !isNaN(fecha.getTime())) {
+    const dia  = fecha.getDate().toString().padStart(2, "0");
+    const mes  = (fecha.getMonth() + 1).toString().padStart(2, "0");
+    const anio = fecha.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+  }
           if (typeof fecha === "string") {
             let d = new Date(fecha);
             if (!isNaN(d.getTime())) {
