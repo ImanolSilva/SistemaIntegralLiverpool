@@ -339,7 +339,7 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2";
+
 
     // Lista de departamentos
     const DEPARTMENTS = [
@@ -517,25 +517,32 @@
     // Arreglo con todos los jefes
     let allJefes = [];
 
-    auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        showNotAdmin();
-        return;
-      }
-      document.getElementById("adminUserEmail").textContent = `Admin: ${user.email}`;
+// Ya no declares ADMIN_UID en ningún sitio, solo ADMIN_UIDS:
+const ADMIN_UIDS = [
+  "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
+  "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
+  "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"
+];
 
-      if (user.uid !== ADMIN_UID) {
-        showNotAdmin();
-        return;
-      }
-      notAdminMsg.style.display = "none";
-      adminContainer.style.display = "block";
+auth.onAuthStateChanged(async (user) => {
+  // 1) Si no hay usuario, o su UID NO está en nuestra lista → no admin:
+  if (!user || !ADMIN_UIDS.includes(user.uid)) {
+    showNotAdmin();
+    return;
+  }
 
-      // Cargar la lista de jefes y todos los usuarios (sin filtrar)
-      await loadJefesList();
-      await fetchAllUsers(); // Descarga todos
-      loadUsers(); // Filtra y renderiza
-    });
+  // 2) Es uno de los dos admins válidos:
+  document.getElementById("adminUserEmail").textContent = `Admin: ${user.email}`;
+  notAdminMsg.style.display    = "none";
+  adminContainer.style.display = "block";
+  loadingSpinner.style.display = "none";
+
+  // 3) Ahora ya puedes cargar tu lógica de jefes, usuarios, etc.
+  await loadJefesList();
+  await fetchAllUsers();
+  loadUsers();
+});
+
 
     function showNotAdmin() {
       adminContainer.style.display = "none";

@@ -669,48 +669,59 @@
         /***************************************************
          * AUTH / LOGOUT
          ***************************************************/
-        auth.onAuthStateChanged(async (user) => {
-          if (!user) {
-            Swal.fire({
-              icon: "warning",
-              title: "No Autenticado",
-              html: `<i class="material-icons" style="color:#FFC107;">warning</i> Debes iniciar sesión.`
-            }).then(() => window.location.href = "../Login/login.html");
-            return;
-          }
-          currentUser = user;
-          if (user.uid === ADMIN_UID) {
-            currentUserStore = "ALL";
-            currentUserRole = "admin";
-            adminUploadSection.style.display = "block";
-            userInfoEl.textContent = "Usuario: Admin (ALL - admin)";
-          } else {
-            let docSnap = await db.collection("usuarios").doc(user.uid).get();
-            if (!docSnap.exists) {
-              Swal.fire({
-                icon: "warning",
-                title: "Sin datos",
-                html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró tu registro en "usuarios".`
-              }).then(() => window.location.href = "../Login/login.html");
-              return;
-            }
-            let data = docSnap.data();
-            if ((data.status || "pendiente") !== "aprobado") {
-              Swal.fire({
-                icon: "info",
-                title: "Pendiente",
-                html: `<i class="material-icons" style="color:#2196F3;">info</i> Tu cuenta no está aprobada.`
-              }).then(() => window.location.href = "../Login/login.html");
-              return;
-            }
-            currentUserStore = data.store || "";
-            currentUserRole = data.role || "vendedor";
-            if (["jefe", "auxiliar"].includes(currentUserRole)) {
-              adminUploadSection.style.display = "block";
-            }
-            userInfoEl.textContent = `Usuario: ${user.email} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
-          }
-        });
+         auth.onAuthStateChanged(async (user) => {
+  if (!user) {
+    Swal.fire({
+      icon: "warning",
+      title: "No Autenticado",
+      html: `<i class="material-icons" style="color:#FFC107;">warning</i> Debes iniciar sesión.`
+    }).then(() => window.location.href = "../Login/login.html");
+    return;
+  }
+
+  currentUser = user;
+  // Admin global
+  if (user.uid === ADMIN_UID) {
+    currentUserStore = "ALL";
+    currentUserRole  = "admin";
+    adminUploadSection.style.display = "block";
+    userInfoEl.textContent = "Usuario: Admin (ALL - admin)";
+  } else {
+    // Leer datos de Firestore
+    const docSnap = await db.collection("usuarios").doc(user.uid).get();
+    if (!docSnap.exists) {
+      Swal.fire({
+        icon: "warning",
+        title: "Sin datos",
+        html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró tu registro en "usuarios".`
+      }).then(() => window.location.href = "../Login/login.html");
+      return;
+    }
+    const data = docSnap.data();
+    // Si no está aprobado
+    if ((data.status || "pendiente") !== "aprobado") {
+      Swal.fire({
+        icon: "info",
+        title: "Pendiente",
+        html: `<i class="material-icons" style="color:#2196F3;">info</i> Tu cuenta no está aprobada.`
+      }).then(() => window.location.href = "../Login/login.html");
+      return;
+    }
+    currentUserStore = data.store || "";
+    currentUserRole  = data.role  || "vendedor";
+
+    // *** Aquí el control *** 
+    // Solo 'auxiliar' y 'jefe' ven la sección de subir archivos
+    if (currentUserRole === "auxiliar" || currentUserRole === "jefe") {
+      adminUploadSection.style.display = "block";
+    } else {
+      adminUploadSection.style.display = "none";
+    }
+
+    userInfoEl.textContent = `Usuario: ${data.name} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
+  }
+});
+
         logoutBtn.addEventListener("click", () => {
           auth.signOut().then(() => window.location.href = "../Login/login.html")
             .catch(e => console.error(e));
@@ -755,15 +766,22 @@
             },
             async () => {
               // Al finalizar, obtener URL y guardar metadatos
-              const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-              await db.collection('manifiestos').doc(file.name).set({
-                fileName: file.name,
-                store: folder,
-                lastUser: currentUser.email || currentUser.uid,
-                lastUserStore: currentUserStore,
-                lastUserRole: currentUserRole,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-              }, { merge: true });
+// Al subir por primera vez:
+await db.collection('manifiestos')
+  .doc(file.name)
+  .set(
+    {
+      fileName: file.name,
+      store: folder,
+      lastUser: currentUser.email || currentUser.uid,
+      lastUserStore: (currentUserStore !== undefined) ? currentUserStore : null,
+      lastUserRole:  (currentUserRole   !== undefined) ? currentUserRole   : null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
+
 
               Swal.fire({ icon:'success', title:'Archivo subido', text: file.name });
               // Resetar barra y campos
@@ -1315,125 +1333,185 @@ window.verDashboardArchivo = async (folder, fileName) => {
 
 
         async function buscarContenedor(ref) {
-          let candidates = await checkFileForReference(null, ref, true);
-          if (!candidates) {
-            Swal.fire({
-              icon: "info",
-              title: "No encontrado",
-              html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el contenedor.`
-            });
-            return;
-          }
-          if (!Array.isArray(candidates)) {
-            candidates = [candidates];
-          }
-          let containersMap = {};
-          candidates.forEach(candidate => {
-            candidate.matchedRecords.forEach(record => {
-              let cont = String(record.CONTENEDOR || "").trim().toUpperCase();
-              if (cont.includes(ref)) {
-                if (!containersMap[cont]) {
-                  containersMap[cont] = [];
-                }
-                containersMap[cont].push({ fileName: candidate.fileName, record: record });
-              }
-            });
-          });
-          globalContainerMap = containersMap;
-          let containerKeys = Object.keys(containersMap);
-          if (containerKeys.length === 0) {
-            Swal.fire({
-              icon: "info",
-              title: "No encontrado",
-              html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el contenedor.`
-            });
-            return;
-          }
-          if (containerKeys.length === 1) {
-            let cont = containerKeys[0];
-            let candidateObj = {
-              fileName: containersMap[cont][0].fileName,
-              matchedRecords: containersMap[cont].map(item => item.record)
-            };
-            openContainerDirect(candidateObj, 0);
-          } else {
-            let html = "<p>Se encontraron los siguientes contenedores:</p><ul class='list-group'>";
-            containerKeys.forEach((cont, idx) => {
-              html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                         <div>
-                           <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
-                           <strong>${cont}</strong><br>
-                           <small>${containersMap[cont].length} registros encontrados</small>
-                         </div>
-                         <button class="btn btn-primary btn-sm btn-anim" onclick="selectContainer('${cont}')">
-                           <i class="material-icons" style="vertical-align:middle;">check</i> Elegir
-                         </button>
-                       </li>`;
-            });
-            html += "</ul>";
-            Swal.fire({
-              title: "Contenedores encontrados",
-              html: html,
-              icon: "info",
-              showConfirmButton: false,
-              width: "650px"
-            });
-          }
+  // 1) Obtener todas las coincidencias
+  let candidates = await checkFileForReference(null, ref, true);
+  if (!candidates) {
+    return Swal.fire({
+      icon: "info",
+      title: "No encontrado",
+      html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el contenedor.`
+    });
+  }
+
+  // 2) Agrupar por número de contenedor
+  const containersMap = {};
+  candidates.forEach(cand => {
+    cand.matchedRecords.forEach(rec => {
+      const cont = String(rec.CONTENEDOR || "").trim().toUpperCase();
+      containersMap[cont] = containersMap[cont] || [];
+      containersMap[cont].push({ fileName: cand.fileName, record: rec });
+    });
+  });
+
+  // 3) Si solo hay uno, abrir directo
+  const keys = Object.keys(containersMap);
+  if (keys.length === 1) {
+    const cont = keys[0];
+    const info = containersMap[cont];
+    openContainerDirect({
+      fileName: info[0].fileName,
+      matchedRecords: info.map(i => i.record)
+    }, 0);
+    return;
+  }
+
+  // 4) Construir HTML de la alerta, marcando los cerrados
+  let html = `<p>Se encontró el SKU en ${keys.length} contenedores:</p><ul class="list-group">`;
+// dentro de buscarContenedor(), en vez de la anterior li:
+keys.forEach(cont => {
+  const items   = containersMap[cont];
+  const file    = items[0].fileName;
+  const isClosed = Boolean(excelDataGlobal[file].closedContainers?.[cont]);
+
+  html += `
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        <i class="material-icons align-middle">inventory_2</i>
+        <strong>Contenedor: ${cont}</strong>
+        ${isClosed 
+          ? `<span class="badge bg-danger ms-2" style="vertical-align:middle;">CERRADO</span>` 
+          : ``
         }
-        window.selectContainer = function(cont) {
-          let candidateObj = {
-            fileName: globalContainerMap[cont][0].fileName,
-            matchedRecords: globalContainerMap[cont].map(item => item.record)
-          };
-          Swal.close();
-          openContainerDirect(candidateObj, 0);
-        };
+        <div><small>Archivo: ${file}</small></div>
+      </div>
+      <button 
+        class="btn btn-sm btn-primary"
+        onclick="selectContainer('${cont}')">
+        Elegir
+      </button>
+    </li>`;
+});
+
+  html += `</ul>`;
+
+  // 5) Mostrar la alerta
+  Swal.fire({
+    title: `<i class="material-icons">help_outline</i> Múltiples coincidencias`,
+    html,
+    icon: "question",
+    showConfirmButton: false,
+    width: "650px"
+  });
+}
+
+// Se llama al pulsar “Elegir”
+window.selectContainer = function(cont) {
+  Swal.close();
+  const info = containersMap[cont];
+  openContainerDirect({
+    fileName: info[0].fileName,
+    matchedRecords: info.map(i => i.record)
+  }, 0);
+};
+
 
         async function buscarSKUenArchivos(sku) {
-          try {
-            let candidates = await checkFileForReference(null, sku, false);
-            if (!candidates) {
-              Swal.fire({
-                icon: "info",
-                title: "No encontrado",
-                html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el SKU en ningún archivo.`
-              });
-              return;
-            }
-            if (!Array.isArray(candidates)) {
-              candidates = [candidates];
-            }
-            let html = `<p>Se encontró el SKU en los siguientes registros:</p><ul class='list-group'>`;
-            candidates.forEach(candidate => {
-              candidate.matchedRecords.forEach((record, recordIndex) => {
-                html += `<li class="list-group-item">
-                           <div class="d-flex justify-content-between align-items-center">
-                             <div>
-                               <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
-                               <strong>Archivo: ${candidate.fileName}</strong><br>
-                               <small>Contenedor: ${record.CONTENEDOR || "N/A"} - SKU: ${record.SKU || ""} - Descripción: ${record.DESCRIPCION || ""}</small>
-                             </div>
-                             <button class="btn btn-primary btn-sm btn-anim" onclick="chooseCandidateRecordCustom('${candidate.fileName}', ${recordIndex})">
-                               <i class="material-icons" style="vertical-align:middle;">check</i> Elegir
-                             </button>
-                           </div>
-                         </li>`;
-              });
-            });
-            html += "</ul>";
-            window.candidatesForSKU = candidates;
-            Swal.fire({
-              title: "Múltiples coincidencias",
-              html,
-              icon: "question",
-              showConfirmButton: false,
-              allowOutsideClick: false,
-              width: "650px"
-            });
-          } catch (err) {
-            console.error(err);
-          }
-        }
+  try {
+    let candidates = await checkFileForReference(null, sku, false);
+    if (!candidates) {
+      return Swal.fire({
+        icon: "info",
+        title: "No encontrado",
+        html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el SKU en ningún archivo.`
+      });
+    }
+    if (!Array.isArray(candidates)) candidates = [candidates];
+
+    // Agrupamos por contenedor
+    const contMap = {};
+    candidates.forEach(cand => {
+      cand.matchedRecords.forEach(record => {
+        const cont = (record.CONTENEDOR || "").trim().toUpperCase();
+        if (!cont) return;
+        if (!contMap[cont]) contMap[cont] = { fileName: cand.fileName, records: [] };
+        contMap[cont].records.push(record);
+      });
+    });
+
+    const contKeys = Object.keys(contMap);
+    if (contKeys.length === 0) {
+      return Swal.fire({
+        icon: "info",
+        title: "No encontrado",
+        html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el SKU en ningún contenedor.`
+      });
+    }
+    // Si solo hay uno, abrimos directo
+    if (contKeys.length === 1) {
+      const { fileName, records } = contMap[contKeys[0]];
+      return openContainerDirect({ fileName, matchedRecords: records }, 0);
+    }
+
+    // Construimos la lista mostrando el SAP del primer registro
+    let html = `<p>Se encontró el SKU en <strong>${contKeys.length}</strong> contenedores:</p>
+                <ul class="list-group">`;
+
+    contKeys.forEach(cont => {
+      const { fileName, records } = contMap[cont];
+      // Fecha más reciente
+      const fechas = records.map(r => new Date(r.FECHA));
+      const fechaMax = fechas.length
+        ? new Date(Math.max(...fechas))
+        : null;
+      const fechaStr = fechaMax ? formatFecha(fechaMax) : "–";
+      // Sacamos SAP del primer registro
+      const cantidadSAP = Number(records[0].SAP) || 0;
+
+      html += `
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <i class="material-icons align-middle">inventory_2</i>
+          <strong>Contenedor:</strong> ${cont}<br>
+          <small>
+            Archivo: ${fileName} |
+            SAP: ${cantidadSAP} |
+            Fecha última: ${fechaStr}
+          </small>
+        </div>
+        <button class="btn btn-primary btn-sm btn-anim"
+                onclick="selectSKUContainer('${fileName}','${cont}')">
+          <i class="material-icons">check</i> Elegir
+        </button>
+      </li>`;
+    });
+
+    html += `</ul>`;
+    window.skuContainerMap = contMap;
+
+    Swal.fire({
+      title: "Múltiples coincidencias",
+      html,
+      icon: "question",
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      width: "650px"
+    });
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire({ icon: "error", title: "Error", text: "Ocurrió un problema al buscar el SKU." });
+  }
+}
+
+// Al elegir: cerramos la alerta y abrimos el contenedor
+window.selectSKUContainer = function(fileName, cont) {
+  Swal.close();  
+  const map = window.skuContainerMap || {};
+  const recs = map[cont]?.records;
+  if (!recs) return;
+  openContainerDirect({ fileName, matchedRecords: recs }, 0);
+};
+
         window.chooseCandidateRecordCustom = function(fileName, recordIndex) {
           let candidate = window.candidatesForSKU.find(item => item.fileName === fileName);
           Swal.close();
@@ -1559,11 +1637,20 @@ window.verDashboardArchivo = async (folder, fileName) => {
           }
           containerResultsSection.style.display = "block";
           scanEntrySection.style.display = "block";
-          if (currentUser && (currentUser.uid === ADMIN_UID || ["admin", "jefe", "auxiliar"].includes(currentUserRole))) {
+
+          // Mostrar sección de descarga también a vendedores
+          if (
+            currentUser &&
+            (
+              currentUser.uid === ADMIN_UID ||
+              ["admin", "jefe", "auxiliar", "vendedor"].includes(currentUserRole)
+            )
+          ) {
             downloadSection.style.display = "block";
           } else {
             downloadSection.style.display = "none";
           }
+
           document.getElementById("containerHeader").innerHTML = `<i class="material-icons" style="vertical-align:middle;">inventory_2</i> Detalles del Contenedor (${cont})`;
           mostrarDetallesContenedor(currentContainerRecords);
           inputScanCode.focus();
@@ -2388,15 +2475,21 @@ window.verDashboardArchivo = async (folder, fileName) => {
           let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
           let storageRef = storage.ref(`Manifiestos/${storeFolder}/${fileName}`);
           await storageRef.put(blob);
-          await db.collection("manifiestos").doc(fileName).set({
-            fileName,
-            store: storeFolder,
-            lastUser: dataObj.lastUser,
-            lastUserStore: dataObj.lastUserStore,
-            lastUserRole: dataObj.lastUserRole,
-            closedContainers: dataObj.closedContainers || {},
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
+          await db.collection('manifiestos')
+  .doc(fileName)
+  .set(
+    {
+      fileName,
+      store: storeFolder,
+      lastUser: dataObj.lastUser,
+      lastUserStore: (dataObj.lastUserStore !== undefined) ? dataObj.lastUserStore : null,
+      lastUserRole:  (dataObj.lastUserRole   !== undefined) ? dataObj.lastUserRole   : null,
+      closedContainers: dataObj.closedContainers || {},
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
+
         }
       });
     })();
