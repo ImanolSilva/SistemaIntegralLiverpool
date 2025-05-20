@@ -41,7 +41,7 @@ const ADMIN_UIDS = [
   "KnbBtaMqEgQ2sXwZTuKPgcxfD5G3",
   "9Votnc6ZeYWgrQfSr2eQzC0ZdH82",
   "GL9JK2L8ZlhxNMOElhVuGvQlcmM2",
-  "Damfl3LlDEhLlz4hLRmnelfnLav2",
+  "6IdpyY2fbSPwiA13mtqTp0HOjMm2",
 ];
 const autoSaveTimers = {};
 
