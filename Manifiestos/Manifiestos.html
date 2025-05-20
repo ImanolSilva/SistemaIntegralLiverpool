@@ -851,24 +851,19 @@ await db.collection('manifiestos')
 
   btnVerArchivos.addEventListener("click", listarArchivos);
 
-  async function listarArchivos() {
+async function listarArchivos() {
   try {
     const entries = [];
+    // Obtener lista de archivos según rol
     if (SUPER_ADMINS.includes(currentUser.uid)) {
       const root = await storage.ref("Manifiestos").listAll();
       for (const prefix of root.prefixes) {
         const lst = await prefix.listAll();
-        lst.items.forEach(i =>
-          entries.push({ folder: prefix.name, name: i.name })
-        );
+        lst.items.forEach(i => entries.push({ folder: prefix.name, name: i.name }));
       }
     } else {
-      const lst = await storage
-        .ref(`Manifiestos/${currentUserStore}`)
-        .listAll();
-      lst.items.forEach(i =>
-        entries.push({ folder: currentUserStore, name: i.name })
-      );
+      const lst = await storage.ref(`Manifiestos/${currentUserStore}`).listAll();
+      lst.items.forEach(i => entries.push({ folder: currentUserStore, name: i.name }));
     }
 
     if (!entries.length) {
@@ -882,25 +877,22 @@ await db.collection('manifiestos')
       });
     }
 
+    // Obtener fechas de actualización
     const detailed = await Promise.all(
       entries.map(async e => {
         const doc = await db.collection("manifiestos").doc(e.name).get();
-        const updated =
-          doc.exists && doc.data().updatedAt
-            ? doc.data().updatedAt.toDate()
-            : null;
-        return {
-          ...e,
-          dateStr: updated ? formatFecha(updated) : "–"
-        };
+        const updated = doc.exists && doc.data().updatedAt ? doc.data().updatedAt.toDate() : null;
+        return { ...e, date: updated, dateStr: updated ? formatFecha(updated) : "–" };
       })
     );
 
-    const canManage = SUPER_ADMINS.includes(currentUser.uid);
-    let html = `<div style="max-height: 420px; overflow-y: auto; padding-right: 5px;">`;
+    let currentList = detailed.slice();
+    // Ordenar por defecto: recientes primero
+    currentList.sort((a, b) => (b.date || 0) - (a.date || 0));
 
-    detailed.forEach(f => {
-      html += `
+    // Función para generar solo la lista de items en HTML
+    function renderItems(list) {
+      return list.map(f => `
         <div class="d-flex justify-content-between align-items-center border rounded shadow-sm p-3 mb-3 bg-white"
              style="border-left: 5px solid var(--rosa-principal); border-radius: var(--ios-border-radius);">
           <div style="flex: 1;">
@@ -912,39 +904,57 @@ await db.collection('manifiestos')
               <i class="material-icons align-middle" style="font-size:1rem;">date_range</i> ${f.dateStr}
             </div>
           </div>
-<div class="d-flex gap-2 ms-3">
-  <button class="btn btn-info btn-circle btn-anim"
-          onclick="verDashboardArchivo('${f.folder}','${f.name}')" title="Ver Dashboard">
-    <i class="material-icons">insights</i>
-  </button>
-  <button class="btn btn-success btn-circle btn-anim"
-          onclick="downloadFile('${f.folder}','${f.name}')" title="Descargar">
-    <i class="material-icons">download</i>
-  </button>
-  ${canManage
-    ? `<button class="btn btn-danger btn-circle btn-anim"
-               onclick="eliminarArchivo('${f.folder}','${f.name}')" title="Eliminar">
-         <i class="material-icons">delete</i>
-       </button>`
-    : ``
-  }
-</div>
-
+          <div class="d-flex gap-2 ms-3">
+            <button class="btn btn-info btn-circle btn-anim" onclick="verDashboardArchivo('${f.folder}','${f.name}')" title="Ver Dashboard">
+              <i class="material-icons">insights</i>
+            </button>
+            <button class="btn btn-success btn-circle btn-anim" onclick="downloadFile('${f.folder}','${f.name}')" title="Descargar">
+              <i class="material-icons">download</i>
+            </button>
+            ${SUPER_ADMINS.includes(currentUser.uid) ?
+              `<button class="btn btn-danger btn-circle btn-anim" onclick="eliminarArchivo('${f.folder}','${f.name}')" title="Eliminar">
+                 <i class="material-icons">delete</i>
+               </button>` : ``
+            }
+          </div>
         </div>
-      `;
-    });
+      `).join('');
+    }
 
-    html += `</div>`;
+    // Construir contenido del modal
+    const htmlHeader = `
+      <div style="margin-bottom:10px; display:flex; justify-content:flex-end; gap:8px;">
+        <button id="sortRecent" class="btn btn-sm btn-outline-primary">Más recientes</button>
+        <button id="sortOld" class="btn btn-sm btn-outline-secondary">Más antiguos</button>
+      </div>
+      <div id="filesList" style="max-height: 420px; overflow-y: auto; padding-right: 5px;">
+        ${renderItems(currentList)}
+      </div>
+    `;
 
     Swal.fire({
       title: `<span style="display: flex; align-items: center; gap: 8px;">
                 <i class="material-icons" style="color:#E6007E;">folder_open</i> Manifiestos
               </span>`,
-      html,
+      html: htmlHeader,
       width: "650px",
       showCloseButton: true,
       confirmButtonText: "Cerrar",
-      customClass: { popup: "swal2-file-list-modal" }
+      customClass: { popup: "swal2-file-list-modal" },
+      didOpen: () => {
+        const btnRecent = document.getElementById('sortRecent');
+        const btnOld = document.getElementById('sortOld');
+        const listContainer = document.getElementById('filesList');
+
+        btnRecent.addEventListener('click', () => {
+          currentList.sort((a, b) => (b.date || 0) - (a.date || 0));
+          listContainer.innerHTML = renderItems(currentList);
+        });
+        btnOld.addEventListener('click', () => {
+          currentList.sort((a, b) => (a.date || 0) - (b.date || 0));
+          listContainer.innerHTML = renderItems(currentList);
+        });
+      }
     });
 
   } catch (err) {
@@ -958,6 +968,7 @@ await db.collection('manifiestos')
 }
 window.verDashboardArchivo = async (folder, fileName) => {
   try {
+    // Cargar datos si no están en memoria
     if (!excelDataGlobal[fileName]) {
       const url = await storage.ref(`Manifiestos/${folder}/${fileName}`).getDownloadURL();
       const buf = await (await fetch(url)).arrayBuffer();
@@ -967,105 +978,106 @@ window.verDashboardArchivo = async (folder, fileName) => {
     }
 
     const datos = excelDataGlobal[fileName].data;
-    let totalSAP = 0, totalSCAN = 0, faltantes = 0, excedentes = 0;
-    let totalSKUs = datos.length;
-    const contenedoresFaltantes = {};
+    const {
+      totalSAP,
+      totalSCAN,
+      faltantes,
+      excedentes,
+      avance,
+      contenedoresFaltantes,
+      seccionFaltantes,
+      totalSKUs
+    } = (() => {
+      let tSAP = 0, tSCAN = 0, falt = 0, exc = 0;
+      const contF = {}, secF = {};
+      datos.forEach(r => {
+        const sap = Number(r.SAP) || 0;
+        const sc = Number(r.SCANNER) || 0;
+        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
+        const sec = (r.SECCION || 'Sin sección').toString().trim();
+        tSAP += sap;
+        tSCAN += sc;
+        if (sc < sap) {
+          const diff = sap - sc;
+          falt += diff;
+          contF[cont] = (contF[cont] || 0) + diff;
+          secF[sec] = (secF[sec] || 0) + diff;
+        } else if (sc > sap) {
+          exc += sc - sap;
+        }
+      });
+      const av = tSAP ? Math.round((tSCAN / tSAP) * 100) : 0;
+      return {
+        totalSAP: tSAP,
+        totalSCAN: tSCAN,
+        faltantes: falt,
+        excedentes: exc,
+        avance: av,
+        contenedoresFaltantes: contF,
+        seccionFaltantes: secF,
+        totalSKUs: datos.length
+      };
+    })();
 
-    datos.forEach(r => {
-      const sap = Number(r.SAP) || 0;
-      const sc = Number(r.SCANNER) || 0;
-      const cont = (r.CONTENEDOR || "SIN NOMBRE").toUpperCase().trim();
-
-      totalSAP += sap;
-      totalSCAN += sc;
-
-      if (sc < sap) {
-        faltantes += sap - sc;
-        if (!contenedoresFaltantes[cont]) contenedoresFaltantes[cont] = 0;
-        contenedoresFaltantes[cont] += sap - sc;
-      }
-
-      if (sc > sap) excedentes += sc - sap;
-    });
-
-    const avance = totalSAP === 0 ? 0 : Math.min(100, Math.round((totalSCAN / totalSAP) * 100));
-    const canvasId = `graficoDashboard_${Date.now()}`;
-    let colorFondo = "#fff";
-    let mensaje = "";
-
-    if (avance < 20) {
-      colorFondo = "#fdecea";
-      mensaje = `<div style="color:#c62828;font-weight:600;margin-bottom:10px;">
-                   <i class="material-icons" style="vertical-align:middle;">warning</i> Progreso muy bajo. ¡Vamos!
-                 </div>`;
-    } else if (avance < 50) {
-      colorFondo = "#fff8e1";
-      mensaje = `<div style="color:#f9a825;font-weight:600;margin-bottom:10px;">
-                   <i class="material-icons" style="vertical-align:middle;">hourglass_bottom</i> Avance en curso.
-                 </div>`;
-    } else if (avance >= 100) {
-      colorFondo = "#e8f5e9";
-      mensaje = `<div style="color:#2e7d32;font-weight:700;font-size:1.1rem;margin-bottom:10px;">
-                   🎉 ¡Contenedor completo! Excelente trabajo 🎉
-                 </div>`;
+    // Mensaje y estilos según avance
+    let bgColor = '#fff8e1';
+    let msgHTML = `<div style="color:#856404;font-weight:600;margin-bottom:10px;"><i class=\"material-icons\" style=\"vertical-align:middle;\">warning</i> Aún faltan ${100 - avance}% por completar</div>`;
+    if (avance === 100) {
+      bgColor = '#e8f5e9';
+      msgHTML = `<div style="color:#2e7d32;font-weight:700;margin-bottom:10px;"><i class=\"material-icons\" style=\"vertical-align:middle;\">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉</div>`;
     }
 
-    // Lista plegable de contenedores
+    // Panel de faltantes
     const contKeys = Object.keys(contenedoresFaltantes);
-    let contHTML = '';
-    if (contKeys.length > 0) {
-      contHTML = `
+    const secKeys = Object.keys(seccionFaltantes);
+    let faltHTML = '';
+    if (contKeys.length) {
+      faltHTML = `
         <div class="text-center my-3">
-          <button id="toggleFaltantesBtn" class="btn btn-outline-secondary btn-sm" style="border-radius:20px;">
-            <i class="material-icons align-middle">visibility</i> Mostrar contenedores con faltantes
-          </button>
+          <button id="toggleFaltantesBtn" class="btn btn-sm btn-outline-secondary">Mostrar detalles de faltantes</button>
         </div>
-        <div id="faltantesContainer" style="display:none; font-size:0.9rem; background:#fafafa; border:1px solid #ddd; border-radius:10px; padding:1rem; margin-top:0.5rem; box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+        <div id="faltantesContainer" style="display:none;font-size:.9rem;background:#fafafa;border:1px solid #ddd;border-radius:10px;padding:1rem;">
           <strong>Contenedores con faltantes:</strong>
-          <ul style="list-style:none; padding-left:0; margin-top:0.5rem;">
-            ${contKeys.map(c => `
-              <li style="margin-bottom:6px;">
-                <i class="material-icons text-danger" style="font-size:1rem; vertical-align:middle;">inventory_2</i>
-                <strong>${c}</strong>: <span style="color:#d32f2f;">${contenedoresFaltantes[c]} piezas</span>
-              </li>
-            `).join("")}
+          <ul style="list-style:none;padding:0;">
+            ${contKeys.map(c => `<li>📦 <strong>${c}</strong>: ${contenedoresFaltantes[c]} piezas</li>`).join('')}
+          </ul>
+          <strong>Secciones con faltantes:</strong>
+          <ul style="list-style:none;padding:0;">
+            ${secKeys.map(s => `<li>📂 <strong>${s}</strong>: ${seccionFaltantes[s]} piezas</li>`).join('')}
           </ul>
         </div>
       `;
     }
 
-    const graficoHTML = `
-      <div style="background:${colorFondo}; border-radius:10px; padding:1rem;">
-        ${mensaje}
-        <h5 style="color:#E6007E; font-weight:700; margin-bottom:0.5rem;">
-          <i class="material-icons align-middle">analytics</i> ${fileName}
-        </h5>
-        <div class="d-flex justify-content-center flex-wrap gap-3 mb-3 text-start" style="font-size: 0.95rem; color:#333;">
-          <div><strong>SKUs:</strong> ${totalSKUs}</div>
+    // Construir HTML del dashboard
+    const canvasId = `grafico_${fileName}`;
+    const dashboardHTML = `
+      <div style="background:${bgColor};border-radius:8px;padding:1rem;">
+        ${msgHTML}
+        <div class="d-flex flex-wrap gap-3 mb-3" style="font-size:.95rem;color:#333;">
+          <div><strong>SKUs totales:</strong> ${totalSKUs}</div>
           <div><strong>Esperadas:</strong> ${totalSAP}</div>
           <div><strong>Escaneadas:</strong> ${totalSCAN}</div>
-          <div><strong>Faltantes:</strong> <span style="color:#F44336">${faltantes}</span></div>
-          <div><strong>Excedentes:</strong> <span style="color:#FBC02D">${excedentes}</span></div>
+          <div><strong>Faltantes:</strong> ${faltantes}</div>
+          <div><strong>Excedentes:</strong> ${excedentes}</div>
         </div>
-        <div class="progress mb-3" style="height: 20px; border-radius: 20px; overflow:hidden;">
-          <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar"
-               style="width: ${avance}%; font-weight:600;">
-            ${avance}%
-          </div>
+        <div class="progress mb-2" style="height:20px;border-radius:10px;overflow:hidden;">
+          <div class="progress-bar ${avance < 100 ? 'bg-warning' : 'bg-success'}" role="progressbar" style="width:${avance}%;font-weight:600;">${avance}%</div>
         </div>
-        <canvas id="${canvasId}" style="max-width:100%; height:280px;"></canvas>
-        ${contHTML}
+        <canvas id="${canvasId}" style="width:100%;height:260px;"></canvas>
+        ${faltHTML}
       </div>
     `;
 
+    // Mostrar modal y renderizar gráfico
     await Swal.fire({
-      title: '',
-      html: graficoHTML,
-      width: "680px",
+      html: dashboardHTML,
+      width: '700px',
       showCloseButton: true,
-      confirmButtonText: "Cerrar",
-      customClass: { popup: "swal2-popup global-analysis" },
+      confirmButtonText: 'Cerrar',
+      customClass: { popup: 'swal2-dashboard' },
       willOpen: () => {
+        // Gráfico donut
         const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
           type: 'doughnut',
@@ -1080,40 +1092,25 @@ window.verDashboardArchivo = async (folder, fileName) => {
           },
           options: {
             plugins: {
-              legend: {
-                position: 'bottom',
-                labels: { font: { size: 13 }, color: "#333" }
-              },
-              tooltip: {
-                callbacks: {
-                  label: ctx => `${ctx.label}: ${ctx.raw} piezas`
-                }
-              }
+              legend: { position: 'bottom', labels: { font: { size: 12 } } },
+              tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} piezas` } }
             }
           }
         });
-
-        const toggleBtn = document.getElementById("toggleFaltantesBtn");
-        if (toggleBtn) {
-          toggleBtn.addEventListener("click", () => {
-            const panel = document.getElementById("faltantesContainer");
-            const visible = panel.style.display === "block";
-            panel.style.display = visible ? "none" : "block";
-            toggleBtn.innerHTML = visible
-              ? `<i class="material-icons align-middle">visibility</i> Mostrar contenedores con faltantes`
-              : `<i class="material-icons align-middle">visibility_off</i> Ocultar contenedores con faltantes`;
+        // Toggle faltantes
+        const btn = document.getElementById('toggleFaltantesBtn');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            const panel = document.getElementById('faltantesContainer');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            btn.textContent = panel.style.display === 'block' ? 'Ocultar detalles de faltantes' : 'Mostrar detalles de faltantes';
           });
         }
       }
     });
-
   } catch (e) {
     console.error(e);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'No se pudo generar el dashboard del archivo.'
-    });
+    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo generar el dashboard.' });
   }
 };
 
@@ -1916,9 +1913,6 @@ window.selectSKUContainer = function(fileName, cont) {
     timerProgressBar: true
   });
 }
-
-
-
         /***********************************************************
          * MOSTRAR DETALLES EN TABLA (mejoradas columnas)
          ***********************************************************/
