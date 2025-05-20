@@ -37,6 +37,11 @@ let adminBossFilter = "";
 const ADMIN_UIDS = [
   "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
   "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
+  "jYhYVprQWkNO7ZP2tF8B222Il6f1",
+  "KnbBtaMqEgQ2sXwZTuKPgcxfD5G3",
+  "9Votnc6ZeYWgrQfSr2eQzC0ZdH82",
+  "GL9JK2L8ZlhxNMOElhVuGvQlcmM2",
+  "Damfl3LlDEhLlz4hLRmnelfnLav2",
 ];
 const autoSaveTimers = {};
 
