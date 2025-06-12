@@ -1,304 +1,162 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Inventario - Versión Final Pulida</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Control de Inventario - Sistema Liverpool</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.19/dist/sweetalert2.min.css" />
-  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <style>
-    :root {
-      --bs-primary-rgb: 230, 0, 126;
-      --bs-primary: #E6007E;
-      --rosa-secundario: #F8BBD0;
-      --gris-fondo: #f8f9fa;
-      --sombra-fuerte: 0 1rem 3rem rgba(0, 0, 0, 0.1);
-    }
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--gris-fondo);
-    }
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
 
-    /* --- ESTILOS PARA EL NUEVO MENÚ Y ENCABEZADO --- */
-    header {
-      background-color: var(--bs-primary);
-      color: #fff; padding: 10px 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      position: sticky; top: 0; z-index: 1020;
-    }
-    .header-title { font-size: 1.5rem; font-weight: 600; margin: 0; }
-    .btn-menu { font-size: 1.5rem; background: transparent; color: #fff; border: none; cursor: pointer; }
-    #logout-btn {
-        font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;
-        padding: 0.5rem 1rem; border-radius: 8px; background-color: #c82333; 
-        border: none; color: #fff; transition: background-color 0.3s ease;
-    }
-    #logout-btn:hover { background-color: #a71d2a; }
-    
-    .offcanvas { background-color: var(--bs-primary); color: #fff; }
-    .offcanvas-header { border-bottom: 1px solid rgba(255,255,255,0.2); }
-    .offcanvas-title { font-weight: 600; }
-    .offcanvas .nav-link {
-        color: rgba(255,255,255,0.8);
-        padding: 1rem 1.5rem;
-        transition: all 0.3s ease;
-        font-size: 1rem;
-        gap: 1rem;
-    }
-    .offcanvas .nav-link:hover, .offcanvas .nav-link.active {
-        background-color: #fff;
-        color: var(--bs-primary);
-        border-top-left-radius: 50px;
-        border-bottom-left-radius: 50px;
-        margin-left: 10px;
-    }
-    .btn-close {
-        background: none;
-        opacity: 0.8;
-        transition: all 0.3s ease;
-    }
-    .btn-close:hover {
-        opacity: 1;
-        transform: rotate(90deg);
-    }
+    <style>
+        :root {
+            --rosa-principal: #E6007E;
+            --negro-fondo: #1a1a1a;
+            --blanco: #ffffff;
+            --gris-claro: #f8f9fa;
+            --gris-medio: #dee2e6;
+            --gris-oscuro: #6c757d;
+            --texto-principal: #343a40;
+            --sombra-fuerte: 0 1rem 3rem rgba(0, 0, 0, 0.1);
+        }
 
-    /* --- Estilos del Asistente (Sin cambios) --- */
-    #inventory-wizard-app { font-family: 'Poppins', sans-serif; }
-    #inventory-wizard-app .main-container { max-width: 800px; margin: 2.5rem auto; background-color: transparent; border: none; padding: 0; }
-    #inventory-wizard-app .card { border: none; border-radius: 1.25rem; box-shadow: var(--sombra-fuerte); }
-    #inventory-wizard-app .step-title { font-weight: 600; color: var(--bs-dark); display: flex; align-items: center; gap: 0.75rem; }
-    #inventory-wizard-app .step-title .bi { font-size: 1.75rem; color: var(--bs-primary); }
-    #inventory-wizard-app .progress { height: 8px; }
-    #inventory-wizard-app .btn-lg { padding: 0.8rem 1.9rem; font-size: 1.1rem; font-weight: 600; }
-    #inventory-wizard-app .btn { transition: all 0.3s ease; }
-    #inventory-wizard-app .btn:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
-    #inventory-wizard-app #dropzone { border: 3px dashed var(--bs-border-color); border-radius: 1rem; padding: 2.5rem; transition: all 0.3s ease; }
-    #inventory-wizard-app #dropzone:hover { border-color: var(--bs-primary); background-color: #fff5f9; }
-    #inventory-wizard-app .form-control:focus, #inventory-wizard-app .form-select:focus { border-color: var(--bs-primary); box-shadow: 0 0 0 4px rgba(230, 0, 126, 0.15); }
-    #inventory-wizard-app .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); transform: scale(0); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    #inventory-wizard-app .fab.visible { transform: scale(1); }
-    #inventory-wizard-app .fab:hover { transform: scale(1.15) rotate(15deg); }
-    .wizard-step { display: none; }
-    .wizard-step.active { display: block; }
-  </style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #E6007E 0%, var(--negro-fondo) 100%);
+            color: var(--texto-principal);
+        }
+
+        /* --- Estructura Principal (Header, Menú, Container) --- */
+        .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header-title{color:var(--blanco);font-weight:700;margin:0}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}.offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:var(--blanco);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:background-color .3s ease,padding-left .3s ease;border-radius:0 50px 50px 0}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem}.offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
+        .main-container{max-width:850px;margin:2rem auto;padding:clamp(1.5rem,5vw,2.5rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+        /* --- Estilos del Asistente de Inventario --- */
+        .card { border: none; border-radius: 1.25rem; box-shadow: var(--sombra-fuerte); overflow: hidden; }
+        .step-title { font-weight: 600; color: var(--texto-principal); display: flex; align-items: center; gap: 0.75rem; }
+        .step-title .bi { font-size: 1.75rem; color: var(--rosa-principal); }
+        .progress { height: 8px; border-radius: 8px; }
+        .progress-bar { background-color: var(--rosa-principal); }
+        
+        .btn-pill{border-radius:30px!important;font-weight:600;transition:all .3s ease;border:none;color:#fff!important;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;box-shadow:0 4px 10px rgba(0,0,0,.15);white-space:nowrap;padding:.6rem 1.5rem}.btn-pill:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 6px 15px rgba(0,0,0,.25);filter:brightness(1.1)}
+        .btn-pill.btn-primary{background-image:linear-gradient(45deg,#ff75b5,#E6007E)}
+        .btn-pill.btn-secondary{background-image:linear-gradient(45deg,#9e9e9e,#616161)}
+        .btn-pill.btn-success{background-image:linear-gradient(45deg,#66bb6a,#43a047)}
+        .btn-pill.btn-info{background-image:linear-gradient(45deg,#29b6f6,#0288d1)}
+
+        #dropzone { border: 3px dashed var(--gris-medio); border-radius: 1rem; padding: 2.5rem; transition: all 0.3s ease; cursor: pointer; }
+        #dropzone:hover { border-color: var(--rosa-principal); background-color: #fff5f9; }
+        
+        .form-control:focus, .form-select:focus { border-color: var(--rosa-principal); box-shadow: 0 0 0 4px rgba(230, 0, 126, 0.15); }
+        
+        .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); transform: scale(0); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); background-image: linear-gradient(45deg,#ff75b5,#E6007E); color: white; border: none; }
+        .fab.visible { transform: scale(1); }
+        .fab:hover { transform: scale(1.15) rotate(15deg); }
+        
+        .wizard-step { display: none; animation: fade-in 0.5s ease; }
+        .wizard-step.active { display: block; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    </style>
 </head>
-
 <body>
-  <header class="d-flex justify-content-between align-items-center px-4 py-3">
-    <div class="d-flex align-items-center">
-      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral">
-        <i class="bi bi-list fs-2"></i>
-      </button>
-      <div class="header-title">Inventarios</div>
+    <header class="app-header">
+        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><i class="bi bi-list"></i></button>
+        <h1 class="header-title">Control de Inventario</h1>
+        <button id="logout-btn" class="btn-menu"><i class="bi bi-power"></i></button>
+    </header>
+    
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-box-seam-fill me-2"></i> Menú</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button></div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
+                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
+                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+                <a class="nav-link active" href="Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
+                <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
+                <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+            </nav>
+        </div>
     </div>
-    <button class="btn btn-danger d-flex align-items-center" id="logout-btn"><i class="bi bi-power"></i></button>
-  </header>
-  
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-      <nav class="nav flex-column">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center" href="../index.html">
-              <i class="material-icons">home</i>
-              <span>Inicio</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center" href="../ChecarPrecios/index.html">
-              <i class="material-icons">local_offer</i>
-              <span>Checar Precios</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center" href="../Rechazos/reportes.html">
-              <i class="material-icons">cancel</i>
-              <span>Rechazos</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center active" href="#">
-              <i class="material-icons">archive</i>
-              <span>Inventarios</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center" href="../Configuraciones/Configuracion.html">
-              <i class="material-icons">settings</i>
-              <span>Configuración</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center" href="../Manifiestos/Manifiestos.html">
-              <i class="material-icons">description</i>
-              <span>Manifiestos</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </div>
 
-  <div id="inventory-wizard-app">
-    <div class="main-container container-fluid p-lg-4">
-      <div class="text-center mb-5" data-aos="fade-down">
-        <h1 class="display-5 fw-bold">Control de Inventario</h1>
-        <p class="fs-5 text-muted">Un flujo de trabajo optimizado para tu comodidad.</p>
-      </div>
+    <main class="container main-container">
+        <div id="inventory-wizard-app">
+            <div class="text-center mb-5" data-aos="fade-down">
+                <h1 class="display-5 fw-bold text-dark">Asistente de Inventario</h1>
+                <p class="fs-5 text-muted">Sigue los pasos para completar tu conteo de forma rápida y sencilla.</p>
+            </div>
 
-      <div class="progress mb-5" role="progressbar" style="height: 8px;" data-aos="fade-up">
-        <div class="progress-bar bg-primary" id="progressBar" style="width: 0%"></div>
-      </div>
-      
-      <div id="wizard-form">
-        <div class="wizard-step active" id="step-1">
-          <div class="card" data-aos="fade-up">
-            <div class="card-body p-4 p-lg-5">
-              <h4 class="step-title mb-4"><i class="bi bi-file-earmark-arrow-up-fill"></i>Paso 1: Selecciona el Archivo</h4>
-              <div id="adminUploadSection" style="display: none;">
-                <div class="mb-3"><label for="bossUploadSelect" class="form-label fw-bold">Jefe de área:</label><select id="bossUploadSelect" class="form-select form-select-lg"></select></div>
-                <div id="dropzone" class="text-center"><i class="bi bi-cloud-upload display-3 text-muted"></i><p class="fs-5 mb-0 mt-2">Arrastra el archivo o haz clic</p><input type="file" id="fileInput" class="d-none" /></div>
-                <hr class="my-4" />
-              </div>
-              <div class="mb-3"><label for="fileList" class="form-label fw-bold">O selecciona un inventario existente:</label><div class="input-group input-group-lg"><label for="bossFilterSelect" class="input-group-text"><i class="bi bi-person-badge-fill"></i></label><select id="bossFilterSelect" class="form-select"></select><select id="fileList" class="form-select" style="flex-grow: 2;"></select></div></div>
+            <div class="progress mb-5" role="progressbar" data-aos="fade-up">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
-          </div>
-        </div>
-        <div class="wizard-step" id="step-2">
-          <div class="card" data-aos="fade-up">
-            <div class="card-body p-4 p-lg-5 text-center">
-              <h4 class="step-title mb-4 justify-content-center"><i class="bi bi-tag-fill"></i>Paso 2: Asigna un Marbete</h4>
-              <p class="text-muted">Dale un nombre o código único a este conteo para identificarlo.</p>
-              <div class="input-group input-group-lg mt-3 w-75 mx-auto"><span class="input-group-text"><i class="bi bi-pencil-square"></i></span><input type="text" id="marbeteInput" class="form-control" placeholder="Ej: Pasillo 5, Zona A-01..." /><button class="btn btn-primary" id="confirmMarbeteBtn"><i class="bi bi-check-lg"></i></button></div>
+            
+            <div id="wizard-form">
+                <div class="wizard-step" id="step-1">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-body p-4 p-lg-5">
+                            <h4 class="step-title mb-4"><i class="bi bi-file-earmark-arrow-up-fill"></i>Paso 1: Selecciona el Archivo</h4>
+                            <div id="adminUploadSection" style="display: none;">
+                                <div class="mb-3"><label for="bossUploadSelect" class="form-label fw-bold">Jefe de área:</label><select id="bossUploadSelect" class="form-select form-select-lg"></select></div>
+                                <div id="dropzone" class="text-center"><i class="bi bi-cloud-upload display-3 text-muted"></i><p class="fs-5 mb-0 mt-2">Arrastra el archivo o haz clic</p><input type="file" id="fileInput" class="d-none" /></div>
+                                <hr class="my-4" />
+                            </div>
+                            <div class="mb-3"><label for="fileList" class="form-label fw-bold">O selecciona un inventario existente:</label><div class="input-group input-group-lg"><label for="bossFilterSelect" class="input-group-text"><i class="bi bi-person-badge-fill"></i></label><select id="bossFilterSelect" class="form-select"></select><select id="fileList" class="form-select" style="flex-grow: 2;"></select></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="wizard-step" id="step-2">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-body p-4 p-lg-5 text-center">
+                            <h4 class="step-title mb-4 justify-content-center"><i class="bi bi-tag-fill"></i>Paso 2: Asigna un Marbete</h4>
+                            <p class="text-muted">Dale un nombre o código único a este conteo para identificarlo.</p>
+                            <div class="input-group input-group-lg mt-3 w-75 mx-auto"><span class="input-group-text"><i class="bi bi-pencil-square"></i></span><input type="text" id="marbeteInput" class="form-control" placeholder="Ej: Pasillo 5, Zona A-01..." /><button class="btn btn-primary" id="confirmMarbeteBtn"><i class="bi bi-check-lg"></i></button></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="wizard-step" id="step-3">
+                    <div class="card" data-aos="fade-up">
+                        <div class="card-body p-4 p-lg-5">
+                            <h4 class="step-title mb-4"><i class="bi bi-upc-scan"></i>Paso 3: Escanea y Administra</h4>
+                            <div id="scan-summary" class="alert alert-primary d-flex align-items-center gap-3"></div>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text"><i class="bi bi-qr-code-scan"></i></span>
+                                <input type="text" id="scanInput" class="form-control" placeholder="Esperando escaneo automático..." autocomplete="off" />
+                                <div class="input-group-text"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="locationCheckbox"><label class="form-check-label" for="locationCheckbox">Piso</label></div></div>
+                            </div>
+                            <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
+                                <button class="btn btn-pill btn-success" id="saveDataBtn"><i class="bi bi-cloud-check-fill me-2"></i>Guardar Cambios</button>
+                                <button class="btn btn-pill btn-info" id="downloadBtn"><i class="bi bi-download me-2"></i>Descargar</button>
+                                <button class="btn btn-pill btn-secondary" id="viewSheetBtn"><i class="bi bi-table me-2"></i>Ver Tabla</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="wizard-step" id="step-3">
-          <div class="card" data-aos="fade-up">
-            <div class="card-body p-4 p-lg-5">
-              <h4 class="step-title mb-4"><i class="bi bi-upc-scan"></i>Paso 3: Escanea y Administra</h4>
-              <div id="scan-summary" class="alert alert-primary d-flex align-items-center gap-3"></div>
-              <div class="input-group input-group-lg">
-                <span class="input-group-text"><i class="bi bi-qr-code-scan"></i></span>
-                <input type="text" id="scanInput" class="form-control" placeholder="Esperando escaneo automático..." autocomplete="off" />
-                <div class="input-group-text"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="locationCheckbox"><label class="form-check-label" for="locationCheckbox">Piso</label></div></div>
-              </div>
-              <div class="d-flex flex-wrap justify-content-center gap-3 mt-4">
-                <button class="btn btn-lg btn-success" id="saveDataBtn"><i class="bi bi-cloud-check-fill me-2"></i>Guardar Cambios</button>
-                <button class="btn btn-lg btn-info text-white" id="downloadBtn"><i class="bi bi-download me-2"></i>Descargar</button>
-                <button class="btn btn-lg btn-outline-secondary" id="viewSheetBtn"><i class="bi bi-table me-2"></i>Ver Tabla</button>
-              </div>
+            <div class="d-flex justify-content-between mt-5">
+                <button class="btn btn-pill btn-secondary" id="backBtn" style="visibility: hidden;"><i class="bi bi-arrow-left-circle me-2"></i>Atrás</button>
+                <button class="btn btn-pill btn-primary" id="nextBtn" disabled>Siguiente<i class="bi bi-arrow-right-circle ms-2"></i></button>
             </div>
-          </div>
         </div>
-      </div>
-      <div class="d-flex justify-content-between mt-5">
-        <button class="btn btn-lg btn-secondary" id="backBtn" style="visibility: hidden;"><i class="bi bi-arrow-left-circle me-2"></i>Atrás</button>
-        <button class="btn btn-lg btn-primary" id="nextBtn" disabled>Siguiente<i class="bi bi-arrow-right-circle ms-2"></i></button>
-      </div>
-    </div>
-    <a id="fab-manual-edit" class="fab btn-primary" data-bs-toggle="tooltip" title="Edición Manual"><i class="bi bi-pencil-fill"></i></a>
+    </main>
+
+    <button id="fab-manual-edit" class="fab" data-bs-toggle="tooltip" title="Edición Manual"><i class="bi bi-pencil-fill"></i></button>
+    
     <div class="modal fade" id="manualEditModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Edición Manual</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="input-group mb-3"><input type="text" id="manualMarbeteSearch" class="form-control" placeholder="Ingresa el marbete a buscar..." /><button class="btn btn-outline-primary" id="searchMarbeteBtn"><i class="bi bi-search"></i></button></div><div id="manualEditResults" class="mt-3 table-responsive" style="max-height: 50vh;"></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-primary" id="saveManualBtn" style="display: none;"><i class="bi bi-save-fill me-2"></i>Guardar</button></div></div></div></div>
     <div class="modal fade" id="viewSheetModal" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-table me-2"></i>Vista de Inventario</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="input-group mb-3"><input type="text" id="tableSearchInput" class="form-control" placeholder="Buscar por SKU..."></div><div class="table-responsive" style="max-height: 60vh;"><table class="table table-striped table-hover"><thead><tr><th>SKU</th><th>DESCRIPCION</th><th>OH</th><th>PISO</th><th>BODEGA</th><th>AJUSTE</th><th>MARBETE</th></tr></thead><tbody id="viewSheetTableBody"></tbody></table></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div></div></div></div>
-  </div>
 
-  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-  <script>
-    "use strict";
-    // --- LÓGICA DE FIREBASE Y VARIABLES ---
-    const firebaseConfig={apiKey:"AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",authDomain:"loginliverpool.firebaseapp.com",projectId:"loginliverpool",storageBucket:"loginliverpool.appspot.com",messagingSenderId:"704223815941",appId:"1:704223815941:web:c871525230fb61caf96f6c",measurementId:"G-QFEPQ4TSPY"};
-    if(!firebase.apps.length){firebase.initializeApp(firebaseConfig)}
-    const storage=firebase.app().storage("gs://loginliverpool.firebasestorage.app"),db=firebase.firestore(),auth=firebase.auth();
-    const adminUIDs=["OaieQ6cGi7TnW0nbxvlk2oyLaER2","V3gs0U4nKVeIZHvXEfIiNLXq2Sy1","doxhVo1D3aYQqqkqgRgfJ4qcKcU2"];
-    const bosses=["Adriana Prieto","Alejandro Morales","Alexis Ricardo","Alfredo Encinas","Ana Vazquez","Beatriz Herrera","Blanca Lopez","Fernando Dominguez","Heidi Jacquez","Irene Rojas","Liliana Castillo","Martin Cabrera","Sergio Lopez","Xareni Espindola Perez","Yanet Matas Manzano"];
-    let selectedFileName="",invDataArr=[],currentMarbete="",currentStep=1;
-    let manualEditModal,viewSheetModal,debounceTimeout;
-
-    // --- MANEJO DEL DOM Y EVENTOS ---
-    document.addEventListener("DOMContentLoaded",()=>{
-      
-      const logoutBtn = document.getElementById('logout-btn');
-      if(logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-      }
-
-      const wizardApp = document.getElementById('inventory-wizard-app');
-      if (!wizardApp) return;
-
-      AOS.init({ once: true, duration: 600 });
-      
-      const nextBtn=document.getElementById('nextBtn'),backBtn=document.getElementById('backBtn');
-      
-      populateBossDropdowns(); 
-      loadFileList();
-      
-      manualEditModal=new bootstrap.Modal(document.getElementById('manualEditModal'));
-      viewSheetModal=new bootstrap.Modal(document.getElementById('viewSheetModal'));
-      new bootstrap.Tooltip(document.getElementById('fab-manual-edit'));
-      
-      nextBtn.addEventListener('click',()=>{if(currentStep<3){if(currentStep===2&&!currentMarbete){return Swal.fire("Sin Marbete","Debes confirmar un marbete para continuar.","warning")}const summaryDiv=document.getElementById('scan-summary'); if(summaryDiv) { summaryDiv.innerHTML=`<i class="bi bi-info-circle-fill fs-4"></i><div>Archivo: <strong>${selectedFileName}</strong> <br> Marbete: <strong>${currentMarbete}</strong></div>`; } navigateToStep(currentStep+1)}});
-      backBtn.addEventListener('click',()=>{if(currentStep>1)navigateToStep(currentStep-1)});
-      
-      const scanInput=document.getElementById("scanInput");
-      scanInput.addEventListener("input",()=>{clearTimeout(debounceTimeout);if(scanInput.value.trim().length>5){debounceTimeout=setTimeout(()=>{handleScan()},300)}});
-      
-      document.getElementById("fileList").addEventListener("change",loadSelectedFile);
-      document.getElementById("bossFilterSelect").addEventListener("change",loadFileList);
-      document.getElementById("confirmMarbeteBtn").addEventListener("click",confirmMarbete);
-      const dropzone=document.getElementById("dropzone");
-      dropzone.addEventListener("dragover",e=>e.preventDefault());
-      dropzone.addEventListener("drop",handleFileDrop);
-      dropzone.onclick=()=>document.getElementById('fileInput').click();
-      document.getElementById('fileInput').onchange=e=>handleFileDrop({preventDefault:()=>{},dataTransfer:{files:e.target.files}});
-      document.getElementById("fab-manual-edit").addEventListener("click",()=>manualEditModal.show());
-      document.getElementById("saveDataBtn").addEventListener("click",saveData);
-      document.getElementById("downloadBtn").addEventListener("click",()=>storage.ref(`uploads/${selectedFileName}`).getDownloadURL().then(url=>{const a=document.createElement("a");a.href=url;a.download=selectedFileName;a.click()}));
-      document.getElementById("viewSheetBtn").addEventListener("click",viewSheet);
-      document.getElementById("searchMarbeteBtn").addEventListener("click",searchMarbete);
-      document.getElementById("saveManualBtn").addEventListener("click",saveManualEdits);
-      
-      navigateToStep(1);
-    });
-
-    // --- LÓGICA DE AUTENTICACIÓN ---
-    auth.onAuthStateChanged(user=>{if(!user){Swal.fire({icon:"warning",title:"Acceso Denegado",text:"Debes iniciar sesión.",confirmButtonText:"Ir a Login",allowOutsideClick:!1,allowEscapeKey:!1}).then(()=>{window.location.href="../Login/login.html"})}else{const adminSection = document.getElementById("adminUploadSection"); if(adminSection) {if(adminUIDs.includes(user.uid)){adminSection.style.display="block"}else{adminSection.style.display="none"}}}});
-    function logout(){auth.signOut().catch(error=>console.error("Error al cerrar sesión", error))}
-
-    // --- FUNCIONES DEL ASISTENTE Y DEMÁS LÓGICA (SIN CAMBIOS) ---
-    function navigateToStep(stepNumber){const steps=document.querySelectorAll('#inventory-wizard-app .wizard-step'),progressBar=document.getElementById('progressBar'),backBtn=document.getElementById('backBtn'),nextBtn=document.getElementById('nextBtn');currentStep=stepNumber;steps.forEach(step=>step.classList.remove('active'));document.getElementById(`step-${currentStep}`).classList.add('active');AOS.refresh();const progress=Math.max(0,((currentStep-1)/(steps.length-1))*100);progressBar.style.width=`${progress}%`;backBtn.style.visibility=currentStep>1?'visible':'hidden';nextBtn.style.display=currentStep<steps.length?'block':'none';if(currentStep===3){document.getElementById('scanInput').focus()}validateStep()}
-    function validateStep(){const nextBtn=document.getElementById('nextBtn');let isValid=false;switch(currentStep){case 1:isValid=selectedFileName&&invDataArr.length>0;break;case 2:isValid=!!currentMarbete;break;case 3:isValid=true;break}nextBtn.disabled=!isValid}
-    function confirmMarbete(){const marbeteInput=document.getElementById("marbeteInput"),val=marbeteInput.value.trim();if(!val){Swal.fire("Campo Vacío","Ingresa un nombre para el marbete.","warning");currentMarbete=""}else{currentMarbete=val;Swal.fire({icon:"success",title:"Marbete Confirmado",text:`Listo: ${currentMarbete}`,timer:2000,showConfirmButton:false})}validateStep()}
-    function handleScan(){const scanInput=document.getElementById("scanInput"),code=scanInput.value.trim();if(!currentMarbete){Swal.fire("Sin Marbete","Confirma un marbete antes de escanear.","warning");scanInput.value="";scanInput.focus();return}let row=invDataArr.find(r=>r.SKU?.toString().trim()===code);if(row){if(!row.MARBETE||row.MARBETE===currentMarbete){row.MARBETE=currentMarbete;const isPiso=document.getElementById("locationCheckbox").checked;isPiso?row.PISO=(row.PISO||0)+1:row.BODEGA=(row.BODEGA||0)+1}else{let newRow={...row};newRow.MARBETE=currentMarbete;newRow.PISO=document.getElementById("locationCheckbox").checked?1:0;newRow.BODEGA=document.getElementById("locationCheckbox").checked?0:1;invDataArr.push(newRow);row=newRow}row.AJUSTE=(row.PISO||0)+(row.BODEGA||0);Swal.mixin({toast:true,position:'top-end',showConfirmButton:false,timer:1500}).fire({icon:'success',title:`SKU ${code} sumado!`})}else{Swal.fire({toast:true,position:'top-end',showConfirmButton:false,timer:3000,icon:'error',title:`SKU ${code} no encontrado.`})}scanInput.value="";scanInput.focus()}
-    function populateBossDropdowns(){const bossUploadSelect=document.getElementById("bossUploadSelect"),bossFilterSelect=document.getElementById("bossFilterSelect");bossUploadSelect.innerHTML='<option value="">Seleccione jefe</option>';bosses.sort().forEach(boss=>{bossUploadSelect.add(new Option(boss,boss))});bossFilterSelect.innerHTML='<option value="Todos">Todos</option>';bosses.sort().forEach(boss=>{bossFilterSelect.add(new Option(boss,boss))})}
-    async function loadFileList(){const fileListElem=document.getElementById("fileList");fileListElem.innerHTML='<option value="">Seleccione archivo...</option>';try{const listResult=await storage.ref("uploads").listAll(),bossFilter=document.getElementById("bossFilterSelect").value,files=await Promise.all(listResult.items.map(async fileRef=>({fileRef,meta:await fileRef.getMetadata().catch(()=>null)})));files.filter(item=>item.meta&&item.fileRef.name.toLowerCase().includes("inventario")).forEach(item=>{const jefe=item.meta.customMetadata?.jefe||"Sin Jefe";if(bossFilter==="Todos"||bossFilter===jefe){const option=new Option(item.fileRef.name.replace('Inventario_',''),item.fileRef.name);fileListElem.add(option)}})}catch(error){console.error(error)}}
-    function handleFileDrop(e){e.preventDefault();const file=e.dataTransfer.files[0];if(!file||!file.name.toLowerCase().includes("inventario")){return Swal.fire("Archivo Inválido","Debe ser 'Inventario_...'.","warning")}const selectedBoss=document.getElementById("bossUploadSelect").value;if(!selectedBoss){return Swal.fire("Falta Jefe","Selecciona un jefe.","warning")}(async()=>{try{const fileRef=storage.ref(`uploads/${file.name}`);await fileRef.put(file,{customMetadata:{jefe:selectedBoss}});Swal.fire({icon:"success",title:"¡Subido!",text:`'${file.name}' correcto.`});await loadFileList();document.getElementById('fileList').value=file.name;await loadSelectedFile()}catch(error){console.error(error)}})()}
-    async function loadSelectedFile(){selectedFileName=document.getElementById("fileList").value;const fab=document.getElementById('fab-manual-edit');if(!selectedFileName){invDataArr=[];fab.classList.remove('visible');validateStep();return}try{const fileRef=storage.ref(`uploads/${selectedFileName}`),fileUrl=await fileRef.getDownloadURL(),response=await fetch(fileUrl),arrayBuffer=await response.arrayBuffer(),workbook=XLSX.read(arrayBuffer,{type:"array"}),invSheet=workbook.Sheets["Inventarios"]||XLSX.utils.json_to_sheet([]);invDataArr=XLSX.utils.sheet_to_json(invSheet);invDataArr.forEach(row=>{row.OH=row.CANTIDAD_INVENTARIO!==undefined?row.CANTIDAD_INVENTARIO:row.OH||0;delete row.CANTIDAD_INVENTARIO;row.SKU=row.SKU||"";row.DESCRIPCION=row.DESCRIPCION||"";row.PISO=row.PISO||0;row.BODEGA=row.BODEGA||0;row.AJUSTE=row.AJUSTE||0;row.MARBETE=row.MARBETE||""});Swal.fire({icon:"success",title:"Archivo Cargado",text:`'${selectedFileName}' listo.`,timer:2e3,showConfirmButton:!1});fab.classList.add('visible');const docRef=db.collection('inventarios').doc(selectedFileName);await docRef.set({data:invDataArr});docRef.onSnapshot(snapshot=>{if(snapshot.exists)invDataArr=snapshot.data().data})}catch(error){console.error(error);selectedFileName="";invDataArr=[];fab.classList.remove('visible')}validateStep()}
-    async function saveData(){await updateInventariosSheet();Swal.fire("Guardado","Cambios guardados en la nube.","success")}
-    async function updateInventariosSheet(){if(!selectedFileName)return;const finalArr=invDataArr.map(row=>({SKU:row.SKU,DESCRIPCION:row.DESCRIPCION,OH:row.OH,PISO:row.PISO,BODEGA:row.BODEGA,AJUSTE:row.AJUSTE,MARBETE:row.MARBETE})),newWb=XLSX.utils.book_new(),newSheet=XLSX.utils.json_to_sheet(finalArr,{header:["SKU","DESCRIPCION","OH","PISO","BODEGA","AJUSTE","MARBETE"]});XLSX.utils.book_append_sheet(newWb,newSheet,"Inventarios");const wbOut=XLSX.write(newWb,{bookType:"xlsx",type:"array"}),fileRef=storage.ref(`uploads/${selectedFileName}`),meta=await fileRef.getMetadata().catch(()=>({}));await fileRef.put(new Blob([wbOut]),{customMetadata:meta.customMetadata});await db.collection("inventarios").doc(selectedFileName).set({data:finalArr})}
-    function viewSheet(){if(!invDataArr.length)return;const tableBody=document.getElementById("viewSheetTableBody"),searchInput=document.getElementById("tableSearchInput"),renderTable=data=>{tableBody.innerHTML=data.map(row=>`<tr><td>${row.SKU||""}</td><td>${row.DESCRIPCION||""}</td><td>${row.OH||0}</td><td>${row.PISO||0}</td><td>${row.BODEGA||0}</td><td>${row.AJUSTE||0}</td><td>${row.MARBETE||""}</td></tr>`).join('')};renderTable(invDataArr);searchInput.value="";searchInput.onkeyup=()=>{const query=searchInput.value.trim();renderTable(query.length>0?invDataArr.filter(row=>row.SKU?.toString().includes(query)):invDataArr)};viewSheetModal.show()}
-    function searchMarbete(){const searchValue=document.getElementById("manualMarbeteSearch").value.trim();if(!searchValue)return;renderManualEditTable(invDataArr.map((row,index)=>({...row,_index:index})).filter(row=>row.MARBETE===searchValue))}
-    function renderManualEditTable(records){const resultsDiv=document.getElementById("manualEditResults"),saveBtn=document.getElementById("saveManualBtn");if(records.length===0){resultsDiv.innerHTML="<p class='text-center text-muted'>No hay registros.</p>";saveBtn.style.display='none';return}let table=`<table class="table table-sm table-bordered table-hover"><thead><tr><th>SKU</th><th>PISO</th><th>BODEGA</th></tr></thead><tbody>`;records.forEach(rec=>{table+=`<tr><td>${rec.SKU}</td><td><input type="number" class="form-control form-control-sm" data-index="${rec._index}" data-field="PISO" value="${rec.PISO||0}"></td><td><input type="number" class="form-control form-control-sm" data-index="${rec._index}" data-field="BODEGA" value="${rec.BODEGA||0}"></td></tr>`});table+='</tbody></table>';resultsDiv.innerHTML=table;saveBtn.style.display='block'}
-    async function saveManualEdits(){document.querySelectorAll("#manualEditResults input").forEach(input=>{const idx=input.dataset.index,field=input.dataset.field,row=invDataArr[idx];row[field]=parseInt(input.value,10)||0;row.AJUSTE=(row.PISO||0)+(row.BODEGA||0)});await updateInventariosSheet();Swal.fire("Guardado","Cambios manuales guardados.","success");searchMarbete()}
-
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="inventario.js" defer></script>
 </body>
 </html>

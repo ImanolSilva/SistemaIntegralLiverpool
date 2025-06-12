@@ -1,102 +1,104 @@
+// login.js
+
 (function () {
-  const googleSignInBtn = document.getElementById("googleSignInBtn");
-  const forgotPasswordLink = document.getElementById("forgotPasswordLink");
-  const forgotPasswordModalEl = document.getElementById("forgotPasswordModal");
-  const forgotPasswordModal = new bootstrap.Modal(forgotPasswordModalEl, { keyboard: false });
-  const sendResetEmailBtn = document.getElementById("sendResetEmailBtn");
-  const forgotEmailInput = document.getElementById("forgotEmail");
+    // --- ¡CORRECCIÓN! ---
+    // Se añade la configuración e inicialización de Firebase aquí.
+    const firebaseConfig = {
+        apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+        authDomain: "loginliverpool.firebaseapp.com",
+        projectId: "loginliverpool",
+        storageBucket: "loginliverpool.appspot.com",
+        messagingSenderId: "704223815941",
+        appId: "1:704223815941:web:c871525230fb61caf96f6c",
+    };
 
-  // Elementos del modal de registro
-  const registrationModalEl = document.getElementById("registrationModal");
-  const departmentContainer = document.getElementById("departmentContainer");
-  const departmentSelect = document.getElementById("departmentSelect");
-  const roleContainer = document.getElementById("roleContainer");
-  const roleSelect = document.getElementById("roleSelect");
-  const storeInput = document.getElementById("storeInput");
-  const bossSelectContainer = document.getElementById("bossSelectContainer");
-  const bossSelect = document.getElementById("bossSelect");
-  const saveRegistrationBtn = document.getElementById("saveRegistrationBtn");
+    firebase.initializeApp(firebaseConfig);
+    // Ahora 'auth' y 'db' están definidos dentro de este archivo y funcionarán.
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    auth.languageCode = "es";
+    // --- FIN DE LA CORRECCIÓN ---
 
-  /************************************************
-   * ===== INICIAR SESIÓN CON GOOGLE ============ 
-   ************************************************/
-  googleSignInBtn.addEventListener("click", function (event) {
-    event.preventDefault();
-    showLoadingModal();
 
-    const provider = new firebase.auth.GoogleAuthProvider();
+    // El resto de tu código permanece exactamente igual.
+    const googleSignInBtn = document.getElementById("googleSignInBtn");
+    const forgotPasswordLink = document.getElementById("forgotPasswordLink");
+    const forgotPasswordModalEl = document.getElementById("forgotPasswordModal");
+    const forgotPasswordModal = new bootstrap.Modal(forgotPasswordModalEl, { keyboard: false });
+    const sendResetEmailBtn = document.getElementById("sendResetEmailBtn");
+    const forgotEmailInput = document.getElementById("forgotEmail");
 
-    auth.signInWithPopup(provider)
-      .then(async (result) => {
-        hideLoadingModal();
-        const user = result.user;
-        if (!user) {
-          showSwalAlert("error", "No se obtuvo el usuario de Google.");
-          return;
-        }
-        const displayName = user.displayName || "Sin nombre";
-        const userEmail = user.email || "SinEmail";
+    // Elementos del modal de registro
+    const registrationModalEl = document.getElementById("registrationModal");
+    const departmentContainer = document.getElementById("departmentContainer");
+    const departmentSelect = document.getElementById("departmentSelect");
+    const roleContainer = document.getElementById("roleContainer");
+    const roleSelect = document.getElementById("roleSelect");
+    const storeInput = document.getElementById("storeInput");
+    const bossSelectContainer = document.getElementById("bossSelectContainer");
+    const bossSelect = document.getElementById("bossSelect");
+    const saveRegistrationBtn = document.getElementById("saveRegistrationBtn");
 
-        // Ref al doc del usuario en Firestore
-        const userDocRef = db.collection("usuarios").doc(user.uid);
-        const userDoc = await userDocRef.get();
-
-        // Guardamos email y createdAt (si no existen)
-        await userDocRef.set({
-          name: displayName,
-          email: userEmail,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-
-        // Si es admin
-        if (user.uid === "OaieQ6cGi7TnW0nbxvlk2oyLaER2") {
-          showSwalAlert("success", "Inicio de sesión con Google exitoso. ¡Bienvenido, Admin!");
-          setTimeout(() => {
-            window.location.href = "../index.html";
-          }, 1000);
-          return;
-        }
-
-        // Verificar si faltan department, store, desiredRole
-        const docData = userDoc.exists ? userDoc.data() : {};
-        const hasDepartment = docData.department || "";
-        const hasStore = docData.store || "";
-        const hasDesiredRole = docData.desiredRole || "";
-
-        // Si no hay dept, store o desiredRole => mostrar modal
-        if (!hasDepartment || !hasStore || !hasDesiredRole) {
-          const registrationModal = new bootstrap.Modal(registrationModalEl, { backdrop: 'static', keyboard: false });
-          registrationModal.show();
-
-          // Prellenar si ya tiene algo
-          departmentSelect.value = hasDepartment;
-          roleSelect.value = hasDesiredRole;
-          storeInput.value = hasStore;
-
-          // Ajustar visibilidad
-          handleDeptChange();
-          handleRoleChange();
-
-          // Si docData.desiredRole = "vendedor" => cargar jefes
-          if (hasDesiredRole === "vendedor") {
-            await loadJefesToSelect();
-          }
-        } else {
-          // Ya tiene la info
-          showSwalAlert("success", "Inicio de sesión con Google exitoso. ¡Bienvenido!");
-          setTimeout(() => {
-            window.location.href = "../index.html";
-          }, 1000);
-        }
-      })
-      .catch((error) => {
-        hideLoadingModal();
-        console.error("Error en inicio de sesión con Google:", error.code, error.message);
-        const errorMessage = parseFirebaseError(error.code);
-        showSwalAlert("error", errorMessage);
-      });
-  });
-
+    /************************************************
+     * ===== INICIAR SESIÓN CON GOOGLE ============ 
+     ************************************************/
+    googleSignInBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        showLoadingModal();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider)
+            .then(async (result) => {
+                hideLoadingModal();
+                const user = result.user;
+                if (!user) {
+                    showSwalAlert("error", "No se obtuvo el usuario de Google.");
+                    return;
+                }
+                const displayName = user.displayName || "Sin nombre";
+                const userEmail = user.email || "SinEmail";
+                const userDocRef = db.collection("usuarios").doc(user.uid);
+                const userDoc = await userDocRef.get();
+                await userDocRef.set({
+                    name: displayName,
+                    email: userEmail,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                if (user.uid === "OaieQ6cGi7TnW0nbxvlk2oyLaER2") {
+                    showSwalAlert("success", "Inicio de sesión con Google exitoso. ¡Bienvenido, Admin!");
+                    setTimeout(() => {
+                        window.location.href = "../index.html";
+                    }, 1000);
+                    return;
+                }
+                const docData = userDoc.exists ? userDoc.data() : {};
+                const hasDepartment = docData.department || "";
+                const hasStore = docData.store || "";
+                const hasDesiredRole = docData.desiredRole || "";
+                if (!hasDepartment || !hasStore || !hasDesiredRole) {
+                    const registrationModal = new bootstrap.Modal(registrationModalEl, { backdrop: 'static', keyboard: false });
+                    registrationModal.show();
+                    departmentSelect.value = hasDepartment;
+                    roleSelect.value = hasDesiredRole;
+                    storeInput.value = hasStore;
+                    handleDeptChange();
+                    handleRoleChange();
+                    if (hasDesiredRole === "vendedor") {
+                        await loadJefesToSelect();
+                    }
+                } else {
+                    showSwalAlert("success", "Inicio de sesión con Google exitoso. ¡Bienvenido!");
+                    setTimeout(() => {
+                        window.location.href = "../index.html";
+                    }, 1000);
+                }
+            })
+            .catch((error) => {
+                hideLoadingModal();
+                console.error("Error en inicio de sesión con Google:", error.code, error.message);
+                const errorMessage = parseFirebaseError(error.code);
+                showSwalAlert("error", errorMessage);
+            });
+    });
   /************************************************
    * ===== EVENTO: clic en "¿Olvidaste tu contraseña?" =====
    ************************************************/

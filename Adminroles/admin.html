@@ -1,769 +1,128 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta name="google-adsense-account" content="ca-pub-5171112765202119">
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Administración</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Sistema Liverpool</title>
 
-  <!-- Fuentes y Bootstrap -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.15/dist/sweetalert2.min.css" rel="stylesheet">
-
-  <!-- Animaciones AOS -->
-  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-
-  <!-- Firebase (v8) -->
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-
-  <style>
-    :root {
-      --rosa-principal: #E6007E;
-      --rosa-secundario: #F8BBD0;
-      --negro: #000000;
-      --blanco: #ffffff;
-      --gris-oscuro: #333333;
-      --gris-claro: #f8f9fa;
-    }
-
-    body {
-      font-family: 'Poppins', Arial, sans-serif;
-      background: linear-gradient(to right, var(--rosa-principal), var(--negro));
-      margin: 0;
-      padding: 0;
-      color: var(--gris-oscuro);
-      min-height: 100vh;
-    }
-
-    header {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-      padding: 10px 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: background-color 0.3s ease;
-    }
-    .header-title {
-      font-size: 1.6rem;
-      font-weight: 600;
-      margin: 0;
-    }
-    .btn-menu {
-      font-size: 1.5rem;
-      background: transparent;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-    }
-
-    #logout-btn {
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      transition: background-color 0.3s ease;
-      background-color: #c82333;
-      border: none;
-      color: #ffffff;
-    }
-    #logout-btn:hover {
-      background-color: #a71d2a;
-      color: #ffffff;
-    }
-
-    .offcanvas {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-    }
-    .offcanvas-title {
-      font-size: 1.3rem;
-      font-weight: 600;
-    }
-    .nav-link {
-      color: var(--blanco);
-      font-size: 1rem;
-      padding: 0.75rem 1.5rem;
-      transition: background-color 0.3s ease;
-    }
-    .nav-link:hover {
-      background-color: var(--rosa-secundario);
-      color: var(--gris-oscuro);
-    }
-
-    .admin-container {
-      max-width: 900px;
-      margin: 6rem auto 3rem auto;
-      padding: 2.5rem 2rem;
-      background: linear-gradient(135deg, #ffffff 0%, #f2f2f2 100%);
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-      position: relative;
-      overflow: hidden;
-      animation: containerSlide 0.8s ease-out both;
-    }
-    @keyframes containerSlide {
-      from { opacity: 0; transform: translateY(50px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .admin-container::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(230,0,126,0.15) 0%, transparent 70%);
-      animation: rotateBackground 10s linear infinite;
-      z-index: 0;
-    }
-    @keyframes rotateBackground {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .admin-container > * {
-      position: relative;
-      z-index: 1;
-    }
-    .admin-container h2 {
-      font-size: 2rem;
-      font-weight: 600;
-      margin-bottom: 2rem;
-      color: var(--rosa-principal);
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    .admin-container p {
-      font-size: 1.05rem;
-      margin-bottom: 2rem;
-      color: var(--gris-oscuro);
-      text-align: center;
-    }
-
-    #notAdminMsg {
-      display: none;
-      margin-top: 2rem;
-    }
-    #loadingSpinner {
-      text-align: center;
-      margin-top: 2rem;
-    }
-
-    /* Filtro por tienda */
-    #filtersContainer {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      justify-content: center;
-      margin-bottom: 1rem;
-    }
-
-    .admin-table {
-      background-color: #ffffff;
-      border-radius: 12px;
-      overflow: visible;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    /* Para permitir scroll horizontal si la tabla no cabe */
-    .table-responsive {
-      width: 100%;
-      overflow-x: auto;
-    }
-    .admin-table table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .admin-table th,
-    .admin-table td {
-      vertical-align: middle;
-      padding: 0.75rem;
-      text-align: center;
-      font-size: 0.95rem;
-      word-wrap: break-word;
-      white-space: normal;
-    }
-
-    /* Responsividad adicional */
-    @media screen and (max-width: 768px) {
-      .admin-table table,
-      .admin-table thead,
-      .admin-table tbody,
-      .admin-table th,
-      .admin-table td,
-      .admin-table tr {
-        display: block;
-      }
-      .admin-table thead tr {
-        display: none;
-      }
-      .admin-table tr {
-        margin-bottom: 15px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        padding: 10px;
-      }
-      .admin-table td {
-        text-align: right;
-        padding-left: 50%;
-        position: relative;
-      }
-      .admin-table td::before {
-        content: attr(data-label);
-        position: absolute;
-        left: 10px;
-        width: 40%;
-        padding-right: 10px;
-        text-align: left;
-        font-weight: bold;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- Configuración e inicialización de Firebase -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
-      authDomain: "loginliverpool.firebaseapp.com",
-      projectId: "loginliverpool",
-      storageBucket: "loginliverpool.appspot.com",
-      messagingSenderId: "704223815941",
-      appId: "1:704223815941:web:c871525230fb61caf96f6c",
-      measurementId: "G-QFEPQ4TSPY",
-    };
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.firestore();
-  </script>
-
-  <!-- Header -->
-  <header class="d-flex justify-content-between align-items-center px-4 py-3">
-    <div class="d-flex align-items-center">
-      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral">
-        <i class="bi bi-list"></i>
-      </button>
-      <div class="header-title"><i class="bi bi-person-check-fill me-2"></i>Verificar</div>
-    </div>
-    <button class="btn btn-danger d-flex align-items-center" id="logout-btn" aria-label="Cerrar sesión">
-      <i class="bi bi-power"></i>
-    </button>
-  </header>
-
-  <!-- Menú Lateral (Offcanvas) -->
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-      <nav class="nav flex-column">
-        <ul class="navbar-nav" style="padding-left: 0; margin-left: 0;">
-          <li class="nav-item">
-            <a class="nav-link active d-flex align-items-center" href="../index.html" style="padding-left: 1rem;">
-              <i class="bi bi-house-door-fill me-2"></i>
-              <span>Inicio</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </div>
-
-  <!-- Contenedor Principal (Panel Admin) -->
-  <section class="container admin-container">
-    <h2><i class="bi bi-person-gear me-2"></i>Panel de Administración</h2>
-    <p id="adminUserEmail" class="text-muted">
-      Cargando usuario administrador...
-    </p>
-
-    <!-- Mensaje de no-admin -->
-    <div id="notAdminMsg" class="alert alert-danger" role="alert">
-      <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>No tienes permisos para ver esta página.</strong>
-    </div>
-
-    <!-- Spinner de carga -->
-    <div id="loadingSpinner">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Cargando...</span>
-      </div>
-    </div>
-
-    <!-- Filtro por tienda -->
-    <div id="filtersContainer">
-      <label for="storeFilter" class="form-label mb-0"><i class="bi bi-shop me-1"></i> Filtrar por Tienda:</label>
-      <input 
-        type="text" 
-        class="form-control form-control-sm" 
-        id="storeFilter" 
-        placeholder="Ej: 042" 
-        oninput="loadUsers()"
-        style="max-width: 180px;"
-      >
-    </div>
-
-    <!-- Tabla de usuarios (responsive) -->
-    <div class="admin-table mt-4 table-responsive">
-      <table class="table table-striped table-hover table-sm table-bordered align-middle mb-0">
-        <thead class="table-dark">
-          <tr>
-            <th><i class="bi bi-envelope-fill me-1"></i>Email</th>
-            <th><i class="bi bi-shop me-1"></i>Tienda</th>
-            <th><i class="bi bi-building me-1"></i>Depto</th>
-            <th><i class="bi bi-person-badge me-1"></i>Rol Des.</th>
-            <th><i class="bi bi-person-check me-1"></i>Rol Act.</th>
-            <th><i class="bi bi-person-workspace me-1"></i>Jefe</th>
-            <th><i class="bi bi-shield-fill-check me-1"></i>Status</th>
-            <th><i class="bi bi-gear me-1"></i>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="usersTableBody">
-          <!-- Filas generadas dinámicamente -->
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- Bootstrap JS, SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-  <script>
-
-
-    // Lista de departamentos
-    const DEPARTMENTS = [
-  { code: "000", name: "AUXILIAR DE OPERACIONES" },
-  { code: "101", name: "MUEBLES" },
-  { code: "104", name: "POTTERY BARN" },
-  { code: "105", name: "POTTERY BARN KIDS" },
-  { code: "106", name: "POTTERY BARN TEEN" },
-  { code: "107", name: "WEST ELM" },
-  { code: "108", name: "TAPICERÍA Y PISOS" },
-  { code: "110", name: "DECORACIÓN TEXTIL" },
-  { code: "111", name: "COLCHONES" },
-  { code: "116", name: "MUEBLES DE EXTERIOR" },
-  { code: "121", name: "TAPETES" },
-  { code: "147", name: "FLORES Y VELAS" },
-  { code: "149", name: "BOUTIQUE HOGAR" },
-  { code: "152", name: "NUESTRA CASA" },
-  { code: "154", name: "MESA FINA" },
-  { code: "156", name: "ILUMINACIÓN" },
-  { code: "157", name: "DECORACION HOGAR" },
-  { code: "161", name: "CUADROS Y ESPEJOS" },
-  { code: "201", name: "ACCESORIOS DEPORTIVOS" },
-  { code: "202", name: "SF TREND M" },
-  { code: "203", name: "ZAPATOS DEPORTIVOS" },
-  { code: "205", name: "ROPA DEPORTIVA" },
-  { code: "206", name: "APARATOS DE EJERCICIO" },
-  { code: "207", name: "MOTOS" },
-  { code: "211", name: "MOVILIDAD ELECTRICA" },
-  { code: "213", name: "ACCESORIOS HOMBRE" },
-  { code: "223", name: "GAP HOMBRE" },
-  { code: "224", name: "AEROPOSTALE HOMBRE" },
-  { code: "225", name: "BANANA REPUBLIC HOMBRE" },
-  { code: "237", name: "ZAPATOS HOMBRE" },
-  { code: "241", name: "TRAJES" },
-  { code: "242", name: "TALLAS ESPECIALES" },
-  { code: "245", name: "HOMBRE CONTEMPORÁNEO" },
-  { code: "246", name: "SACOS" },
-  { code: "247", name: "PANTALONES DE VESTIR" },
-  { code: "251", name: "JUVENILES" },
-  { code: "252", name: "ZONA URBANA HOMBRE" },
-  { code: "261", name: "DISEÑADORES" },
-  { code: "271", name: "CASUAL" },
-  { code: "276", name: "CAMISAS VESTIR" },
-  { code: "279", name: "CORBATAS" },
-  { code: "282", name: "CALCETINES" },
-  { code: "285", name: "ROPA INTERIOR" },
-  { code: "288", name: "PIJAMAS" },
-  { code: "302", name: "GOURMET" },
-  { code: "307", name: "WILLIAMS-SONOMA" },
-  { code: "322", name: "NAVIDAD" },
-  { code: "323", name: "ARTÍCULOS DE VIAJE" },
-  { code: "327", name: "ESCOLARES" },
-  { code: "338", name: "PAPELERIA" },
-  { code: "340", name: "AUTOMOTRIZ" },
-  { code: "343", name: "FERRETERÍA" },
-  { code: "345", name: "MASCOTAS" },
-  { code: "351", name: "BAÑO" },
-  { code: "356", name: "BLANCOS" },
-  { code: "357", name: "ÓPTICA" },
-  { code: "358", name: "MICAS GRADUADAS" },
-  { code: "365", name: "LIBRERÍA" },
-  { code: "374", name: "ALTA RELOJERÍA" },
-  { code: "375", name: "RELOJES FINOS" },
-  { code: "376", name: "RELOJES" },
-  { code: "377", name: "ACCESORIOS FINOS" },
-  { code: "380", name: "REG Y COM C/COM D3" },
-  { code: "388", name: "VINOS Y LICORES" },
-  { code: "391", name: "DULCERÍA" },
-  { code: "393", name: "SNACK BAR" },
-  { code: "398", name: "ORGANIZACIÓN HOGAR" },
-  { code: "401", name: "GIRL" },
-  { code: "402", name: "TENIS NIÑO/NIÑA" },
-  { code: "404", name: "BOY" },
-  { code: "405", name: "ZAPATOS NIÑA" },
-  { code: "413", name: "MUEBLES PARA BEBÉ" },
-  { code: "417", name: "ACCESORIOS BEBÉ" },
-  { code: "421", name: "BEBÉS" },
-  { code: "423", name: "VIDEOJUEGOS" },
-  { code: "424", name: "JUGUETES" },
-  { code: "425", name: "THE DISNEY STORE" },
-  { code: "433", name: "GAP INFANTILES" },
-  { code: "435", name: "AEROPOSTALE KIDS NIÑOS" },
-  { code: "436", name: "BEBÉS MODA" },
-  { code: "437", name: "AEROPOSTALE KIDS NIÑAS" },
-  { code: "438", name: "PRE-ESCOLAR" },
-  { code: "443", name: "ROPA INTERIOR NIÑO" },
-  { code: "444", name: "NIÑOS" },
-  { code: "447", name: "NIÑOS 8+" },
-  { code: "448", name: "NIÑAS 8+" },
-  { code: "450", name: "COLECCIONES NIÑO" },
-  { code: "456", name: "DEPORTIVO NIÑOS" },
-  { code: "459", name: "ZAPATOS NIÑO" },
-  { code: "466", name: "NIÑAS" },
-  { code: "469", name: "COLECCIONES NIÑA" },
-  { code: "473", name: "ROPA INTERIOR NIÑA" },
-  { code: "478", name: "ACCESORIOS NIÑO" },
-  { code: "479", name: "ACCESORIOS NIÑA" },
-  { code: "480", name: "REG Y COM C/COM D4" },
-  { code: "486", name: "DEPORTIVO NIÑAS" },
-  { code: "503", name: "KNITWEAR W" },
-  { code: "504", name: "LENCERÍA" },
-  { code: "508", name: "ETAM" },
-  { code: "510", name: "VESTIDOS DE FIESTA" },
-  { code: "511", name: "BOLSAS" },
-  { code: "512", name: "MUJER CLÁSICA" },
-  { code: "513", name: "CONFIDENTIAL W" },
-  { code: "514", name: "ACCESORIOS" },
-  { code: "517", name: "ACCESSORIES W" },
-  { code: "520", name: "VESTIDOS" },
-  { code: "521", name: "PETITE" },
-  { code: "522", name: "ZONA URBANA MUJER" },
-  { code: "523", name: "GAP MUJER" },
-  { code: "524", name: "AEROPOSTALE MUJER" },
-  { code: "525", name: "BANANA REPUBLIC MUJER" },
-  { code: "529", name: "CURVY CONTEMPORÁNEA" },
-  { code: "530", name: "MUJER CONTEMPORÁNEA" },
-  { code: "532", name: "PLAYA Y VIAJE" },
-  { code: "533", name: "PUNT ROMA" },
-  { code: "535", name: "STUDIO ZEN" },
-  { code: "540", name: "JUNIORS" },
-  { code: "544", name: "MATERNIDAD" },
-  { code: "545", name: "JOVEN CONTEMPORÁNEA" },
-  { code: "550", name: "ZAPATOS MUJER" },
-  { code: "553", name: "MUJER ACTUAL" },
-  { code: "555", name: "COLECCIONES" },
-  { code: "557", name: "CURVY ACTUAL" },
-  { code: "559", name: "DISEÑADORES" },
-  { code: "566", name: "ALTA JOYERÍA" },
-  { code: "571", name: "JOYERÍA MODA" },
-  { code: "610", name: "ZONA GEEK" },
-  { code: "623", name: "COCINA" },
-  { code: "625", name: "ELÉCTRICOS" },
-  { code: "627", name: "FOTO Y VIDEO" },
-  { code: "628", name: "COMPUTACIÓN" },
-  { code: "629", name: "TV Y VIDEO" },
-  { code: "630", name: "SONIDO" },
-  { code: "631", name: "INSTRUMENTOS MUSICALES" },
-  { code: "632", name: "CELULARES" },
-  { code: "633", name: "COMERCIO VIRTUAL" },
-  { code: "634", name: "LÍNEA BLANCA" },
-  { code: "635", name: "SOLUCION A MEDIDA" },
-  { code: "636", name: "EQUIPOS DE EMPOTRAR" },
-  { code: "637", name: "ACCESORIOS MULTIMEDIA" },
-  { code: "638", name: "SMART HOME" },
-  { code: "639", name: "COLECCIONABLES" },
-  { code: "640", name: "SERVICIOS INTEGRALES" },
-  { code: "701", name: "FRAGANCIAS" },
-  { code: "702", name: "COSMÉTICOS" },
-  { code: "704", name: "FARMACIA" },
-  { code: "705", name: "CUIDADO PERSONAL" },
-  { code: "706", name: "BELLEZA" },
-  { code: "780", name: "REG Y COM C/COM D7" },
-  { code: "905", name: "SERVICIOS GENERALES FACTURABLES" },
-  { code: "910", name: "SERVICIOS GENERALES" },
-  { code: "911", name: "AGENCIA DE VIAJES" },
-  { code: "930", name: "SEGUROS" },
-  { code: "931", name: "ASEGURADORA QUALITAS" },
-  { code: "933", name: "SEGURO CELULAR ACE" },
-  { code: "934", name: "SEGUROS MOTOS" },
-  { code: "936", name: "SEGUROS TELEMARKETING Y MASIVOS" },
-  { code: "950", name: "MOVIMIENTOS FINANCIEROS" },
-  { code: "321", name: "HALLOWEEN" }
-];
-
-
-    const adminContainer = document.querySelector(".admin-container");
-    const notAdminMsg = document.getElementById("notAdminMsg");
-    const loadingSpinner = document.getElementById("loadingSpinner");
-    const usersTableBody = document.getElementById("usersTableBody");
-    const logoutBtn = document.getElementById("logout-btn");
-    const storeFilter = document.getElementById("storeFilter");
-
-    // Arreglo global con todos los usuarios (para filtrar en cliente)
-    let allUsersData = [];
-    // Arreglo con todos los jefes
-    let allJefes = [];
-
-// Ya no declares ADMIN_UID en ningún sitio, solo ADMIN_UIDS:
-const ADMIN_UIDS = [
-  "OaieQ6cGi7TnW0nbxvlk2oyLaER2",
-  "doxhVo1D3aYQqqkqgRgfJ4qcKcU2",
-  "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"
-];
-
-auth.onAuthStateChanged(async (user) => {
-  // 1) Si no hay usuario, o su UID NO está en nuestra lista → no admin:
-  if (!user || !ADMIN_UIDS.includes(user.uid)) {
-    showNotAdmin();
-    return;
-  }
-
-  // 2) Es uno de los dos admins válidos:
-  document.getElementById("adminUserEmail").textContent = `Admin: ${user.email}`;
-  notAdminMsg.style.display    = "none";
-  adminContainer.style.display = "block";
-  loadingSpinner.style.display = "none";
-
-  // 3) Ahora ya puedes cargar tu lógica de jefes, usuarios, etc.
-  await loadJefesList();
-  await fetchAllUsers();
-  loadUsers();
-});
-
-
-    function showNotAdmin() {
-      adminContainer.style.display = "none";
-      notAdminMsg.style.display = "block";
-      loadingSpinner.style.display = "none";
-    }
-
-    // Cargar jefes
-    async function loadJefesList() {
-      try {
-        const snap = await db.collection("usuarios")
-          .where("role", "==", "jefe")
-          .where("status", "==", "aprobado")
-          .get();
-        allJefes = [];
-        snap.forEach(doc => {
-          const d = doc.data();
-          const bossName = d.name || d.email || "Jefe";
-          allJefes.push({ uid: doc.id, name: bossName });
-        });
-      } catch (error) {
-        console.error("Error al cargar jefes:", error);
-      }
-    }
-
-    // Obtener todos los usuarios (sin filtro Firestore), luego filtrar en cliente
-    async function fetchAllUsers() {
-      try {
-        const snapshot = await db.collection("usuarios").orderBy("createdAt", "desc").get();
-        allUsersData = [];
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          allUsersData.push({
-            uid: doc.id,
-            email: data.email || "",
-            store: data.store || "",
-            department: data.department || "",
-            desiredRole: data.desiredRole || "",
-            role: data.role || "",
-            status: data.status || "",
-            boss: data.boss || ""
-          });
-        });
-        loadingSpinner.style.display = "none";
-      } catch (error) {
-        console.error("Error al obtener usuarios:", error);
-        loadingSpinner.style.display = "none";
-      }
-    }
-
-    // Filtrar en cliente y renderizar
-    function loadUsers() {
-      const filterValue = storeFilter.value.trim().toLowerCase();
-
-      // Filtrar por store en el array
-      let filteredUsers = allUsersData;
-      if (filterValue) {
-        filteredUsers = allUsersData.filter(user =>
-          user.store.toLowerCase().includes(filterValue)
-        );
-      }
-
-      // Renderizar
-      let html = "";
-      filteredUsers.forEach(u => {
-        html += `
-          <tr>
-            <td data-label="Email">${u.email}</td>
-            <td data-label="Tienda">
-              <input 
-                id="storeInput-${u.uid}" 
-                class="form-control form-control-sm" 
-                type="text" 
-                value="${u.store}"
-              />
-            </td>
-            <td data-label="Depto">
-              <select id="departmentSelect-${u.uid}" class="form-select form-select-sm">
-                <option value="">--Sin depto--</option>
-                ${getDepartmentOptions(u.department)}
-              </select>
-            </td>
-            <td data-label="Rol Des.">${u.desiredRole}</td>
-            <td data-label="Rol Act.">
-              <select id="roleSelect-${u.uid}" class="form-select form-select-sm">
-                <option value="">--Sin rol--</option>
-                <option value="jefe" ${u.role === "jefe" ? "selected" : ""}>Jefe</option>
-                <option value="vendedor" ${u.role === "vendedor" ? "selected" : ""}>Vendedor</option>
-                <option value="auxiliar" ${u.role === "auxiliar" ? "selected" : ""}>Auxiliar</option>
-              </select>
-            </td>
-            <td data-label="Jefe">
-              ${renderBossSelect(u.uid, u.boss)}
-            </td>
-            <td data-label="Status">
-              <select id="statusSelect-${u.uid}" class="form-select form-select-sm">
-                <option value="pendiente" ${u.status === "pendiente" ? "selected" : ""}>Pendiente</option>
-                <option value="aprobado" ${u.status === "aprobado" ? "selected" : ""}>Aprobado</option>
-                <option value="rechazado" ${u.status === "rechazado" ? "selected" : ""}>Rechazado</option>
-              </select>
-            </td>
-            <td data-label="Acciones">
-              <button class="btn btn-primary btn-sm mb-1" onclick="updateUser('${u.uid}')">
-                <i class="bi bi-save"></i>
-              </button>
-              <button class="btn btn-danger btn-sm" onclick="removeUser('${u.uid}')">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
-          </tr>
-        `;
-      });
-      usersTableBody.innerHTML = html;
-    }
-
-    function getDepartmentOptions(selectedDeptCode) {
-      return DEPARTMENTS.map(dep => {
-        const isSelected = dep.code === selectedDeptCode ? "selected" : "";
-        return `<option value="${dep.code}" ${isSelected}>${dep.code} - ${dep.name}</option>`;
-      }).join("");
-    }
-
-    function renderBossSelect(uid, bossUid) {
-      let options = `<option value="">--Sin jefe--</option>
-                     <option value="NoEsta" ${bossUid === "NoEsta" ? "selected" : ""}>Mi jefe no está</option>`;
-      allJefes.forEach(j => {
-        const selected = (j.uid === bossUid) ? "selected" : "";
-        options += `<option value="${j.uid}" ${selected}>${j.name}</option>`;
-      });
-      return `
-        <select id="bossSelect-${uid}" class="form-select form-select-sm">
-          ${options}
-        </select>
-      `;
-    }
-
-    // Guardar cambios en Firestore
-    window.updateUser = async function(uid) {
-      const storeInput = document.getElementById(`storeInput-${uid}`);
-      const deptSelect = document.getElementById(`departmentSelect-${uid}`);
-      const roleSelect = document.getElementById(`roleSelect-${uid}`);
-      const statusSelect = document.getElementById(`statusSelect-${uid}`);
-      const bossSelectEl = document.getElementById(`bossSelect-${uid}`);
-
-      const newStore = storeInput.value.trim();
-      const newDept = deptSelect.value;
-      const newRole = roleSelect.value;
-      const newStatus = statusSelect.value;
-      const newBoss = bossSelectEl ? bossSelectEl.value : "";
-
-      try {
-        await db.collection("usuarios").doc(uid).update({
-          store: newStore,
-          department: newDept,
-          role: newRole,
-          status: newStatus,
-          boss: newBoss
-        });
-        Swal.fire({
-          icon: "success",
-          title: "Actualizado",
-          text: "El usuario ha sido actualizado correctamente.",
-          timer: 1500,
-          showConfirmButton: false
-        });
-
-        // Actualizar en allUsersData para que el filtrado posterior no se pierda
-        const index = allUsersData.findIndex(u => u.uid === uid);
-        if (index >= 0) {
-          allUsersData[index].store = newStore;
-          allUsersData[index].department = newDept;
-          allUsersData[index].role = newRole;
-          allUsersData[index].status = newStatus;
-          allUsersData[index].boss = newBoss;
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --rosa-principal: #E6007E;
+            --negro-fondo: #1a1a1a;
+            --blanco: #ffffff;
+            --gris-claro: #f8f9fa;
+            --gris-medio: #dee2e6;
+            --gris-oscuro: #6c757d;
+            --texto-principal: #343a40;
+            --verde-exito: #43A047;
+            --rojo-peligro: #e53935;
         }
 
-      } catch (error) {
-        console.error("Error al actualizar usuario:", error);
-        Swal.fire("Error", "No se pudo actualizar el usuario.", "error");
-      }
-    };
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #E6007E 0%, var(--negro-fondo) 100%);
+            color: var(--texto-principal);
+        }
 
-    // Eliminar usuario
-    window.removeUser = async function(uid) {
-      const result = await Swal.fire({
-        title: "¿Eliminar Usuario?",
-        text: "Esto borrará el documento del usuario en Firestore.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        confirmButtonText: "Sí, eliminar",
-        cancelButtonText: "Cancelar"
-      });
-      if (!result.isConfirmed) return;
+        /* --- Estructura Principal y Menú (Estándar) --- */
+        .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header-title{color:var(--blanco);font-weight:700;margin:0}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}.offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:var(--blanco);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:background-color .3s ease,padding-left .3s ease;border-radius:0 50px 50px 0}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem}.offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
+        .main-container{max-width:1400px;margin:2rem auto;padding:clamp(1.5rem, 5vw, 2.5rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        
+        /* --- Estilos de Componentes --- */
+        .main-container h2 { font-weight: 700; color: var(--rosa-principal); display: flex; align-items: center; gap: 0.75rem; }
+        .btn-pill{border-radius:30px!important;font-weight:600;transition:all .3s ease;border:none;color:#fff!important;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;box-shadow:0 4px 10px rgba(0,0,0,.15);white-space:nowrap;padding:.6rem 1.5rem;}.btn-pill:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 6px 15px rgba(0,0,0,.25);filter:brightness(1.1)}
+        .btn-pill.btn-pill-sm { padding: 0.4rem 1rem; font-size: 0.8rem; gap: 0.4rem; }
+        .btn-pill.btn-success{background-image:linear-gradient(45deg,#66bb6a,var(--verde-exito))}
+        .btn-pill.btn-danger{background-image:linear-gradient(45deg,#ef5350,var(--rojo-peligro))}
+        .form-control:focus, .form-select:focus { border-color: var(--rosa-principal); box-shadow: 0 0 0 3px rgba(230,0,126,0.2); }
 
-      try {
-        await db.collection("usuarios").doc(uid).delete();
-        Swal.fire({
-          icon: "success",
-          title: "Eliminado",
-          text: "El usuario ha sido eliminado.",
-          timer: 1500,
-          showConfirmButton: false
-        });
-        // Quitar del array local
-        allUsersData = allUsersData.filter(u => u.uid !== uid);
-        loadUsers(); // Vuelve a renderizar
-      } catch (error) {
-        console.error("Error al eliminar usuario:", error);
-        Swal.fire("Error", "No se pudo eliminar el usuario.", "error");
-      }
-    };
+        /* --- Estilos de la Tabla de Administración --- */
+        .table thead th { background-color: var(--texto-principal); color: var(--blanco); white-space: nowrap; }
+        .table td, .table th { vertical-align: middle; }
+        .table .form-control, .table .form-select { font-size: 0.85rem; }
+        
+        @media (max-width: 992px) {
+            thead { display: none; }
+            tr { display: block; margin-bottom: 1.5rem; border: 1px solid var(--gris-medio); border-radius: 12px; padding: 0.5rem; }
+            td { display: flex; justify-content: space-between; align-items: center; text-align: right; padding: 0.75rem; border-bottom: 1px solid var(--gris-claro); }
+            td:last-child { border-bottom: none; }
+            td::before { content: attr(data-label); font-weight: 600; margin-right: auto; text-align: left; color: var(--texto-principal); }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><i class="bi bi-list"></i></button>
+        <h1 class="header-title">Panel de Administración</h1>
+        <button id="logout-btn" class="btn-menu"><i class="bi bi-power"></i></button>
+    </header>
 
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        await auth.signOut();
-        window.location.href = "../Login/login.html";
-      } catch (error) {
-        console.error("Error al cerrar sesión:", error);
-      }
-    });
-  </script>
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-box-seam-fill me-2"></i> Menú</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button></div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
+                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
+                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
+                <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
+                <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+                <li class="nav-item" id="admin-nav-link" style="display: none;"><a class="nav-link active" href="admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
+            </nav>
+        </div>
+    </div>
+
+    <main class="container main-container">
+        <div id="admin-panel-container" style="display: none;">
+            <div class="text-center">
+                <h2><i class="bi bi-person-gear"></i> Gestión de Usuarios</h2>
+                <p class="text-muted">Administra los roles, estados y datos de todos los usuarios registrados en el sistema.</p>
+            </div>
+            
+            <div id="filtersContainer" class="d-flex justify-content-center align-items-center my-4">
+                <div class="input-group" style="max-width: 400px;">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" id="storeFilter" placeholder="Filtrar por Tienda o Email...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Email</th><th>Tienda</th><th>Depto.</th><th>Rol Deseado</th><th>Rol Actual</th>
+                            <th>Jefe Asignado</th><th>Estado</th><th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="loadingSpinner" class="text-center p-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+
+        <div id="notAdminMsg" class="alert alert-danger text-center" style="display: none;">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> Acceso Denegado</h4>
+            <p>No tienes los permisos necesarios para acceder a esta sección.</p>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="admin.js" defer></script>
 </body>
 </html>

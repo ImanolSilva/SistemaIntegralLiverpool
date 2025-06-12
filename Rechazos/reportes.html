@@ -1,393 +1,129 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="google-adsense-account" content="ca-pub-5171112765202119">
-  <title>Reportes Mejorados</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Rechazos - Liverpool</title>
 
-  <!-- Fuentes y Bootstrap -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.15/dist/sweetalert2.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-  
-  <style>
-    /* Variables de Color */
-    :root {
-      --rosa-principal: #E6007E;
-      --rosa-secundario: #F8BBD0;
-      --negro: #000000;
-      --blanco: #ffffff;
-      --gris-oscuro: #333333;
-      --gris-claro: #f8f9fa;
-      --fondo-container: #ffffff;
-    }
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --rosa-principal: #E6007E;
+            --rosa-gradiente-luz: #ff4081;
+            --negro-fondo: #1a1a1a;
+            --blanco: #ffffff;
+            --gris-claro: #f8f9fa;
+            --gris-medio: #dee2e6;
+            --gris-oscuro: #6c757d;
+            --texto-principal: #343a40;
+            --verde-exito: #20c997;
+            --rojo-peligro: #ef5350;
+            --azul-info: #42a5f5;
+            --morado-accion: #ab47bc;
+        }
 
-    /* Reset & Global */
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(to right, var(--rosa-principal), var(--negro));
-      color: var(--gris-oscuro);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #ff4081 0%, var(--negro-fondo) 100%);
+            color: var(--gris-oscuro);
+        }
 
-    /* Header */
-    header {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-      padding: 15px 20px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .header-title {
-      font-size: 1.8rem;
-      font-weight: 600;
-    }
-    .btn-menu {
-      font-size: 1.8rem;
-      background: transparent;
-      border: none;
-      color: var(--blanco);
-      cursor: pointer;
-    }
-    #logout-btn {
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      background-color: #c82333;
-      border: none;
-      color: var(--blanco);
-      font-weight: 600;
-      transition: background-color 0.3s ease;
-    }
-    #logout-btn:hover {
-      background-color: #a71d2a;
-    }
-
-    /* Offcanvas Lateral */
-    .offcanvas {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-    }
-    .offcanvas-title {
-      font-size: 1.5rem;
-      font-weight: 600;
-    }
-    .nav-link {
-      color: var(--blanco);
-      font-size: 1rem;
-      padding: 1rem 1.5rem;
-      transition: background-color 0.3s ease;
-    }
-    .nav-link:hover, .nav-link.active {
-      background-color: var(--rosa-secundario);
-      color: var(--gris-oscuro);
-    }
-
-    /* Contenedor Principal */
-    .main-container {
-      max-width: 1000px;
-      margin: 3rem auto;
-      padding: 2.5rem 3rem;
-      background: var(--fondo-container);
-      border-radius: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-      position: relative;
-      overflow: hidden;
-      animation: containerSlide 0.8s ease-out both;
-    }
-    @keyframes containerSlide {
-      from { opacity: 0; transform: translateY(50px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .main-container::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(230,0,126,0.15) 0%, transparent 70%);
-      animation: rotateBackground 10s linear infinite;
-      z-index: 0;
-    }
-    @keyframes rotateBackground {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    .main-container > * {
-      position: relative;
-      z-index: 1;
-    }
-    .main-container h2 {
-      font-size: 2.5rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-      color: var(--rosa-principal);
-      text-align: center;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-    }
-    #correoUsuario {
-      font-size: 1.2rem;
-      margin-bottom: 2rem;
-      text-align: center;
-      color: #555;
-    }
-
-    /* Listas y Contenedores */
-    #fileListContainer,
-    #selectedFileContainer,
-    #rechazosContainer {
-      margin-bottom: 2rem;
-    }
-    .list-group-item {
-      border: none;
-      margin-bottom: 0.5rem;
-      border-radius: 10px;
-      background-color: #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      padding: 1rem;
-    }
-    .list-group-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-
-    /* Dropzone */
-    #dropzone {
-      border: 2px dashed var(--rosa-principal);
-      border-radius: 12px;
-      background-color: #f1f8ff;
-      padding: 2.5rem;
-      text-align: center;
-      color: var(--rosa-principal);
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.3s ease;
-      outline: none;
-    }
-    #dropzone:hover, #dropzone:focus {
-      background-color: #fdfdfd;
-      transform: scale(1.02);
-    }
-    #dropzone i {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-    #dropzoneInstructions {
-      margin: 0;
-      font-size: 1rem;
-      color: #666;
-    }
-
-    /* Botones de Acción */
-    .action-btn {
-      font-size: 1.1rem;
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      min-width: 200px;
-    }
-    .action-btn i {
-      margin-right: 0.3rem;
-    }
-    .action-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    .btn-custom {
-      border-radius: 30px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      padding: 0.6rem 1.5rem;
-    }
-    .btn-custom:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .btn-custom-primary {
-      background-color: #E6007E;
-      color: #fff;
-      border: none;
-    }
-    .btn-custom-secondary {
-      background-color: #28a745;
-      color: #fff;
-      border: none;
-    }
-    .btn-custom-outline {
-      border: 2px solid #E6007E;
-      color: #E6007E;
-      background-color: transparent;
-    }
-
-    /* Responsividad */
-    @media (max-width: 576px) {
-      .d-flex.flex-wrap.gap-3.mt-4 > button {
-        flex: 1 1 100%;
-        max-width: 100%;
-        margin-bottom: 0.5rem;
-      }
-      .action-btn {
-        min-width: unset;
-        width: 100%;
-        text-align: center;
-        font-size: 1rem;
-        padding: 0.5rem 1rem;
-      }
-      .main-container {
-        padding: 1.5rem;
-      }
-      .main-container h2 {
-        font-size: 2rem;
-      }
-      #logout-btn {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.9rem;
-      }
-      #dropzone i {
-        font-size: 2.5rem;
-      }
-    }
-  </style>
+        /* ======== Estilos Generales y Componentes (Sin cambios) ======== */
+        .preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--negro-fondo);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .7s ease,visibility .7s ease}.preloader .spinner{width:50px;height:50px;border:5px solid #444;border-top-color:var(--rosa-principal);border-radius:50%;animation:spin 1s linear infinite}.preloader.hidden{opacity:0;visibility:hidden}@keyframes spin{to{transform:rotate(360deg)}}
+        .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}
+        .offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:var(--blanco);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:background-color .3s ease,padding-left .3s ease;border-radius:0 50px 50px 0}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem}.offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
+        .main-container{max-width:1200px;margin:2rem auto;padding:clamp(1.5rem, 5vw, 2.5rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .main-container h4{font-weight:700;color:var(--rosa-principal);display:flex;align-items:center;gap:.75rem}
+        .btn-pill{border-radius:30px!important;font-weight:600;transition:all .3s ease;border:none;color:#fff!important;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;box-shadow:0 4px 10px rgba(0,0,0,.15);white-space:nowrap}.btn-pill:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 6px 15px rgba(0,0,0,.25);filter:brightness(1.1)}
+        .btn-pill.btn-pill-sm{padding:.4rem 1.2rem;font-size:.85rem}
+        .btn-pill.btn-select{background-image:linear-gradient(45deg,#f06292,#ec407a)}
+        .btn-pill.btn-confirm{background-image:linear-gradient(45deg,#66bb6a,#43a047)}
+        .btn-pill.btn-save{background-image:linear-gradient(45deg,#ff75b5,#E6007E)}
+        .btn-pill.btn-download{background-image:linear-gradient(45deg,var(--azul-info),#1e88e5)}
+        .btn-pill.btn-email{background-image:linear-gradient(45deg,var(--morado-accion),#8e24aa)}
+        .btn-pill.btn-delete{background-image:linear-gradient(45deg,var(--rojo-peligro),#e53935)}
+        .btn-pill.btn-photo{background-image:linear-gradient(45deg,#26c6da,#00acc1)}
+        .tools-panel{background:rgba(0,0,0,.1);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);border:1px solid rgba(255,255,255,.1);padding:1.5rem;border-radius:16px}
+        .tools-panel .file-management-card{background:rgba(255,255,255,.9);border-radius:12px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,.1)}
+        .tools-panel .form-select{background-color:rgba(255,255,255,.9);border:1px solid var(--gris-medio);color:var(--texto-principal);font-weight:600}
+        .tools-panel .form-select:focus{border-color:var(--rosa-principal);box-shadow:0 0 0 3px rgba(230,0,126,.2)}
+        .accordion-item{background-color:#fff;border:1px solid var(--gris-medio)!important;border-radius:16px!important;margin-bottom:1.5rem;box-shadow:0 5px 20px rgba(0,0,0,.07);transition:all .4s ease}.accordion-item:hover{transform:translateY(-5px);box-shadow:0 10px 30px rgba(0,0,0,.1);border-color:var(--rosa-principal)!important}
+        .accordion-button{display:flex;align-items:center;gap:1rem;background:#fff!important;border-radius:16px!important;padding:1rem 1.5rem!important}.accordion-button:not(.collapsed){color:var(--rosa-principal);border-bottom:1px solid var(--gris-medio);border-bottom-left-radius:0!important;border-bottom-right-radius:0!important}.accordion-button:focus{box-shadow:0 0 0 3px rgba(230,0,126,.2)!important}.accordion-button::after{margin-left:auto}
+        .badge-reporte{background-image:linear-gradient(135deg,var(--rosa-gradiente-luz),var(--rosa-principal));color:var(--blanco);font-size:1rem;padding:.5rem 1rem;border-radius:10px;font-weight:700}
+        .report-summary-info .sku{font-weight:700;color:var(--texto-principal);font-size:1rem}.report-summary-info .usuario{color:var(--gris-oscuro);font-size:.85rem}
+        .state-indicator{width:12px;height:12px;border-radius:50%;transition:all .4s ease;flex-shrink:0}.state-indicator.has-comment{background-color:var(--verde-exito);box-shadow:0 0 8px var(--verde-exito)}.state-indicator:not(.has-comment){background-color:#ffebee;border:1px solid var(--rojo-peligro)}
+        .accordion-body{padding:1.5rem!important;background-color:var(--gris-claro)}
+        .report-details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
+        .detail-item{background:#fff;padding:.75rem 1rem;border-radius:10px;border:1px solid #eee;display:flex;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,.05)}.detail-item i{font-size:1.5rem;color:var(--rosa-principal);margin-right:.75rem;background-image:linear-gradient(135deg,var(--rosa-gradiente-luz),var(--rosa-principal));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.detail-item-content small{display:block;color:var(--gris-oscuro);font-size:.75rem;margin-bottom:.1rem}.detail-item-content span{font-weight:600;color:var(--texto-principal);font-size:.9rem}
+        .img-placeholder,.img-fluid.rounded{border:3px solid var(--gris-medio);padding:5px;border-radius:12px}
+        .hidden{display:none}.fade-in-section{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}.fade-in-section.visible{opacity:1;transform:translateY(0)}
+    </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="d-flex justify-content-between align-items-center px-4">
-    <div class="d-flex align-items-center">
-      <button class="btn-menu me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menú">
-        <i class="bi bi-list"></i>
-      </button>
-      <h1 class="header-title m-0">Rechazos</h1>
-    </div>
-    <button id="logout-btn" aria-label="Cerrar sesión">
-      <i class="bi bi-power"></i>
-      <span></span>
-    </button>
-  </header>
 
-  <!-- Menú Lateral (Offcanvas) -->
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-      <nav class="nav flex-column">
-        <ul class="navbar-nav w-100 p-0">
-          <li class="nav-item" data-aos="fade-right" data-aos-delay="100">
-            <a class="nav-link active" href="../index.html">
-              <i class="bi bi-house-door-fill me-2"></i> Inicio
-            </a>
-          </li>
-          <li class="nav-item" data-aos="fade-right" data-aos-delay="200">
-            <a class="nav-link" href="../ChecarPrecios/index.html">
-              <i class="bi bi-tags me-2"></i> Checar Precios
-            </a>
-          </li>
-          <li class="nav-item" data-aos="fade-right" data-aos-delay="300">
-            <a class="nav-link" href="reportes.html">
-              <i class="bi bi-x-octagon-fill me-2"></i> Rechazos
-            </a>
-          </li>
-          <li class="nav-item" data-aos="fade-right" data-aos-delay="400">
-            <a class="nav-link" href="../Inventarios/Inventarios.html">
-              <i class="bi bi-archive me-2"></i> Inventarios
-            </a>
-          </li>
-          <li class="nav-item" data-aos="fade-right" data-aos-delay="500">
-            <a class="nav-link" href="../Configuraciones/Configuracion.html">
-              <i class="bi bi-sliders me-2"></i> Configuración
-            </a>
-          </li>
-          <li class="nav-item" data-aos="fade-right" data-aos-delay="600">
-            <a class="nav-link" href="../Manifiestos/Manifiestos.html">
-              <i class="bi bi-file-earmark-check me-2"></i> Manifiestos
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </div>
+    <div class="preloader"><div class="spinner"></div></div>
 
-  <!-- Contenido Principal -->
-  <main class="container main-container" data-aos="fade-up" data-aos-duration="1000">
-    <h2 data-aos="fade-right" data-aos-duration="1000">
-      <i class="bi bi-file-earmark-text me-2"></i>Lista de Reportes
-    </h2>
-    <p id="correoUsuario" data-aos="fade-left" data-aos-duration="1000">
-      <i class="bi bi-person-circle me-2"></i>Usuario: Cargando...
-    </p>
-
-    <!-- Lista de Archivos -->
-    <div id="fileListContainer" class="list-group" data-aos="zoom-in" data-aos-duration="1000">
-      <!-- Se llenará dinámicamente -->
+    <header class="app-header">
+        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-label="Abrir menú"><i class="bi bi-list"></i></button>
+        <h1 class="header-title m-0">Gestor de Rechazos</h1>
+        <button id="logout-btn" class="btn-menu" aria-label="Cerrar sesión" title="Cerrar Sesión"><i class="bi bi-power"></i></button>
+    </header>
+    
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-box-seam-fill me-2"></i> Menú Principal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button></div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
+                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
+                <a class="nav-link active" href="reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
+                <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
+                <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+            </nav>
+        </div>
     </div>
 
-    <!-- Archivo Seleccionado -->
-    <div id="selectedFileContainer" data-aos="zoom-in" data-aos-duration="1000" class="mb-4">
-      <p id="selectedFileName" class="text-muted">
-        No hay archivo seleccionado
-      </p>
-      <button id="confirmFileSelection" class="btn btn-primary action-btn btn-custom btn-custom-secondary" disabled>
-        <i class="bi bi-check-circle"></i> Confirmar Selección
-      </button>
-    </div>
-
-    <!-- Dropzone para Subir Archivos -->
-    <div id="dropzone" tabindex="0" aria-describedby="dropzoneInstructions" data-aos="flip-up" data-aos-duration="1000">
-      <i class="bi bi-cloud-upload-fill"></i>
-      <p id="dropzoneInstructions">
-        Arrastra y suelta el archivo aquí o haz clic para seleccionar.
-      </p>
-    </div>
-
-    <!-- Contenedor de Rechazos -->
-    <div id="rechazosContainer" class="list-group" data-aos="fade-up" data-aos-duration="1000">
-      <!-- Se llenará dinámicamente -->
-    </div>
-
-    <!-- Botones de Acción -->
-    <div class="d-flex flex-wrap gap-3 mt-4" data-aos="fade-up" data-aos-duration="1000">
-      <button id="saveCommentsBtn" class="btn btn-success action-btn btn-custom btn-custom-primary">
-        <i class="bi bi-save2"></i> Guardar Cambios
-      </button>
-      <button id="downloadRechazosBtn" class="btn btn-secondary action-btn btn-custom btn-custom-outline" style="display:none;">
-        <i class="bi bi-download"></i> Descargar Rechazos
-      </button>
-    </div>
-  </main>
-
-  <!-- Scripts -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-  <script>
-    AOS.init();
-  </script>
-  <script src="main.js" defer></script>
+    <main class="container main-container">
+        <div class="text-center"><h2 class="mb-1"><i class="bi bi-file-earmark-medical-fill me-2"></i>Panel de Reportes</h2><p id="correoUsuario" class="text-muted"><i class="bi bi-person-circle me-2"></i>Cargando usuario...</p></div>
+        <hr class="my-4">
+        <section id="file-selection-section" class="fade-in-section">
+            <h4><i class="bi bi-folder2-open me-2"></i>1. Seleccionar Archivo</h4>
+            <div id="dropzone" class="hidden text-center p-4 mb-3"><i class="bi bi-cloud-arrow-up-fill"></i><p class="mb-0 mt-2 fw-bold h5">Arrastra y suelta el archivo aquí</p><p class="text-muted small">o haz clic para seleccionarlo</p></div>
+            <div id="fileListContainer" class="my-3"></div>
+            <div id="selectedFileFeedback" class="text-center text-success fw-bold my-3"></div>
+            <div class="text-center mt-3"><button id="confirmFileSelection" class="btn btn-pill btn-confirm" disabled><i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cargar</button></div>
+        </section>
+        <section id="tools-section" class="fade-in-section hidden">
+             <hr class="my-4">
+             <h4><i class="bi bi-tools me-2"></i>2. Panel de Control</h4>
+             <div class="tools-panel">
+                 <div id="filesManagementContainer" class="mb-4"></div>
+                 <div id="bossFilterContainer" class="mb-4"></div>
+                 <div class="text-center">
+                     <button id="saveCommentsBtn" class="btn btn-pill btn-save">
+                         <i class="bi bi-save-fill me-2"></i>Guardar Todos los Cambios
+                     </button>
+                 </div>
+             </div>
+        </section>
+        <section id="content-section" class="fade-in-section hidden">
+            <hr class="my-4"><h4><i class="bi bi-list-check me-2"></i>3. Lista de Reportes</h4>
+            <div id="rechazosContainer" class="mt-3"></div>
+        </section>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="main.js" defer></script>
 </body>
 </html>

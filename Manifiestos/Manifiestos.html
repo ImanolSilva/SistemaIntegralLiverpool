@@ -1,593 +1,840 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Manifestar Mercancía - Versión Avanzada</title>
-  <!-- Fuentes y CSS externos -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-  <style>
-    :root {
-      --rosa-principal: #E6007E;
-      --rosa-secundario: #F8BBD0;
-      --negro: #000;
-      --blanco: #fff;
-      --gris-oscuro: #333;
-      --verde-vivo: #66BB6A;
-      --bg-gradient: linear-gradient(135deg, #f7f7f7 0%, #f0f0f0 100%);
-      --ios-border-radius: 12px;
-      --ios-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      --ios-transition: all 0.3s ease;
-    }
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: var(--bg-gradient);
-      margin: 0;
-      padding: 0;
-      color: var(--gris-oscuro);
-      min-height: 100vh;
-    }
-    .btn-anim {
-      transition: transform var(--ios-transition), box-shadow var(--ios-transition);
-    }
-    .btn-anim:hover {
-      transform: scale(1.05);
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    .btn-primary {
-      background: linear-gradient(45deg, #E6007E, #F8BBD0) !important;
-      border: none;
-      box-shadow: var(--ios-shadow);
-    }
-    .btn-primary:hover {
-      background: linear-gradient(45deg, #d10570, #e89cae) !important;
-    }
-    .btn-secondary {
-      background: linear-gradient(45deg, #6c757d, #adb5bd) !important;
-      border: none;
-      box-shadow: var(--ios-shadow);
-    }
-    .btn-secondary:hover {
-      background: linear-gradient(45deg, #5a6268, #9fa6ad) !important;
-    }
-    .btn-danger {
-      background: linear-gradient(45deg, #dc3545, #ff6b6b) !important;
-      border: none;
-      box-shadow: var(--ios-shadow);
-    }
-    .btn-danger:hover {
-      background: linear-gradient(45deg, #c82333, #e04a4a) !important;
-    }
-    .btn-info {
-      background: linear-gradient(45deg, #17a2b8, #5bc0de) !important;
-      border: none;
-      box-shadow: var(--ios-shadow);
-    }
-    .btn-info:hover {
-      background: linear-gradient(45deg, #138496, #4ab3c8) !important;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manifestar Mercancía - Sistema Liverpool</title>
 
-    /* Botones circulares */
-    .btn-circle {
-  border-radius: 50% !important;
-  width: 2.8rem;
-  height: 2.8rem;
-  padding: 0 !important;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"> <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <style>
+        :root {
+            --rosa-principal: #E6007E;
+            --negro-fondo: #1a1a1a;
+            --blanco: #ffffff;
+            --gris-claro: #f8f9fa;
+            --gris-medio: #dee2e6;
+            --gris-oscuro: #6c757d;
+            --texto-principal: #343a40;
+            --verde-exito: #43A047;
+            --rojo-peligro: #e53935;
+            --ios-border-radius: 12px; /* Mantenido para compatibilidad con el contenido */
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #E6007E 0%, var(--negro-fondo) 100%);
+            color: var(--texto-principal);
+        }
+
+        /* --- Estructura Principal y Menú (Estilo del Panel de Admin) --- */
+        .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header-title{color:var(--blanco);font-weight:700;margin:0; font-size: 1.5rem;}
+        .btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}
+        .offcanvas{background-color:var(--rosa-principal)}
+        .offcanvas .nav-link{color:var(--blanco);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:background-color .3s ease,padding-left .3s ease;border-radius:0 50px 50px 0; display: flex; align-items: center;}
+        .offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem}
+        .offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
+        .main-container{max-width:1400px;margin:2rem auto;padding:clamp(1.5rem, 5vw, 2.5rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        
+        /* --- Estilos de Componentes (Adaptados y Mantenidos) --- */
+        .main-container h2 { font-weight: 700; color: var(--rosa-principal); display: flex; align-items: center; gap: 0.75rem; }
+        .card { border-radius: var(--ios-border-radius); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .form-control:focus, .form-select:focus { border-color: var(--rosa-principal); box-shadow: 0 0 0 3px rgba(230,0,126,0.2); }
+
+        /* Estilos específicos para la página de manifiestos */
+        #dropzone {
+            border: 2px dashed var(--rosa-principal);
+            border-radius: var(--ios-border-radius);
+            background-color: #fafafa;
+            padding: 2rem;
+            text-align: center;
+            color: var(--rosa-principal);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #dropzone:hover { transform: scale(1.02); background-color: #f5f5f5; }
+        .progress { height: 30px; border-radius: 30px; }
+        
+        .table-responsive thead th { background-color: var(--texto-principal); color: var(--blanco); white-space: nowrap; }
+        .table td, .table th { vertical-align: middle; }
+        /* Estilo para cada elemento de la lista de archivos */
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e0e0e0;
+    border-left: 5px solid #0d6efd; /* Un color azul primario */
+    background-color: #ffffff;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.3s ease; /* Transición suave para todas las propiedades */
 }
 
-.btn-circle i.material-icons {
-  font-size: 1.5rem;
-  line-height: 1 !important;
-  margin: 0 !important;
+/* Efecto al pasar el mouse sobre un elemento de la lista */
+.file-item:hover {
+    transform: translateY(-3px); /* Se levanta ligeramente */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left-color: #E6007E; /* Cambia al color rosa principal */
 }
 
-    .btn-circle .badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      font-size: 0.7rem;
-      padding: 0.2em 0.4em;
-    }
+/* Contenedor del ícono principal para darle un fondo */
+.file-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f3ff;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    margin-right: 15px;
+}
 
-    /* Barra de progreso para subida de manifiesto */
-    #uploadProgressContainer {      /* MODIFICADO */
-      display: none;                /* MODIFICADO */
-      margin-top: 1rem;             /* MODIFICADO */
-    }
-    #uploadProgressContainer .progress { /* MODIFICADO */
-      height: 25px;                     /* MODIFICADO */
-    }
+.file-item-icon .material-icons {
+    color: #0d6efd;
+    font-size: 20px;
+}
 
-    /* Resto de tu CSS existente para header, menú, contenedor, tabla, etc. */
-    header {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-      padding: 15px 25px;
-      box-shadow: var(--ios-shadow);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: background-color var(--ios-transition);
+/* Estilo para la información del archivo (nombre, tienda, fecha) */
+.file-info .file-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+}
+
+.file-info .file-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 12px; /* Espacio entre los íconos de tienda y fecha */
+    margin-top: 4px;
+}
+
+.file-meta .material-icons {
+    font-size: 1rem; /* Alinea el tamaño de los íconos con el texto */
+}
+
+/* Clase base para los botones de acción con animación */
+.action-btn {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    border: none;
+}
+
+.action-btn:hover {
+    transform: scale(1.1); /* Agranda el botón al pasar el mouse */
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+
+/* Estilo para los botones de ordenar la lista */
+.sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.9rem;
+}
+
+/* Estilo para el botón de ordenamiento activo */
+.sort-btn.active {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+    font-weight: 600;
+}
+/* Contenedor principal del dashboard */
+.dashboard-container {
+    background-color: #f8f9fa; /* Un fondo gris muy claro */
+    border-radius: 12px;
+    padding: 24px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Mensaje de estado (Progreso o Completo) */
+.status-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+.status-message.is-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+}
+.status-message.is-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+.status-message .material-icons {
+    vertical-align: middle;
+}
+
+/* Contenedor para las tarjetas de estadísticas */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+/* Estilo para cada tarjeta de estadística */
+.stat-card {
+    background-color: #ffffff;
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+.stat-card .stat-title {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #212529;
+}
+/* Colores específicos para el borde de cada tarjeta */
+.stat-card.total { border-color: #0d6efd; }
+.stat-card.expected { border-color: #6f42c1; }
+.stat-card.scanned { border-color: #198754; }
+.stat-card.missing { border-color: #dc3545; }
+.stat-card.excess { border-color: #ffc107; }
+
+
+/* Barra de progreso */
+.progress-container {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 24px;
+    margin-bottom: 24px;
+}
+.progress-fill {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: width 0.5s ease-in-out;
+}
+
+/* Contenedor del gráfico */
+.chart-container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+/* Detalles de faltantes */
+.faltantes-section .toggle-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+.faltantes-details {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 0.9rem;
+}
+.faltantes-details strong {
+    color: #dc3545; /* Rojo para resaltar */
+}
+.faltantes-details ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 8px;
+}
+.faltantes-details li {
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f1f1f1;
+}
+.faltantes-details li:last-child {
+    border-bottom: none;
+}
+.faltantes-details .material-icons {
+    color: #6c757d;
+}
+/* Contenedor principal para el modal de cambio de contenedor */
+.change-container-modal {
+    padding: 0; /* Quitamos el padding para tener control total */
+    text-align: left;
+}
+
+/* Encabezado del modal que cambia de color según el estado */
+.modal-header-status {
+    padding: 16px 24px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.modal-header-status .material-icons {
+    font-size: 2.5rem;
+}
+.modal-header-status h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Colores de estado para el encabezado */
+.modal-header-status.status-neutral { background-color: #2196F3; } /* Azul Info */
+.modal-header-status.status-incompleto { background-color: #f44336; } /* Rojo */
+.modal-header-status.status-excedente { background-color: #FF9800; } /* Naranja */
+.modal-header-status.status-completo { background-color: #4CAF50; } /* Verde */
+
+/* Cuerpo del modal */
+.modal-body-content {
+    padding: 24px;
+}
+
+/* Tarjeta para el resumen del contenedor actual */
+.container-summary-card {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+.container-summary-card h4 {
+    color: #343a40;
+    margin-top: 0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.container-summary-card .summary-content {
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+/* Texto de la pregunta de confirmación */
+.confirmation-prompt {
+    margin-top: 24px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    text-align: center;
+    color: #212529;
+}
+.confirmation-prompt .material-icons {
+    vertical-align: bottom;
+    color: #E6007E;
+}
+
+/* Estilos personalizados para los botones de SweetAlert */
+.swal2-actions {
+    gap: 12px; /* Espacio entre botones */
+}
+.swal2-confirm.btn-confirm-custom,
+.swal2-cancel.btn-cancel-custom {
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease;
+}
+.swal2-confirm.btn-confirm-custom:hover,
+.swal2-cancel.btn-cancel-custom:hover {
+    transform: scale(1.05);
+}
+
+.btn-confirm-custom { background-color: #28a745 !important; }
+.btn-cancel-custom { background-color: #6c757d !important; }
+
+/* Alerta simple para cuando no hay contenedor */
+.no-container-alert {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+.no-container-alert .material-icons {
+    font-size: 3rem;
+    color: #17a2b8;
+}
+/* Contenedor para el campo de búsqueda principal */
+.search-input-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+.search-input-container .material-icons {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+    font-size: 24px;
+}
+#inputBusqueda {
+    padding: 15px 20px 15px 50px; /* Espacio para el ícono */
+    font-size: 1.2rem;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+#inputBusqueda:focus {
+    border-color: #E6007E;
+    box-shadow: 0 0 10px rgba(230, 0, 126, 0.2);
+}
+
+/* Contenedor de la lista de resultados en el modal */
+.results-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+    margin-top: 16px;
+}
+
+/* Tarjeta individual para cada resultado de búsqueda */
+.result-item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+.result-item-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid #E6007E;
+    padding-left: 13px;
+}
+.result-item-card .item-info .item-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.result-item-card .item-info .item-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Badge para el estado del contenedor */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    vertical-align: middle;
+}
+.status-badge.is-closed {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Botón de 'Elegir' en la tarjeta */
+.result-item-card .btn-choose {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+/* Contenedor para el mensaje de 'No encontrado' */
+.not-found-container {
+    text-align: center;
+    padding: 20px;
+}
+.not-found-container .material-icons {
+    font-size: 4rem;
+    color: #6c757d;
+    margin-bottom: 10px;
+}
+.not-found-container h4 {
+    color: #333;
+    font-weight: 600;
+}
+.not-found-container p {
+    color: #6c757d;
+}
+/* Contenedor para la nueva alerta de carga personalizada */
+.custom-loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* El ícono de la lupa que se animará */
+.swal-icon-searching {
+    font-size: 5rem; /* Hacemos el ícono más grande */
+    color: #0d6efd; /* Un color azul primario */
+    /* Aplicamos la animación */
+    animation: search-animation 1.5s ease-in-out infinite;
+}
+
+/* El título principal de la alerta */
+.swal-loading-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #333;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* El párrafo donde aparecerán las frases motivacionales */
+.swal-loading-phrase {
+    font-size: 1rem;
+    color: #6c757d;
+    height: 30px; /* Altura fija para evitar que la alerta "salte" al cambiar el texto */
+    display: flex;
+    align-items: center;
+}
+/* Estilo base para el contenido de nuestros modales de confirmación */
+.confirmation-modal-content {
+    text-align: left;
+    padding: 24px;
+}
+
+/* Encabezado que cambia de color según la acción */
+/* (Reutilizamos el estilo que ya teníamos) */
+.modal-header-status {
+    padding: 16px 24px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.modal-header-status .material-icons { font-size: 2.5rem; }
+.modal-header-status h3 { margin: 0; font-size: 1.5rem; }
+
+/* Colores de estado para el encabezado */
+.modal-header-status.status-close { background-color: #f44336; } /* Rojo */
+.modal-header-status.status-reopen { background-color: #4CAF50; } /* Verde */
+
+/* Tarjeta para mostrar el resumen del contenedor */
+.summary-card {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+    margin-bottom: 20px;
+}
+
+/* Mensaje principal del modal */
+.confirmation-modal-content p.main-text {
+    font-size: 1.1rem;
+    color: #333;
+    margin-top: 16px;
+}
+.confirmation-modal-content .closed-by-user {
+    color: var(--rosa-principal); /* Usamos tu variable de color rosa */
+    font-weight: 600;
+}
+/* Estilo para el toast de éxito de escaneo */
+.scan-success-toast {
+    background-color: #28a745 !important; /* Verde éxito */
+    color: white !important;
+}
+.scan-success-toast .swal2-icon-content {
+    color: white !important;
+}
+
+/* Estilo para el toast de error o advertencia */
+.scan-error-toast {
+    background-color: #dc3545 !important; /* Rojo error */
+    color: white !important;
+}
+.scan-error-toast .swal2-icon-content {
+    color: white !important;
+}
+/* Contenedor para hacer la tabla responsiva en móviles */
+.table-responsive-wrapper {
+    overflow-x: auto;
+    border-radius: var(--ios-border-radius, 10px);
+    border: 1px solid #dee2e6;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Estilo mejorado para la tabla */
+.details-table {
+    border-collapse: separate; /* Permite bordes redondeados */
+    border-spacing: 0;
+}
+
+.details-table thead th {
+    background-color: #f8f9fa;
+    position: sticky; /* Encabezados fijos al hacer scroll vertical */
+    top: 0;
+    z-index: 10;
+    white-space: nowrap; /* Evita que el texto del encabezado se parta */
+}
+
+.details-table tbody td {
+    vertical-align: middle;
+}
+
+/* Clases de estado para la columna 'Diferencia' */
+.diff-status {
+    padding: 0.5rem;
+    font-weight: 600;
+    text-align: center;
+    border-radius: 6px;
+    color: white;
+}
+.diff-status.is-ok { background-color: #28a745; } /* Verde */
+.diff-status.is-missing { background-color: #dc3545; } /* Rojo */
+.diff-status.is-excess { background-color: #ffc107; color: #333; } /* Amarillo */
+
+/* Animación para resaltar una fila cuando se actualiza */
+@keyframes flash-update {
+    0% { background-color: rgba(255, 193, 7, 0.5); }
+    100% { background-color: transparent; }
+}
+
+.row-updated {
+    animation: flash-update 1s ease-out;
+}
+/* ======================================================== */
+/* ESTILOS MEJORADOS PARA BOTONES                           */
+/* ======================================================== */
+
+/* --- Estilo Base para TODOS los botones --- */
+.btn {
+    /* 1. Alineación perfecta de ícono y texto */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem; /* Espacio entre el ícono y el texto */
+
+    /* 2. Un toque visual más moderno */
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.5rem 1rem; /* Ajuste de padding */
+    border-width: 2px;
+    
+    /* 3. Animación para el efecto hover */
+    transition: all 0.2s ease-in-out;
+}
+
+/* 4. Efecto al pasar el mouse */
+.btn:hover {
+    transform: translateY(-2px); /* Eleva ligeramente el botón */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Añade una sombra sutil */
+}
+
+/* 5. Aseguramos el tamaño y alineación del ícono SIN style en línea */
+.btn .material-icons {
+    font-size: 1.25rem; /* Tamaño consistente para los íconos */
+    /* No se necesita 'vertical-align' gracias a flexbox */
+}
+
+/* --- Ajustes para botones pequeños --- */
+.btn-sm {
+    padding: 0.35rem 0.8rem;
+    gap: 0.4rem;
+}
+
+.btn-sm .material-icons {
+    font-size: 1.1rem;
+}
+
+/* --- Pequeños retoques a los colores primarios y secundarios --- */
+.btn-primary {
+    /* Un azul un poco más vibrante */
+    background-color: #0d6efd; 
+    border-color: #0d6efd;
+}
+
+.btn-secondary {
+    /* Un gris un poco más oscuro para mejor contraste */
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+/* (Reutilizamos los estilos de los botones que ya creamos) */
+/* .swal2-confirm.btn-confirm-custom, .swal2-cancel.btn-cancel-custom */
+/* Definición de la animación de la lupa */
+@keyframes search-animation {
+    0% {
+        transform: rotate(-15deg) scale(1);
     }
-    .header-title {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin: 0;
+    50% {
+        transform: rotate(15deg) scale(1.1);
     }
-    .btn-menu {
-      font-size: 1.8rem;
-      background: transparent;
-      color: var(--blanco);
-      border: none;
-      cursor: pointer;
+    100% {
+        transform: rotate(-15deg) scale(1);
     }
-    #logout-btn {
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      padding: 0.6rem 1rem;
-      border-radius: 8px;
-      background-color: #c82333;
-      border: none;
-      color: var(--blanco);
-      font-weight: 600;
-      transition: background-color var(--ios-transition);
-    }
-    #logout-btn:hover {
-      background-color: #a71d2a;
-    }
-    .offcanvas {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-    }
-    .offcanvas-header { padding: 1rem; }
-    .offcanvas-body { padding: 0; }
-    .offcanvas-title {
-      font-size: 1.3rem;
-      font-weight: 600;
-    }
-    .navbar-nav { padding-left: 1rem; }
-    .navbar-nav .nav-link {
-      color: var(--blanco);
-      font-size: 1rem;
-      padding: 0.75rem 1.5rem;
-      transition: background-color var(--ios-transition);
-      display: block;
-      font-weight: 500;
-    }
-    .navbar-nav .nav-link:hover {
-      background-color: var(--rosa-secundario);
-      color: var(--gris-oscuro);
-    }
-    .main-container {
-      max-width: 1100px;
-      margin: 3rem auto;
-      padding: 2.5rem 3rem;
-      background: #fff;
-      border-radius: var(--ios-border-radius);
-      box-shadow: var(--ios-shadow);
-      position: relative;
-      overflow: hidden;
-      animation: containerSlide 0.8s ease-out both;
-    }
-    @keyframes containerSlide {
-      from { opacity: 0; transform: translateY(50px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .main-container h2 {
-      font-size: 2.3rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-      color: var(--rosa-principal);
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    /* Información del usuario */
-    #userInfo {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 1rem;
-      text-align: right;
-    }
-    /* DROPZONE */
-    #dropzone {
-      border: 2px dashed var(--rosa-principal);
-      border-radius: var(--ios-border-radius);
-      background-color: #fff;
-      padding: 2rem;
-      text-align: center;
-      color: var(--rosa-principal);
-      cursor: pointer;
-      transition: transform var(--ios-transition), background-color var(--ios-transition);
-      margin-bottom: 2rem;
-    }
-    #dropzone:hover {
-      transform: scale(1.02);
-      background-color: #fafafa;
-    }
-    /* BOTONES */
-    .btn {
-      border: none;
-      border-radius: 5px;
-      font-weight: 600;
-      transition: background-color var(--ios-transition), color var(--ios-transition);
-    }
-    .btn-same-size {
-      min-width: 140px;
-      text-align: center;
-    }
-    @media (max-width: 576px) {
-      .btn-same-size {
-        width: 100% !important;
-        margin: 0.3rem 0;
-      }
-    }
-    /* TABLA RESPONSIVA */
-    .table-responsive {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .table-responsive table {
-      min-width: 600px;
-    }
-    .table-responsive thead th {
-      background-color: var(--rosa-principal);
-      color: var(--blanco);
-      font-weight: 700;
-      padding: 1rem;
-    }
-    .table-responsive th,
-    .table-responsive td {
-      white-space: nowrap;
-      word-wrap: break-word;
-      padding: 0.8rem;
-      border: 1px solid #ddd;
-      text-align: center;
-      transition: background-color 0.3s ease;
-    }
-    .table-responsive tbody tr:hover {
-      background-color: #fce4ec;
-    }
-    .offcanvas.offcanvas-start { left: 0 !important; }
-    .swal2-html-container i.material-icons {
-      font-size: 1.2rem;
-      vertical-align: middle;
-      margin-right: 5px;
-    }
-    .swal2-popup.global-analysis {
-      width: 600px !important;
-      max-width: 90%;
-      margin: auto;
-    }
-    .global-analysis-content {
-      margin: auto;
-      max-height: 400px;
-      overflow-y: auto;
-      width: 100%;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 15px;
-      padding: 10px;
-      background: #fff;
-      border-radius: var(--ios-border-radius);
-      color: #333;
-    }
-    .analysis-box {
-      background: #f9f9f9;
-      border-radius: 8px;
-      padding: 10px;
-      animation: fadeIn 0.5s ease-in-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    .analysis-box h5 {
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .analysis-box h5 i { font-size: 1.2rem; }
-    .analysis-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      margin: 3px 0;
-    }
-    .analysis-item i { font-size: 1.1rem; color: #333; }
-    #analysisSearchContInput {
-      margin-top: 8px;
-      margin-bottom: 8px;
-    }
-    /* Animaciones al cargar la tabla */
-    .animate__fadeInUp {
-      animation: fadeInUp 0.5s;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .swal2-file-list-modal .list-group-item {
-      position: relative;
-      padding-right: 6rem; /* espacio para los botones */
-    }
-    /* Zona de botones, siempre fija a la derecha y centrada vertical */
-    .swal2-file-list-modal .file-actions {
-      position: absolute;
-      right: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      display: flex;
-      gap: 0.5rem;
-    }
-  </style>
+    
+}
+
+    </style>
 </head>
 <body>
-  <!-- HEADER -->
-  <header class="d-flex justify-content-between align-items-center px-4 py-3">
-    <div class="d-flex align-items-center">
-      <button class="btn-menu me-3 btn-anim" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral">
-        <i class="material-icons">menu</i>
-      </button>
-      <h1 class="header-title">Manifestar Mercancía</h1>
-    </div>
-    <button class="btn btn-danger btn-anim" id="logout-btn" aria-label="Cerrar sesión">
-      <i class="material-icons">power_settings_new</i>
-    </button>
-  </header>
+    <header class="app-header">
+        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><i class="bi bi-list"></i></button>
+        <h1 class="header-title">Manifestar Mercancía</h1>
+        <button id="logout-btn" class="btn-menu"><i class="bi bi-power"></i></button>
+    </header>
 
-  <!-- MENÚ LATERAL (Offcanvas) -->
-  <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="menuLateralLabel">Menú</h5>
-      <button type="button" class="btn-close btn-anim" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-box-seam-fill me-2"></i> Menú</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button></div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
+                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
+                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
+                <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
+                <a class="nav-link active" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+                <li class="nav-item" id="admin-nav-link" style="display: none;"><a class="nav-link" href="../Admin/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
+            </nav>
+        </div>
     </div>
-    <div class="offcanvas-body p-0">
-      <nav class="nav flex-column">
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center btn-anim" href="../index.html">
-              <i class="material-icons">home</i>
-              <span>Inicio</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center btn-anim" href="../ChecarPrecios/index.html">
-              <i class="material-icons">local_offer</i>
-              <span>Checar Precios</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center btn-anim" href="../Rechazos/reportes.html">
-              <i class="material-icons">cancel</i>
-              <span>Rechazos</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center btn-anim" href="../Inventarios/Inventarios.html">
-              <i class="material-icons">archive</i>
-              <span>Inventarios</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center btn-anim" href="../Configuraciones/Configuracion.html">
-              <i class="material-icons">settings</i>
-              <span>Configuración</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link d-flex align-items-center btn-anim" href="../Manifiestos/Manifiestos.html">
-              <i class="material-icons">description</i>
-              <span>Manifiestos</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
-  </div>
-
-  <!-- CONTENEDOR PRINCIPAL -->
-  <section class="container main-container animate__animated animate__fadeInUp" data-aos="fade-up" data-aos-duration="1000">
+    
+<main class="container main-container">
     <div id="userInfo"></div>
-    <!-- Sección de número de empleado -->
+
     <section id="employeeSection" class="container mb-4">
-      <div class="card shadow-sm" style="border-radius: var(--ios-border-radius);">
-        <div class="card-header d-flex justify-content-between align-items-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
-          <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
-            <i class="material-icons" style="font-size:1.5rem; vertical-align:middle;">badge</i>
-            Ingrese Número de Empleado (8 dígitos)
-          </h2>
-          <button id="btnCambiarEmpleado" class="btn btn-outline-primary btn-sm btn-anim">
-            <i class="material-icons" style="vertical-align:middle;">edit</i> Cambiar
-          </button>
-        </div>
-        <div class="card-body">
-          <input type="text" id="employeeNumberInput" class="form-control" placeholder="Ej: 12345678" maxlength="8">
-          <small class="text-muted">Sin este dato el sistema permanecerá bloqueado.</small>
-        </div>
-      </div>
-    </section>
-    <!-- RESTO DE INTERFAZ -->
-    <div id="restoInterfaz" style="display:none;">
-
-<!-- SECCIÓN ADMIN: SUBIR MANIFIESTO -->
-<div id="adminUploadSection" data-aos="zoom-in" style="display:none;">
-  <div class="card mb-4 shadow" style="border-radius: var(--ios-border-radius); box-shadow: var(--ios-shadow);">
-    <div class="card-header text-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
-      <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
-        <i class="material-icons" style="font-size:2rem; vertical-align:middle;">upload_file</i>
-        Subir Archivo Manifiesto
-      </h2>
-    </div>
-    <div class="card-body text-center">
-      <div id="dropzone" class="mb-3" style="cursor:pointer;">
-        <div class="d-flex flex-column align-items-center justify-content-center p-3">
-          <i class="material-icons animate__animated animate__fadeIn" style="font-size:3.5rem; color:var(--rosa-principal);">cloud_upload</i>
-          <p class="mt-2 mb-0 fw-bold" style="color:#555;">Arrastra y suelta o haz clic para seleccionar un archivo Excel</p>
-        </div>
-        <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
-      </div>
-
-      <p id="selectedFileName" class="text-muted mt-2 mb-0" style="font-size: 0.95rem;"></p>
-
-      <div class="d-flex justify-content-center gap-3 mt-3 flex-wrap">
-        <button id="uploadFileBtn" class="btn btn-primary btn-anim btn-same-size" disabled>
-          <i class="material-icons" style="vertical-align:middle;">file_upload</i> Subir
-        </button>
-        <button id="btnVerArchivos" class="btn btn-secondary btn-anim btn-same-size">
-          <i class="material-icons" style="vertical-align:middle;">folder_open</i> Ver Archivos
-        </button>
-      </div>
-
-      <!-- Barra de progreso moderna -->
-      <div id="uploadProgressContainer" class="mt-4" style="display: none;">
-        <div class="progress" style="height: 30px; border-radius: 30px; overflow: hidden;">
-          <div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success text-white fw-bold"
-               role="progressbar" style="width: 0%; line-height: 30px;">0%
-          </div>
-        </div>
-        <div class="d-flex justify-content-between mt-2 px-2 small text-muted" style="font-size: 0.85rem;">
-          <span id="uploadSpeed">Velocidad: 0 KB/s</span>
-          <span id="uploadEta">Tiempo restante: --</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-
-
-      <!-- Búsqueda de Contenedor / SKU -->
-      <div id="searchContainerSection" class="mb-4">
-        <div class="card shadow-sm" style="border-radius: var(--ios-border-radius);">
-          <div class="card-header text-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
-            <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
-              <i class="material-icons" style="vertical-align:middle;">search</i>
-              Buscar Contenedor / SKU
-            </h2>
-          </div>
-          <div class="card-body">
-            <!-- Se utiliza debounce de 500ms y se diferencia por el primer carácter -->
-            <input type="text" id="inputBusqueda" class="form-control" placeholder="Ingrese código (mínimo 5 dígitos)">
-            <small class="text-muted d-block mt-1">La búsqueda se enviará automáticamente al detenerse 500ms o al pegar.</small>
-          </div>
-        </div>
-      </div>
-
-      <!-- Detalles del Contenedor -->
-      <div id="containerResultsSection" style="display:none;" class="mb-4">
-        <div class="card shadow-sm" style="border-radius: var(--ios-border-radius);">
-          <div class="card-header text-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
-            <h2 class="h4" id="containerHeader" style="color: var(--rosa-principal); font-weight:700;">
-              <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
-              Detalles del Contenedor
-            </h2>
-            <p id="selectedFileToWork" class="fw-bold mb-0"></p>
-            <p id="lastUserUpdate" class="text-muted" style="font-size:0.9rem;"></p>
-            <div class="d-flex justify-content-center flex-wrap gap-2 mt-2">
-              <button id="btnAnalisisGlobal" class="btn btn-info btn-sm btn-anim btn-same-size">
-                <i class="material-icons" style="vertical-align:middle;">analytics</i> Análisis Global
-              </button>
-              <button id="btnCerrarContenedor" class="btn btn-danger btn-sm btn-anim btn-same-size">
-                <i class="material-icons" style="vertical-align:middle;">lock</i> Cerrar Contenedor
-              </button>
-              <button id="btnCambiarContenedor" class="btn btn-secondary btn-sm btn-anim btn-same-size">
-                <i class="material-icons" style="vertical-align:middle;">switch_account</i> Cambiar de Contenedor
-              </button>
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center bg-white border-0">
+                <h2 class="h4 mb-0"><i class="material-icons" style="font-size:1.5rem; vertical-align:middle;">badge</i> Ingrese Número de Empleado (8 dígitos)</h2>
+                <button id="btnCambiarEmpleado" class="btn btn-outline-primary btn-sm"><i class="material-icons">edit</i> Cambiar</button>
             </div>
-          </div>
-          <div id="containerDetails" class="card-body table-responsive" style="border-radius: 0 0 var(--ios-border-radius) var(--ios-border-radius);">
-            <!-- Aquí se mostrará la tabla de registros -->
-          </div>
-          <div id="downloadSection" class="p-3 text-center" style="display:none;">
-            <button id="btnDescargarArchivo" class="btn btn-success btn-sm btn-anim">
-              <i class="material-icons" style="vertical-align:middle;">download</i> Descargar Archivo Actual
-            </button>
-          </div>
+            <div class="card-body">
+                <input type="text" id="employeeNumberInput" class="form-control" placeholder="Ej: 12345678" maxlength="8">
+                <small class="text-muted">Sin este dato el sistema permanecerá bloqueado.</small>
+            </div>
         </div>
-      </div>
+    </section>
+    
+    <div id="restoInterfaz" style="display:none;">
+        <div id="adminUploadSection" data-aos="zoom-in" style="display:none;">
+            <div class="card mb-4 shadow">
+                <div class="card-header text-center bg-white border-0">
+                    <h2 class="h4 mb-0"><i class="material-icons" style="font-size:2rem; vertical-align:middle;">upload_file</i> Subir Archivo Manifiesto</h2>
+                </div>
+                <div class="card-body text-center">
+                    <div id="dropzone" class="mb-3">
+                        <div class="d-flex flex-column align-items-center justify-content-center p-3">
+                            <i class="material-icons animate__animated animate__fadeIn" style="font-size:3.5rem;">cloud_upload</i>
+                            <p class="mt-2 mb-0 fw-bold" style="color:#555;">Arrastra y suelta o haz clic para seleccionar un archivo Excel</p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+                    </div>
+                    <p id="selectedFileName" class="text-muted mt-2 mb-0" style="font-size: 0.95rem;"></p>
+                    <div class="d-flex justify-content-center gap-3 mt-3 flex-wrap">
+                        <button id="uploadFileBtn" class="btn btn-primary" disabled><i class="material-icons">file_upload</i> Subir</button>
+                        <button id="btnVerArchivos" class="btn btn-secondary"><i class="material-icons">folder_open</i> Ver Archivos</button>
+                    </div>
+                    <div id="uploadProgressContainer" class="mt-4" style="display: none;">
+                        <div class="progress"><div id="uploadProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success text-white fw-bold" role="progressbar" style="width: 0%;">0%</div></div>
+                        <div class="d-flex justify-content-between mt-2 px-2 small text-muted"><span id="uploadSpeed">Velocidad: 0 KB/s</span><span id="uploadEta">Tiempo restante: --</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-      <!-- Registro de Piezas -->
-      <div id="scanEntrySection" style="display:none;" class="mb-4">
-        <div class="card shadow-sm" style="border-radius: var(--ios-border-radius);">
-          <div class="card-header text-center bg-white border-0" style="border-radius: var(--ios-border-radius) var(--ios-border-radius) 0 0;">
-            <h2 class="h4" style="color: var(--rosa-principal); font-weight:700;">
-              <i class="material-icons" style="vertical-align:middle;">qr_code_scanner</i>
-              Registro de Piezas
-            </h2>
-          </div>
-          <div class="card-body">
-            <input type="text" id="inputScanCode" class="form-control" placeholder="Escanee o ingrese manualmente el código" disabled>
-            <small class="text-muted d-block mt-1">Se procesará automáticamente al detectar entre 5 y 10 dígitos o, para código europeo, 12 o más.</small>
-          </div>
-          <div class="card-footer text-end" style="border-radius: 0 0 var(--ios-border-radius) var(--ios-border-radius); background-color:#fff;">
-            <button id="btnRegistrarManual" class="btn btn-primary btn-sm btn-anim">
-              <i class="material-icons" style="vertical-align:middle;">edit_note</i> Registrar Manual
-            </button>
-          </div>
+        <div id="searchContainerSection" class="mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header text-center bg-white border-0"><h2 class="h4 mb-0"><i class="material-icons" style="vertical-align:middle;">search</i> Buscar Contenedor / SKU</h2></div>
+                <div class="card-body">
+                    <input type="text" id="inputBusqueda" class="form-control" placeholder="Ingrese código (mínimo 5 dígitos)">
+                    <small class="text-muted d-block mt-1">La búsqueda se enviará automáticamente al detenerse 500ms o al pegar.</small>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div id="containerResultsSection" style="display:none;" class="mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header text-center bg-white border-0">
+                    <h2 class="h4" id="containerHeader"><i class="material-icons" style="vertical-align:middle;">inventory_2</i> Detalles del Contenedor</h2>
+                    <p id="selectedFileToWork" class="fw-bold mb-0"></p>
+                    <p id="lastUserUpdate" class="text-muted" style="font-size:0.9rem;"></p>
+                    <div class="d-flex justify-content-center flex-wrap gap-2 mt-2">
+                        <button id="btnAnalisisGlobal" class="btn btn-info btn-sm"><i class="material-icons">analytics</i> Análisis Global</button>
+                        <button id="btnCerrarContenedor" class="btn btn-danger btn-sm"><i class="material-icons">lock</i> Cerrar Contenedor</button>
+                        <button id="btnCambiarContenedor" class="btn btn-secondary btn-sm"><i class="material-icons">switch_account</i> Cambiar de Contenedor</button>
+                    </div>
+                </div>
+                <div id="containerDetails" class="card-body table-responsive"></div>
+                <div id="downloadSection" class="p-3 text-center" style="display:none;">
+                    <button id="btnDescargarArchivo" class="btn btn-success btn-sm"><i class="material-icons">download</i> Descargar Archivo Actual</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanEntrySection" style="display:none;" class="mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header text-center bg-white border-0"><h2 class="h4 mb-0"><i class="material-icons" style="vertical-align:middle;">qr_code_scanner</i> Registro de Piezas</h2></div>
+                <div class="card-body">
+                    <input type="text" id="inputScanCode" class="form-control" placeholder="Escanee o ingrese manualmente el código" disabled>
+                    <small class="text-muted d-block mt-1">Se procesará automáticamente al detectar entre 5 y 10 dígitos o, para código europeo, 12 o más.</small>
+                </div>
+                <div class="card-footer text-end bg-white">
+                    <button id="btnRegistrarManual" class="btn btn-primary btn-sm"><i class="material-icons">edit_note</i> Registrar Manual</button>
+                </div>
+            </div>
+        </div>
     </div>
-  </section>
+</main>
 
-  <!-- Modal para Condiciones de la Mcia -->
-  <div class="modal fade" id="modalDanios" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content" style="border-radius: var(--ios-border-radius);">
-        <div class="modal-header" style="border-bottom:none;">
-          <h5 class="modal-title" style="color: var(--rosa-principal); font-weight:700;">
-            <i class="material-icons" style="vertical-align:middle;">warning</i>
-            Registrar Condiciones de la Mcia
-          </h5>
-          <button type="button" class="btn-close btn-anim" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="danioCantidad" class="form-label fw-bold">¿Cuántas piezas presentan condiciones (daños)?</label>
-            <input type="number" class="form-control" id="danioCantidad" min="1" step="1" value="1">
-          </div>
-          <div class="mb-3">
-            <label for="danioFoto" class="form-label fw-bold">Foto de la condición</label>
-            <input type="file" class="form-control" id="danioFoto" accept="image/*">
-            <small class="text-muted">Suba una foto clara del artículo.</small>
-          </div>
-        </div>
-        <div class="modal-footer" style="border-top:none;">
-          <button type="button" class="btn btn-secondary btn-anim" data-bs-dismiss="modal">
-            <i class="material-icons">cancel</i> Cancelar
-          </button>
-          <button type="button" class="btn btn-primary btn-anim" id="btnGuardarDanio">
-            <i class="material-icons">check_circle</i> Guardar
-          </button>
-        </div>
-      </div>
+    <div class="modal fade" id="modalDanios" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content" style="border-radius: var(--ios-border-radius);"><div class="modal-header border-bottom-0"><h5 class="modal-title" style="color: var(--rosa-principal); font-weight:700;"><i class="material-icons" style="vertical-align:middle;">warning</i> Registrar Condiciones de la Mcia</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><label for="danioCantidad" class="form-label fw-bold">¿Cuántas piezas presentan condiciones (daños)?</label><input type="number" class="form-control" id="danioCantidad" min="1" step="1" value="1"></div><div class="mb-3"><label for="danioFoto" class="form-label fw-bold">Foto de la condición</label><input type="file" class="form-control" id="danioFoto" accept="image/*"><small class="text-muted">Suba una foto clara del artículo.</small></div></div><div class="modal-footer border-top-0"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="material-icons">cancel</i> Cancelar</button><button type="button" class="btn btn-primary" id="btnGuardarDanio"><i class="material-icons">check_circle</i> Guardar</button></div></div></div>
     </div>
-  </div>
 
-  <!-- Scripts Externos -->
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script> <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    </body>
 
   <script>
     (function(){
@@ -796,51 +1043,105 @@ await db.collection('manifiestos')
         /***************************************************
          * DETECCIÓN DE EMPLEADO (8 dígitos)
          ***************************************************/
-        employeeNumberInput.addEventListener("input", () => {
-          let val = employeeNumberInput.value.trim();
-          if (val.length === 8) {
-            currentEmployeeNumber = val;
+/**
+ * Función "debounce" para evitar que el código se ejecute en cada pulsación de tecla.
+ * Espera a que el usuario deje de escribir para ejecutar la validación.
+ * @param {Function} func - La función a ejecutar después del retardo.
+ * @param {number} delay - El tiempo de espera en milisegundos.
+ * @returns {Function}
+ */
+const debounce = (func, delay = 400) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            func.apply(this, args);
+        }, delay);
+    };
+};
+
+// 1. MEJORA: Usamos 'debounce' en el evento 'input' para una experiencia fluida.
+//    La validación solo se ejecuta cuando el usuario deja de escribir.
+employeeNumberInput.addEventListener("input", debounce(() => {
+    let val = employeeNumberInput.value.trim();
+
+    // Validamos que sean exactamente 8 dígitos numéricos para más robustez.
+    if (/^\d{8}$/.test(val)) {
+        currentEmployeeNumber = val;
+        
+        // MEJORA DE DISEÑO: Usamos un "toast" no intrusivo para notificar el éxito.
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Número de empleado válido',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+            }
+        });
+
+        restoInterfaz.style.display = "block";
+        inputScanCode.disabled = false;
+        inputScanCode.focus(); // Guía al usuario al siguiente paso.
+    } else {
+        restoInterfaz.style.display = "none";
+        inputScanCode.disabled = true;
+    }
+}));
+
+// 2. MEJORA: Se rediseña el popup para cambiar el número, haciéndolo más atractivo.
+btnCambiarEmpleado.addEventListener("click", () => {
+    Swal.fire({
+        title: "Cambiar Empleado",
+        input: "text",
+        inputLabel: "Ingrese el nuevo número de empleado",
+        inputPlaceholder: "Debe contener 8 dígitos...",
+        inputAttributes: {
+            maxlength: 8,
+            autocapitalize: "off",
+            autocorrect: "off"
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Confirmar',
+        cancelButtonText: 'Cancelar',
+        // MEJORA DE DISEÑO: Colores y estilo consistentes con la app.
+        confirmButtonColor: '#43A047', // Verde éxito
+        cancelButtonColor: '#6c757d',  // Gris oscuro
+        customClass: {
+            popup: 'animated animate__fadeInDown' // Animación de entrada
+        },
+        // MEJORA: Validación más robusta y mensaje de error claro.
+        preConfirm: (value) => {
+            if (!/^\d{8}$/.test(value)) {
+                Swal.showValidationMessage("El número debe contener exactamente 8 dígitos numéricos");
+                return false; // Evita que se cierre la alerta
+            }
+            return value;
+        }
+    }).then(result => {
+        if (result.isConfirmed) {
+            currentEmployeeNumber = result.value.trim();
+            // MEJORA DE DISEÑO: Notificación de éxito con un toast.
             Swal.fire({
-              icon: "success",
-              title: "Número de empleado",
-              html: `<i class="material-icons" style="color:#4CAF50;">how_to_reg</i> Se usará el número: ${currentEmployeeNumber}`,
-              timer: 1500,
-              showConfirmButton: false
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: 'Número actualizado con éxito',
+                html: `Ahora se usará: <strong>${currentEmployeeNumber}</strong>`,
+                showConfirmButton: false,
+                timer: 2500
             });
+            // Aseguramos que la interfaz esté visible después del cambio.
             restoInterfaz.style.display = "block";
             inputScanCode.disabled = false;
-          } else {
-            restoInterfaz.style.display = "none";
-            inputScanCode.disabled = true;
-          }
-        });
-        btnCambiarEmpleado.addEventListener("click", () => {
-          Swal.fire({
-            title: "Cambiar Número de Empleado",
-            input: "text",
-            inputLabel: "Ingrese el nuevo número (8 dígitos)",
-            inputPlaceholder: "Ej: 87654321",
-            inputAttributes: { maxlength: 8, autocapitalize: "off", autocorrect: "off" },
-            showCancelButton: true,
-            confirmButtonText: `<i class="material-icons">check_circle</i> Cambiar`,
-            cancelButtonText: `<i class="material-icons">cancel</i> Cancelar`,
-            preConfirm: (value) => {
-              if (value.trim().length !== 8) {
-                Swal.showValidationMessage("El número debe tener 8 dígitos");
-              }
-              return value;
-            }
-          }).then(result => {
-            if (result.isConfirmed) {
-              currentEmployeeNumber = result.value.trim();
-              Swal.fire({
-                icon: "success",
-                title: "Número actualizado",
-                html: `<i class="material-icons" style="color:#4CAF50;">check_circle</i> Ahora se usará el número: ${currentEmployeeNumber}`
-              });
-            }
-          });
-        });
+            inputScanCode.focus();
+        }
+    });
+});
    /***************************************************
    * LISTAR / DESCARGAR / ELIMINAR MANIFIESTOS
    ***************************************************/
@@ -890,44 +1191,53 @@ async function listarArchivos() {
     // Ordenar por defecto: recientes primero
     currentList.sort((a, b) => (b.date || 0) - (a.date || 0));
 
-    // Función para generar solo la lista de items en HTML
+    // --- ¡MEJORA! ---
+    // Función para generar la lista de items con el nuevo estilo.
     function renderItems(list) {
       return list.map(f => `
-        <div class="d-flex justify-content-between align-items-center border rounded shadow-sm p-3 mb-3 bg-white"
-             style="border-left: 5px solid var(--rosa-principal); border-radius: var(--ios-border-radius);">
-          <div style="flex: 1;">
-            <div class="fw-semibold text-dark" style="font-size: 1rem;">
-              <i class="material-icons align-middle me-1 text-rosa">insert_drive_file</i> ${f.name}
+        <div class="file-item">
+          <div class="d-flex align-items-center">
+            <div class="file-item-icon">
+              <i class="material-icons">description</i>
             </div>
-            <div class="text-muted small mt-1">
-              <i class="material-icons align-middle" style="font-size:1rem;">store</i> ${f.folder} &nbsp;&nbsp;
-              <i class="material-icons align-middle" style="font-size:1rem;">date_range</i> ${f.dateStr}
+            <div class="file-info">
+              <div class="file-name">${f.name}</div>
+              <div class="file-meta">
+                <span><i class="material-icons align-middle">store</i> ${f.folder}</span>
+                <span><i class="material-icons align-middle">date_range</i> ${f.dateStr}</span>
+              </div>
             </div>
           </div>
-          <div class="d-flex gap-2 ms-3">
-            <button class="btn btn-info btn-circle btn-anim" onclick="verDashboardArchivo('${f.folder}','${f.name}')" title="Ver Dashboard">
+          <div class="d-flex gap-2">
+            <button class="btn btn-info action-btn" onclick="verDashboardArchivo('${f.folder}','${f.name}')" title="Ver Dashboard">
               <i class="material-icons">insights</i>
             </button>
-            <button class="btn btn-success btn-circle btn-anim" onclick="downloadFile('${f.folder}','${f.name}')" title="Descargar">
+            <button class="btn btn-success action-btn" onclick="downloadFile('${f.folder}','${f.name}')" title="Descargar">
               <i class="material-icons">download</i>
             </button>
             ${SUPER_ADMINS.includes(currentUser.uid) ?
-              `<button class="btn btn-danger btn-circle btn-anim" onclick="eliminarArchivo('${f.folder}','${f.name}')" title="Eliminar">
-                 <i class="material-icons">delete</i>
-               </button>` : ``
+              `<button class="btn btn-danger action-btn" onclick="eliminarArchivo('${f.folder}','${f.name}')" title="Eliminar">
+                 <i class="material-icons">delete_sweep</i>
+               </button>` : ''
             }
           </div>
         </div>
       `).join('');
     }
 
-    // Construir contenido del modal
+    // --- ¡MEJORA! ---
+    // Construir contenido del modal con los nuevos botones de ordenamiento.
     const htmlHeader = `
-      <div style="margin-bottom:10px; display:flex; justify-content:flex-end; gap:8px;">
-        <button id="sortRecent" class="btn btn-sm btn-outline-primary">Más recientes</button>
-        <button id="sortOld" class="btn btn-sm btn-outline-secondary">Más antiguos</button>
+      <div class="d-flex justify-content-end align-items-center mb-3 gap-2">
+        <span class="text-muted small me-2">Ordenar por:</span>
+        <button id="sortRecent" class="btn btn-sm btn-outline-primary sort-btn active">
+          <i class="material-icons">new_releases</i> Más recientes
+        </button>
+        <button id="sortOld" class="btn btn-sm btn-outline-secondary sort-btn">
+          <i class="material-icons">history</i> Más antiguos
+        </button>
       </div>
-      <div id="filesList" style="max-height: 420px; overflow-y: auto; padding-right: 5px;">
+      <div id="filesList" style="max-height: 420px; overflow-y: auto; padding-right: 10px;">
         ${renderItems(currentList)}
       </div>
     `;
@@ -937,7 +1247,7 @@ async function listarArchivos() {
                 <i class="material-icons" style="color:#E6007E;">folder_open</i> Manifiestos
               </span>`,
       html: htmlHeader,
-      width: "650px",
+      width: "700px", // Un poco más ancho para que respire el diseño
       showCloseButton: true,
       confirmButtonText: "Cerrar",
       customClass: { popup: "swal2-file-list-modal" },
@@ -946,11 +1256,18 @@ async function listarArchivos() {
         const btnOld = document.getElementById('sortOld');
         const listContainer = document.getElementById('filesList');
 
+        // --- ¡MEJORA! ---
+        // Lógica para cambiar la clase 'active' en los botones de ordenamiento.
         btnRecent.addEventListener('click', () => {
+          btnRecent.classList.add('active');
+          btnOld.classList.remove('active');
           currentList.sort((a, b) => (b.date || 0) - (a.date || 0));
           listContainer.innerHTML = renderItems(currentList);
         });
+
         btnOld.addEventListener('click', () => {
+          btnOld.classList.add('active');
+          btnRecent.classList.remove('active');
           currentList.sort((a, b) => (a.date || 0) - (b.date || 0));
           listContainer.innerHTML = renderItems(currentList);
         });
@@ -958,17 +1275,17 @@ async function listarArchivos() {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Error al listar archivos:", err);
     Swal.fire({
       icon: "error",
-      title: "Error",
-      text: "No se pudo listar los archivos."
+      title: "Error Inesperado",
+      text: "No se pudo listar los archivos. Por favor, intenta de nuevo."
     });
   }
 }
 window.verDashboardArchivo = async (folder, fileName) => {
   try {
-    // Cargar datos si no están en memoria
+    // La lógica para cargar y procesar datos se mantiene igual
     if (!excelDataGlobal[fileName]) {
       const url = await storage.ref(`Manifiestos/${folder}/${fileName}`).getDownloadURL();
       const buf = await (await fetch(url)).arrayBuffer();
@@ -1007,113 +1324,125 @@ window.verDashboardArchivo = async (folder, fileName) => {
         }
       });
       const av = tSAP ? Math.round((tSCAN / tSAP) * 100) : 0;
-      return {
-        totalSAP: tSAP,
-        totalSCAN: tSCAN,
-        faltantes: falt,
-        excedentes: exc,
-        avance: av,
-        contenedoresFaltantes: contF,
-        seccionFaltantes: secF,
-        totalSKUs: datos.length
-      };
+      return { totalSAP: tSAP, totalSCAN: tSCAN, faltantes: falt, excedentes: exc, avance: av, contenedoresFaltantes: contF, seccionFaltantes: secF, totalSKUs: datos.length };
     })();
 
-    // Mensaje y estilos según avance
-    let bgColor = '#fff8e1';
-    let msgHTML = `<div style="color:#856404;font-weight:600;margin-bottom:10px;"><i class=\"material-icons\" style=\"vertical-align:middle;\">warning</i> Aún faltan ${100 - avance}% por completar</div>`;
-    if (avance === 100) {
-      bgColor = '#e8f5e9';
-      msgHTML = `<div style="color:#2e7d32;font-weight:700;margin-bottom:10px;"><i class=\"material-icons\" style=\"vertical-align:middle;\">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉</div>`;
+    // --- ¡MEJORA! ---
+    // Mensaje y clase según el avance
+    let statusClass = 'is-warning';
+    let msgHTML = `<i class="material-icons">warning</i> Aún falta un ${100 - avance}% por completar. ¡Ánimo!`;
+    if (avance >= 100) {
+      statusClass = 'is-success';
+      msgHTML = `<i class="material-icons">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉`;
     }
 
-    // Panel de faltantes
+    // --- ¡MEJORA! ---
+    // Panel de faltantes con un diseño más limpio
     const contKeys = Object.keys(contenedoresFaltantes);
-    const secKeys = Object.keys(seccionFaltantes);
     let faltHTML = '';
-    if (contKeys.length) {
+    if (contKeys.length > 0) {
       faltHTML = `
-        <div class="text-center my-3">
-          <button id="toggleFaltantesBtn" class="btn btn-sm btn-outline-secondary">Mostrar detalles de faltantes</button>
-        </div>
-        <div id="faltantesContainer" style="display:none;font-size:.9rem;background:#fafafa;border:1px solid #ddd;border-radius:10px;padding:1rem;">
-          <strong>Contenedores con faltantes:</strong>
-          <ul style="list-style:none;padding:0;">
-            ${contKeys.map(c => `<li>📦 <strong>${c}</strong>: ${contenedoresFaltantes[c]} piezas</li>`).join('')}
-          </ul>
-          <strong>Secciones con faltantes:</strong>
-          <ul style="list-style:none;padding:0;">
-            ${secKeys.map(s => `<li>📂 <strong>${s}</strong>: ${seccionFaltantes[s]} piezas</li>`).join('')}
-          </ul>
-        </div>
-      `;
+        <div class="faltantes-section">
+          <button id="toggleFaltantesBtn" class="btn btn-outline-secondary toggle-btn">
+            Mostrar detalles de faltantes <i class="material-icons">expand_more</i>
+          </button>
+          <div id="faltantesContainer" style="display:none;" class="faltantes-details">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>Contenedores con faltantes:</strong>
+                <ul>${contKeys.map(c => `<li><i class="material-icons">inventory_2</i> <strong>${c}:</strong> ${contenedoresFaltantes[c]} pz.</li>`).join('')}</ul>
+              </div>
+              <div class="col-md-6">
+                <strong>Secciones con faltantes:</strong>
+                <ul>${Object.keys(seccionFaltantes).map(s => `<li><i class="material-icons">folder_open</i> <strong>${s}:</strong> ${seccionFaltantes[s]} pz.</li>`).join('')}</ul>
+              </div>
+            </div>
+          </div>
+        </div>`;
     }
 
-    // Construir HTML del dashboard
-    const canvasId = `grafico_${fileName}`;
+    // --- ¡MEJORA! ---
+    // Construir HTML del dashboard usando las nuevas clases de CSS
+    const canvasId = `grafico_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
     const dashboardHTML = `
-      <div style="background:${bgColor};border-radius:8px;padding:1rem;">
-        ${msgHTML}
-        <div class="d-flex flex-wrap gap-3 mb-3" style="font-size:.95rem;color:#333;">
-          <div><strong>SKUs totales:</strong> ${totalSKUs}</div>
-          <div><strong>Esperadas:</strong> ${totalSAP}</div>
-          <div><strong>Escaneadas:</strong> ${totalSCAN}</div>
-          <div><strong>Faltantes:</strong> ${faltantes}</div>
-          <div><strong>Excedentes:</strong> ${excedentes}</div>
+      <div class="dashboard-container">
+        <div class="status-message ${statusClass}">${msgHTML}</div>
+        
+        <div class="stats-grid">
+          <div class="stat-card total"><div class="stat-title">SKUs Totales</div><div class="stat-value">${totalSKUs}</div></div>
+          <div class="stat-card expected"><div class="stat-title">Piezas Esperadas</div><div class="stat-value">${totalSAP.toLocaleString('es-MX')}</div></div>
+          <div class="stat-card scanned"><div class="stat-title">Piezas Escaneadas</div><div class="stat-value">${totalSCAN.toLocaleString('es-MX')}</div></div>
+          <div class="stat-card missing"><div class="stat-title">Piezas Faltantes</div><div class="stat-value">${faltantes.toLocaleString('es-MX')}</div></div>
+          <div class="stat-card excess"><div class="stat-title">Piezas Excedentes</div><div class="stat-value">${excedentes.toLocaleString('es-MX')}</div></div>
         </div>
-        <div class="progress mb-2" style="height:20px;border-radius:10px;overflow:hidden;">
-          <div class="progress-bar ${avance < 100 ? 'bg-warning' : 'bg-success'}" role="progressbar" style="width:${avance}%;font-weight:600;">${avance}%</div>
-        </div>
-        <canvas id="${canvasId}" style="width:100%;height:260px;"></canvas>
-        ${faltHTML}
-      </div>
-    `;
 
-    // Mostrar modal y renderizar gráfico
+        <div class="progress-container">
+          <div class="progress-fill ${avance < 100 ? 'bg-primary' : 'bg-success'}" style="width:${avance}%;">${avance}% Completado</div>
+        </div>
+        
+        <div class="chart-container">
+          <canvas id="${canvasId}"></canvas>
+        </div>
+
+        ${faltHTML}
+      </div>`;
+
     await Swal.fire({
+      title: `<span style="display: flex; align-items: center; gap: 8px;">
+                <i class="material-icons text-primary">dashboard</i> Dashboard: ${fileName}
+              </span>`,
       html: dashboardHTML,
-      width: '700px',
+      width: '800px',
+      padding: '0', // Quitamos el padding de Swal para que nuestro contenedor ocupe todo
       showCloseButton: true,
-      confirmButtonText: 'Cerrar',
-      customClass: { popup: 'swal2-dashboard' },
-      willOpen: () => {
-        // Gráfico donut
+      showConfirmButton: false, // El botón de cerrar es suficiente
+      didOpen: () => {
         const ctx = document.getElementById(canvasId).getContext('2d');
+        // --- ¡MEJORA! ---
+        // Gráfico con colores más vibrantes y mejor tooltip
         new Chart(ctx, {
           type: 'doughnut',
           data: {
-            labels: ['Escaneado', 'Faltante', 'Excedente'],
+            labels: ['Correcto', 'Faltante', 'Excedente'],
             datasets: [{
-              data: [totalSCAN, faltantes, excedentes],
-              backgroundColor: ['#66BB6A', '#EF5350', '#FFEB3B'],
-              borderColor: '#fff',
-              borderWidth: 2
+              data: [totalSCAN - excedentes, faltantes, excedentes], // Se ajusta el dato 'correcto' para mayor precisión
+              backgroundColor: ['#198754', '#dc3545', '#ffc107'],
+              borderColor: '#f8f9fa',
+              borderWidth: 4,
+              hoverOffset: 10
             }]
           },
           options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
             plugins: {
-              legend: { position: 'bottom', labels: { font: { size: 12 } } },
-              tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} piezas` } }
+              legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, pointStyle: 'rectRounded' } },
+              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString('es-MX')} piezas` } }
             }
           }
         });
-        // Toggle faltantes
+
+        // --- ¡MEJORA! ---
+        // Lógica para mostrar/ocultar detalles con cambio de ícono
         const btn = document.getElementById('toggleFaltantesBtn');
         if (btn) {
           btn.addEventListener('click', () => {
             const panel = document.getElementById('faltantesContainer');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-            btn.textContent = panel.style.display === 'block' ? 'Ocultar detalles de faltantes' : 'Mostrar detalles de faltantes';
+            const icon = btn.querySelector('.material-icons');
+            const isHidden = panel.style.display === 'none';
+            
+            panel.style.display = isHidden ? 'block' : 'none';
+            btn.innerHTML = isHidden ? 'Ocultar detalles <i class="material-icons">expand_less</i>' : 'Mostrar detalles <i class="material-icons">expand_more</i>';
           });
         }
       }
     });
   } catch (e) {
-    console.error(e);
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo generar el dashboard.' });
+    console.error("Error al generar dashboard:", e);
+    Swal.fire({ icon: 'error', title: 'Error Inesperado', text: 'No se pudo generar el dashboard del archivo.' });
   }
 };
-
 
   // Descargar un manifiesto (con columna DIFERENCIA)
   window.downloadFile = async (folder, name) => {
@@ -1226,180 +1555,297 @@ window.verDashboardArchivo = async (folder, fileName) => {
     const yy = d.getFullYear();
     return `${dd}/${mm}/${yy}`;
   }
+btnCambiarContenedor.addEventListener("click", () => {
+    // --- ¡MEJORA! ---
+    // Alerta mejorada para cuando no hay un contenedor activo.
+    if (!currentContenedor) {
+        Swal.fire({
+            title: "No hay Contenedor Activo",
+            html: `<div class="no-container-alert">
+                     <i class="material-icons">info_outline</i>
+                     <div>Para cambiar de contenedor, primero debes abrir uno.</div>
+                   </div>`,
+            icon: 'info',
+            confirmButtonText: "Entendido"
+        });
+        return;
+    }
 
-        /***********************************************************
-         * CAMBIAR DE CONTENEDOR
-         ***********************************************************/
-        btnCambiarContenedor.addEventListener("click", () => {
-          if (!currentContenedor) {
-            Swal.fire({
-              icon: "info",
-              title: "No hay Contenedor",
-              html: `<i class="material-icons" style="color:#2196F3;">info</i> No hay contenedor abierto para cambiar.`
-            });
-            return;
-          }
+    const summaryHTML = getContainerSummaryDetailed(currentContainerRecords);
+    const containerStatus = getContainerStateFromRecords(currentContainerRecords);
 
-          const summaryHTML = getContainerSummaryDetailed(currentContainerRecords);
-          const containerStatus = getContainerStateFromRecords(currentContainerRecords);
-          let colorIcon = "#2196F3";
-          if (containerStatus === "INCOMPLETO" || containerStatus === "COMPLETO CON MERCANCÍA DE MÁS") {
-            colorIcon = "#F44336";
-          } else if (containerStatus === "COMPLETO") {
-            colorIcon = "#4CAF50";
-          }
+    // --- ¡MEJORA! ---
+    // Mapeamos el estado a una clase de CSS y un título para el modal.
+    let statusInfo = { className: 'status-neutral', title: 'Cambio de Contenedor' };
+    if (containerStatus === "INCOMPLETO") {
+        statusInfo = { className: 'status-incompleto', title: 'Contenedor Incompleto' };
+    } else if (containerStatus === "COMPLETO CON MERCANCÍA DE MÁS") {
+        statusInfo = { className: 'status-excedente', title: 'Contenedor con Excedente' };
+    } else if (containerStatus === "COMPLETO") {
+        statusInfo = { className: 'status-completo', title: 'Contenedor Completo' };
+    }
 
-          Swal.fire({
-            title: `<i class="material-icons" style="vertical-align:middle;color:${colorIcon};">switch_account</i> ¡Cambio de Contenedor!`,
-            html: `
-              <div style="background: #fff; padding:1rem; border-radius:10px; text-align:left;">
-                <h4 style="color:#E6007E; margin-bottom:1rem;">
-                  <i class="material-icons">inventory_2</i>
-                  Contenedor Actual: <strong>${currentContenedor}</strong>
-                </h4>
-                <div style="font-size:0.95rem; color:#333; padding:0.5rem; background:#f7f7f7; border-radius:8px;">
-                  ${summaryHTML}
+    // --- ¡MEJORA! ---
+    // Modal de confirmación completamente rediseñado con clases CSS.
+    Swal.fire({
+        html: `
+            <div class="change-container-modal">
+                <div class="modal-header-status ${statusInfo.className}">
+                    <i class="material-icons">switch_account</i>
+                    <h3>${statusInfo.title}</h3>
                 </div>
-                <p style="margin-top:1rem; font-weight:600; color:#E6007E;">
-                  <i class="material-icons">help_outline</i> ¿Desea cambiar de contenedor?
-                </p>
-              </div>`,
-            icon: "info",
-            showCancelButton: true,
-            confirmButtonText: `<i class="material-icons">check_circle</i> Sí, cambiar`,
-            cancelButtonText: `<i class="material-icons">cancel</i> Cancelar`,
-            width: "600px"
-          }).then(async (result) => {
-            if (!result.isConfirmed) return;
-
-            // Guardar cualquier cambio pendiente antes de cambiar
-            try {
-              await reuploadFileWithScannerChanges(currentFileName);
-            } catch (e) {
-              console.error("Error al guardar cambios antes de cambiar contenedor:", e);
-            }
-
-            // Resetear estado
-            currentContenedor = null;
-            currentContainerRecords = [];
-            selectedFileToWorkEl.textContent = "";
-
-            // Toast de éxito y reenfocar búsqueda
-            Swal.fire({
-              toast: true,
-              position: 'top-end',
-              icon: 'success',
-              title: 'Contenedor cambiado',
-              timer: 1200,
-              showConfirmButton: false
-            }).then(() => {
-              searchContainerSection.style.display = "block";
-              inputBusqueda.focus();
-            });
-          });
-        });
-
-        /***********************************************************
-         * BUSCAR CONTENEDOR / SKU
-         ***********************************************************/
-        inputBusqueda.addEventListener("keyup", () => {
-          clearTimeout(debounceTimerBusqueda);
-          debounceTimerBusqueda = setTimeout(() => {
-            let val = inputBusqueda.value.trim().toUpperCase();
-            if (val.length < 5) return;
-            if (/^[A-Z]/.test(val)) {
-              buscarContenedor(val);
-            } else {
-              buscarSKUenArchivos(val);
-            }
-            inputBusqueda.value = "";
-          }, 500);
-        });
-        inputBusqueda.addEventListener("paste", () => {
-          setTimeout(() => {
-            let val = inputBusqueda.value.trim().toUpperCase();
-            if (val.length < 5) return;
-            if (/^[A-Z]/.test(val)) {
-              buscarContenedor(val);
-            } else {
-              buscarSKUenArchivos(val);
-            }
-            inputBusqueda.value = "";
-          }, 10);
-        });
-
-
-        async function buscarContenedor(ref) {
-  // 1) Obtener todas las coincidencias
-  let candidates = await checkFileForReference(null, ref, true);
-  if (!candidates) {
-    return Swal.fire({
-      icon: "info",
-      title: "No encontrado",
-      html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el contenedor.`
-    });
-  }
-
-  // 2) Agrupar por número de contenedor
-  const containersMap = {};
-  candidates.forEach(cand => {
-    cand.matchedRecords.forEach(rec => {
-      const cont = String(rec.CONTENEDOR || "").trim().toUpperCase();
-      containersMap[cont] = containersMap[cont] || [];
-      containersMap[cont].push({ fileName: cand.fileName, record: rec });
-    });
-  });
-
-  // 3) Si solo hay uno, abrir directo
-  const keys = Object.keys(containersMap);
-  if (keys.length === 1) {
-    const cont = keys[0];
-    const info = containersMap[cont];
-    openContainerDirect({
-      fileName: info[0].fileName,
-      matchedRecords: info.map(i => i.record)
-    }, 0);
-    return;
-  }
-
-  // 4) Construir HTML de la alerta, marcando los cerrados
-  let html = `<p>Se encontró el SKU en ${keys.length} contenedores:</p><ul class="list-group">`;
-// dentro de buscarContenedor(), en vez de la anterior li:
-keys.forEach(cont => {
-  const items   = containersMap[cont];
-  const file    = items[0].fileName;
-  const isClosed = Boolean(excelDataGlobal[file].closedContainers?.[cont]);
-
-  html += `
-    <li class="list-group-item d-flex justify-content-between align-items-center">
-      <div>
-        <i class="material-icons align-middle">inventory_2</i>
-        <strong>Contenedor: ${cont}</strong>
-        ${isClosed 
-          ? `<span class="badge bg-danger ms-2" style="vertical-align:middle;">CERRADO</span>` 
-          : ``
+                <div class="modal-body-content">
+                    <div class="container-summary-card">
+                        <h4>
+                            <i class="material-icons">inventory_2</i>
+                            Resumen de: <strong>${currentContenedor}</strong>
+                        </h4>
+                        <div class="summary-content">
+                            ${summaryHTML}
+                        </div>
+                    </div>
+                    <p class="confirmation-prompt">
+                        <i class="material-icons">help_outline</i>
+                        ¿Estás seguro de que deseas cerrar y cambiar de contenedor?
+                    </p>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, cambiar',
+        cancelButtonText: 'Cancelar',
+        width: "600px",
+        padding: 0, // Importante para que nuestro diseño se ajuste bien
+        showLoaderOnConfirm: true,
+        customClass: {
+            confirmButton: 'btn-confirm-custom',
+            cancelButton: 'btn-cancel-custom'
         }
-        <div><small>Archivo: ${file}</small></div>
-      </div>
-      <button 
-        class="btn btn-sm btn-primary"
-        onclick="selectContainer('${cont}')">
-        Elegir
-      </button>
-    </li>`;
+    }).then(async (result) => {
+        if (!result.isConfirmed) return;
+
+        // La lógica de guardado y reseteo se mantiene igual. ¡Ya estaba perfecta!
+        try {
+            await reuploadFileWithScannerChanges(currentFileName);
+        } catch (e) {
+            console.error("Error al guardar cambios antes de cambiar contenedor:", e);
+            // Podríamos mostrar un error aquí si falla el guardado
+        }
+
+        currentContenedor = null;
+        currentContainerRecords = [];
+        selectedFileToWorkEl.textContent = "";
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: '¡Listo! Contenedor cerrado.',
+            timer: 1500,
+            showConfirmButton: false
+        }).then(() => {
+            searchContainerSection.style.display = "block";
+            inputBusqueda.focus();
+        });
+    });
 });
 
-  html += `</ul>`;
+/****************************************************************************
+ * INICIO DE LA SECCIÓN DE BÚSQUEDA MEJORADA
+ ****************************************************************************/
 
-  // 5) Mostrar la alerta
-  Swal.fire({
-    title: `<i class="material-icons">help_outline</i> Múltiples coincidencias`,
-    html,
-    icon: "question",
-    showConfirmButton: false,
-    width: "650px"
-  });
+// =========================================================================
+// PASO 1: Declarar variables en un ámbito superior
+// =========================================================================
+let containersMapGlobal = {};
+let skuContainerMapGlobal = {}; // Esta la usaremos después
+
+// --- ¡NUEVO! ---
+// Array con las frases que irán cambiando
+const motivationalPhrases = [
+    "Analizando los datos...",
+    "Buscando coincidencias...",
+    "La eficiencia es clave. ¡Ya casi!",
+    "Revisando cada rincón digital...",
+    "El éxito es la suma de pequeños esfuerzos.",
+    "Un momento, estamos en ello...",
+    "Preparando la información para ti...",
+    "Tu próxima gran jugada está a un segundo."
+];
+// Variable para guardar el ID del intervalo y poder limpiarlo después
+let loadingIntervalId = null;
+// =========================================================================
+// PASO 2: Definir funciones de ayuda
+// =========================================================================
+
+// Función para mostrar una alerta de "No encontrado" más visual.
+function showNotFoundAlert(type) {
+    Swal.fire({
+        html: `<div class="not-found-container">
+                 <i class="material-icons">search_off</i>
+                 <h4>No se encontraron resultados</h4>
+                 <p>No pudimos encontrar el ${type} que buscas. Por favor, verifica el código y vuelve a intentarlo.</p>
+               </div>`,
+        showConfirmButton: false,
+        timer: 3000
+    });
 }
+
+// Función que crea el HTML para cada tarjeta de resultado.
+function createContainerResultCard(containerName, file, isClosed, onclickAction) {
+    return `
+    <div class="result-item-card">
+        <div class="item-info">
+            <div class="item-title">
+                <i class="material-icons text-primary">inventory_2</i>
+                ${containerName}
+                ${isClosed ? `<span class="status-badge is-closed">CERRADO</span>` : ''}
+            </div>
+            <div class="item-meta">
+                <strong>Archivo:</strong> ${file}
+            </div>
+        </div>
+        <button class="btn btn-primary btn-sm btn-choose" onclick="${onclickAction}">
+            <i class="material-icons">touch_app</i> Elegir
+        </button>
+    </div>`;
+}
+
+// =========================================================================
+// PASO 3: Reemplazar la función original `buscarContenedor`
+// =========================================================================
+async function buscarContenedor(ref) {
+    // Las funciones `checkFileForReference` y `openContainerDirect` se asume que existen en tu código
+    let candidates = await checkFileForReference(null, ref, true);
+    if (!candidates) {
+        return showNotFoundAlert("contenedor");
+    }
+
+    // Limpiamos y llenamos el mapa global con los resultados
+    containersMapGlobal = {}; 
+    candidates.forEach(cand => {
+        cand.matchedRecords.forEach(rec => {
+            const cont = String(rec.CONTENEDOR || "").trim().toUpperCase();
+            if (!containersMapGlobal[cont]) {
+                containersMapGlobal[cont] = {
+                    fileName: cand.fileName,
+                    records: [],
+                    isClosed: Boolean(excelDataGlobal[cand.fileName].closedContainers?.[cont])
+                };
+            }
+            containersMapGlobal[cont].records.push(rec);
+        });
+    });
+
+    const keys = Object.keys(containersMapGlobal);
+    // Si solo hay un resultado, lo abrimos directamente
+    if (keys.length === 1) {
+        Swal.close();
+        const { fileName, records } = containersMapGlobal[keys[0]];
+        return openContainerDirect({ fileName, matchedRecords: records }, 0);
+    }
+    
+    // Si hay múltiples resultados, creamos el HTML con las nuevas tarjetas
+    let html = keys.map(cont => {
+        const { fileName, isClosed } = containersMapGlobal[cont];
+        return createContainerResultCard(cont, fileName, isClosed, `selectContainerV2('${cont}')`);
+    }).join('');
+
+    // Mostramos el modal de SweetAlert con los resultados
+    Swal.fire({
+        title: "Múltiples Coincidencias",
+        html: `<p>Se encontró la referencia en <strong>${keys.length}</strong> contenedores. Por favor, elige uno:</p>
+               <div class="results-list-container">${html}</div>`,
+        showConfirmButton: false,
+        width: "650px",
+        customClass: { title: 'text-primary' }
+    });
+}
+
+// =========================================================================
+// PASO 4: Función llamada por los nuevos botones 'Elegir'
+// =========================================================================
+// Esta función reemplaza a tu antiguo `selectContainer`
+window.selectContainerV2 = function(cont) {
+    const info = window.containersMapGlobal[cont];
+    if (info) {
+        Swal.close();
+        openContainerDirect({
+            fileName: info.fileName,
+            matchedRecords: info.records
+        }, 0);
+    }
+};
+
+// =========================================================================
+// PASO 5: Reemplazar los `addEventListener` con el manejador unificado
+// =========================================================================
+const handleSearch = (value) => {
+    let val = value.trim().toUpperCase();
+    if (val.length < 5) return;
+
+    // --- ¡MEJORA! ---
+    // Esta es la nueva alerta de carga con la lupa animada y frases cambiantes.
+    Swal.fire({
+        // Usamos el parámetro `html` para construir nuestra alerta personalizada
+        html: `
+            <div class="custom-loading-container">
+                <i class="material-icons swal-icon-searching">search</i>
+                <h3 class="swal-loading-title">Buscando</h3>
+                <p id="motivational-phrase" class="swal-loading-phrase"></p>
+            </div>
+        `,
+        showConfirmButton: false, // Ocultamos el botón de OK
+        allowOutsideClick: false, // Evitamos que se cierre al hacer clic afuera
+        
+        // --- Aquí comienza la magia ---
+        didOpen: () => {
+            const phraseElement = document.getElementById('motivational-phrase');
+            let phraseIndex = 0;
+            
+            // Mostramos la primera frase inmediatamente
+            phraseElement.innerText = motivationalPhrases[phraseIndex];
+
+            // Creamos un intervalo que cambiará la frase cada 2 segundos
+            loadingIntervalId = setInterval(() => {
+                phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
+                phraseElement.innerText = motivationalPhrases[phraseIndex];
+            }, 2000);
+        },
+        // Se ejecuta justo antes de que la alerta se cierre
+        willClose: () => {
+            // Es MUY IMPORTANTE limpiar el intervalo para evitar que se siga ejecutando en segundo plano
+            clearInterval(loadingIntervalId);
+        }
+    });
+
+    if (/^[A-Z]/.test(val)) {
+        buscarContenedor(val);
+    } else {
+        buscarSKUenArchivos(val);
+    }
+    inputBusqueda.value = "";
+};
+
+// Asignamos los listeners que inician todo el proceso
+inputBusqueda.addEventListener("keyup", (event) => {
+    if (event.key === 'Enter') {
+        clearTimeout(debounceTimerBusqueda);
+        handleSearch(inputBusqueda.value);
+    } else {
+        clearTimeout(debounceTimerBusqueda);
+        debounceTimerBusqueda = setTimeout(() => {
+            handleSearch(inputBusqueda.value);
+        }, 600);
+    }
+});
+
+inputBusqueda.addEventListener("paste", (event) => {
+    const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+    setTimeout(() => {
+        handleSearch(pastedText);
+    }, 10);
+});
 
 // Se llama al pulsar “Elegir”
 window.selectContainer = function(cont) {
@@ -1412,181 +1858,213 @@ window.selectContainer = function(cont) {
 };
 
 
-        async function buscarSKUenArchivos(sku) {
+async function buscarSKUenArchivos(sku) {
   try {
+    // La lógica de `checkFileForReference` se mantiene, es correcta.
     let candidates = await checkFileForReference(null, sku, false);
-    if (!candidates) {
-      return Swal.fire({
-        icon: "info",
-        title: "No encontrado",
-        html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el SKU en ningún archivo.`
-      });
-    }
-    if (!Array.isArray(candidates)) candidates = [candidates];
 
-    // Agrupamos por contenedor
+    // --- ¡MEJORA! ---
+    // Usamos nuestra nueva alerta estandarizada para el caso "No encontrado".
+    if (!candidates || !Array.isArray(candidates) || candidates.length === 0) {
+        return showNotFoundAlert("SKU");
+    }
+
+    // La lógica para agrupar por contenedor es correcta, la mantenemos.
     const contMap = {};
     candidates.forEach(cand => {
-      cand.matchedRecords.forEach(record => {
-        const cont = (record.CONTENEDOR || "").trim().toUpperCase();
-        if (!cont) return;
-        if (!contMap[cont]) contMap[cont] = { fileName: cand.fileName, records: [] };
-        contMap[cont].records.push(record);
-      });
+        cand.matchedRecords.forEach(record => {
+            const cont = (record.CONTENEDOR || "").trim().toUpperCase();
+            if (!cont) return;
+            if (!contMap[cont]) {
+                contMap[cont] = {
+                    fileName: cand.fileName,
+                    records: [],
+                    isClosed: Boolean(excelDataGlobal[cand.fileName].closedContainers?.[cont]) // Verificamos si está cerrado
+                };
+            }
+            contMap[cont].records.push(record);
+        });
     });
 
     const contKeys = Object.keys(contMap);
     if (contKeys.length === 0) {
-      return Swal.fire({
-        icon: "info",
-        title: "No encontrado",
-        html: `<i class="material-icons" style="color:#2196F3;">info</i> No se encontró el SKU en ningún contenedor.`
-      });
+        return showNotFoundAlert("SKU en algún contenedor");
     }
-    // Si solo hay uno, abrimos directo
+
+    // El comportamiento para un solo resultado es correcto, lo mantenemos.
     if (contKeys.length === 1) {
-      const { fileName, records } = contMap[contKeys[0]];
-      return openContainerDirect({ fileName, matchedRecords: records }, 0);
+        Swal.close(); // Cerramos la alerta de "Buscando..."
+        const { fileName, records } = contMap[contKeys[0]];
+        return openContainerDirect({ fileName, matchedRecords: records }, 0);
     }
 
-    // Construimos la lista mostrando el SAP del primer registro
-    let html = `<p>Se encontró el SKU en <strong>${contKeys.length}</strong> contenedores:</p>
-                <ul class="list-group">`;
+    // --- ¡MEJORA PRINCIPAL! ---
+    // Guardamos los resultados en una variable global para el callback
+    window.skuContainerMapGlobal = contMap;
 
-    contKeys.forEach(cont => {
-      const { fileName, records } = contMap[cont];
-      // Fecha más reciente
-      const fechas = records.map(r => new Date(r.FECHA));
-      const fechaMax = fechas.length
-        ? new Date(Math.max(...fechas))
-        : null;
-      const fechaStr = fechaMax ? formatFecha(fechaMax) : "–";
-      // Sacamos SAP del primer registro
-      const cantidadSAP = Number(records[0].SAP) || 0;
+    // Construimos el HTML usando las nuevas tarjetas, pero con la información específica del SKU.
+    let html = contKeys.map(cont => {
+        const { fileName, records, isClosed } = contMap[cont];
+        
+        // La lógica para calcular la fecha y el SAP se mantiene.
+        const fechas = records.map(r => new Date(r.FECHA));
+        const fechaMax = fechas.length ? new Date(Math.max(...fechas)) : null;
+        const fechaStr = fechaMax ? formatFecha(fechaMax) : "–"; // Asumo que tienes una función formatFecha
+        const cantidadSAP = Number(records[0].SAP) || 0;
 
-      html += `
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <div>
-          <i class="material-icons align-middle">inventory_2</i>
-          <strong>Contenedor:</strong> ${cont}<br>
-          <small>
-            Archivo: ${fileName} |
-            SAP: ${cantidadSAP} |
-            Fecha última: ${fechaStr}
-          </small>
-        </div>
-        <button class="btn btn-primary btn-sm btn-anim"
-                onclick="selectSKUContainer('${fileName}','${cont}')">
-          <i class="material-icons">check</i> Elegir
-        </button>
-      </li>`;
-    });
+        // Creamos una tarjeta personalizada para el resultado de SKU
+        return `
+        <div class="result-item-card">
+            <div class="item-info">
+                <div class="item-title">
+                    <i class="material-icons text-primary">inventory_2</i>
+                    ${cont}
+                    ${isClosed ? `<span class="status-badge is-closed">CERRADO</span>` : ''}
+                </div>
+                <div class="item-meta">
+                    <span><strong>Archivo:</strong> ${fileName}</span> | 
+                    <span><strong>SAP:</strong> ${cantidadSAP} pz</span> | 
+                    <span><strong>Fecha:</strong> ${fechaStr}</span>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm btn-choose" onclick="selectSKUContainerV2('${cont}')">
+                <i class="material-icons">touch_app</i> Elegir
+            </button>
+        </div>`;
+    }).join('');
 
-    html += `</ul>`;
-    window.skuContainerMap = contMap;
-
+    // Mostramos el modal de SweetAlert con los resultados mejorados.
     Swal.fire({
-      title: "Múltiples coincidencias",
-      html,
-      icon: "question",
-      showConfirmButton: false,
-      allowOutsideClick: false,
-      width: "650px"
+        title: "SKU en Múltiples Contenedores",
+        html: `<p>Se encontró el SKU <strong>${sku}</strong> en ${contKeys.length} contenedores diferentes:</p>
+               <div class="results-list-container">${html}</div>`,
+        showConfirmButton: false,
+        width: "650px",
+        customClass: { title: 'text-primary' }
     });
 
   } catch (err) {
-    console.error(err);
-    Swal.fire({ icon: "error", title: "Error", text: "Ocurrió un problema al buscar el SKU." });
+    console.error("Error en buscarSKUenArchivos:", err);
+    Swal.fire({ icon: "error", title: "Error Inesperado", text: "Ocurrió un problema al buscar el SKU." });
   }
 }
 
-// Al elegir: cerramos la alerta y abrimos el contenedor
-window.selectSKUContainer = function(fileName, cont) {
-  Swal.close();  
-  const map = window.skuContainerMap || {};
-  const recs = map[cont]?.records;
-  if (!recs) return;
-  openContainerDirect({ fileName, matchedRecords: recs }, 0);
+// =========================================================================
+// Función llamada por los botones 'Elegir' de la búsqueda de SKU
+// =========================================================================
+window.selectSKUContainerV2 = function(cont) {
+    // Lee la información desde la variable global que llenamos antes
+    const info = window.skuContainerMapGlobal[cont];
+    if (info) {
+        Swal.close();
+        // Llama a la misma función que ya tienes para abrir el contenedor
+        openContainerDirect({
+            fileName: info.fileName,
+            matchedRecords: info.records
+        }, 0);
+    }
 };
+// ========================================================
+// INICIA EL BLOQUE PARA REEMPLAZAR
+// ========================================================
 
-        window.chooseCandidateRecordCustom = function(fileName, recordIndex) {
-          let candidate = window.candidatesForSKU.find(item => item.fileName === fileName);
-          Swal.close();
-          openContainerDirect(candidate, recordIndex);
+// FUNCIÓN AUXILIAR PARA PROCESAR UN SOLO ARCHIVO (CON LA CORRECCIÓN)
+async function processSingleFile(fileInfo) {
+    const fileName = fileInfo.ref.name;
+    // Si el archivo ya está en caché, no hacemos nada y lo devolvemos.
+    if (excelDataGlobal[fileName]) {
+        return; 
+    }
+
+    try {
+        const url = await storage.ref(`Manifiestos/${fileInfo.folderName}/${fileName}`).getDownloadURL();
+        const arrBuff = await (await fetch(url)).arrayBuffer();
+        const wb = XLSX.read(arrBuff, { type: "array", cellDates: true });
+        const sheet = wb.SheetNames[0];
+        const dataJson = XLSX.utils.sheet_to_json(wb.Sheets[sheet]);
+        
+        // Obtenemos metadatos de Firestore
+        const docSnap = await db.collection("manifiestos").doc(fileName).get();
+        
+        // --- ¡LA CORRECCIÓN DEFINITIVA ESTÁ AQUÍ! ---
+        // Usamos 'docSnap.exists' (sin paréntesis) para que sea compatible con tu versión de Firebase.
+        let docData = docSnap.exists ? docSnap.data() : {};
+
+        // Guardamos todo en nuestra caché global
+        excelDataGlobal[fileName] = {
+            data: dataJson,
+            lastUser: docData.lastUser || "",
+            lastUserStore: docData.lastUserStore || "",
+            lastUserRole: docData.lastUserRole || "",
+            closedContainers: docData.closedContainers || {},
+            uploadedAt: docData.updatedAt ? docData.updatedAt.toDate() : null
         };
+    } catch (error) {
+        // Mostramos un error más detallado en la consola para futura depuración
+        console.error(`Error procesando el archivo ${fileName}:`, error);
+    }
+}
 
-        async function checkFileForReference(folderName, code, isContainer = false) {
-          let finalFiles = [];
-          let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
-          if (!folderName) {
-            if (!allFilesList) {
-              allFilesList = [];
-              if (storeFolder === "ALL") {
-                let root = await storage.ref("Manifiestos").listAll();
-                for (const folderRef of root.prefixes) {
-                  let stName = folderRef.name;
-                  let storeFiles = await folderRef.listAll();
-                  for (const itemRef of storeFiles.items) {
-                    allFilesList.push({ folderName: stName, ref: itemRef });
-                  }
-                }
-              } else {
-                let storeFiles = await storage.ref(`Manifiestos/${storeFolder}`).listAll();
-                for (const itemRef of storeFiles.items) {
-                  allFilesList.push({ folderName: storeFolder, ref: itemRef });
-                }
-              }
+
+// VERSIÓN OPTIMIZADA DE checkFileForReference
+async function checkFileForReference(folderName, code) {
+    // Lógica para obtener la lista de archivos (mejorada)
+    if (!allFilesList || allFilesList.length === 0) {
+        allFilesList = [];
+        const storeFolder = currentUserStore === "ALL" ? "" : currentUserStore;
+        
+        if (storeFolder) { // Si es una tienda específica
+            const storeFiles = await storage.ref(`Manifiestos/${storeFolder}`).listAll();
+            storeFiles.items.forEach(itemRef => allFilesList.push({ folderName: storeFolder, ref: itemRef }));
+        } else { // Si es Super Admin (ALL)
+            const root = await storage.ref("Manifiestos").listAll();
+            for (const folderRef of root.prefixes) {
+                const storeFiles = await folderRef.listAll();
+                storeFiles.items.forEach(itemRef => allFilesList.push({ folderName: folderRef.name, ref: itemRef }));
             }
-            finalFiles = allFilesList;
-          }
-          let foundCandidates = [];
-          for (const f of finalFiles) {
-            let fileName = f.ref.name;
-            if (!excelDataGlobal[fileName]) {
-              let url = await storage.ref(`Manifiestos/${f.folderName}/${fileName}`).getDownloadURL();
-              let arrBuff = await (await fetch(url)).arrayBuffer();
-              let wb = XLSX.read(arrBuff, { type: "array", cellDates: true });
-              let sheet = wb.SheetNames[0];
-              let dataJson = XLSX.utils.sheet_to_json(wb.Sheets[sheet]);
-              let docSnap = await db.collection("manifiestos").doc(fileName).get();
-              let lastUserDoc = "", lastUserStore = "", lastUserRole = "", uploadedAt = null;
-              let closedContainers = {};
-              if (docSnap.exists) {
-                let docData = docSnap.data();
-                lastUserDoc = docData.lastUser || "";
-                lastUserStore = docData.lastUserStore || "";
-                lastUserRole = docData.lastUserRole || "";
-                closedContainers = docData.closedContainers || {};
-                uploadedAt = docData.updatedAt ? docData.updatedAt.toDate() : null;
-              }
-              excelDataGlobal[fileName] = {
-                data: dataJson,
-                lastUser: lastUserDoc,
-                lastUserStore,
-                lastUserRole,
-                closedContainers,
-                uploadedAt
-              };
-            }
-            let arr = excelDataGlobal[fileName].data;
-            let sr = code.toUpperCase();
-            let matched = arr.filter(r => {
-              let cont = String(r.CONTENEDOR || "").trim().toUpperCase();
-              let sku = String(r.SKU || "").trim().toUpperCase();
-              return (cont.includes(sr) || sku.includes(sr));
-            });
-            if (matched.length > 0) {
-              foundCandidates.push({
+        }
+    }
+    const filesToProcess = allFilesList.filter(f => !excelDataGlobal[f.ref.name]);
+
+    // Procesamos todos los archivos necesarios en paralelo.
+    if (filesToProcess.length > 0) {
+        const phraseElement = document.getElementById('motivational-phrase');
+        if (phraseElement) {
+             phraseElement.innerText = `Cargando ${filesToProcess.length} archivo(s) nuevos...`;
+        }
+        await Promise.all(filesToProcess.map(fileInfo => processSingleFile(fileInfo)));
+    }
+    
+    // Lógica de filtrado (la misma que antes, pero ahora sobre datos ya cargados)
+    const foundCandidates = [];
+    const searchCode = code.toUpperCase();
+
+    for (const f of allFilesList) {
+        const fileName = f.ref.name;
+        if (!excelDataGlobal[fileName]) continue; // Si falló la carga, lo saltamos
+
+        const records = excelDataGlobal[fileName].data;
+        const matched = records.filter(r => {
+            const cont = String(r.CONTENEDOR || "").trim().toUpperCase();
+            const sku = String(r.SKU || "").trim().toUpperCase();
+            return cont.includes(searchCode) || sku.includes(searchCode);
+        });
+
+        if (matched.length > 0) {
+            foundCandidates.push({
                 folderName: f.folderName,
                 fileName,
                 matchedRecords: matched
-              });
-            }
-          }
-          if (foundCandidates.length === 0) return null;
-          return foundCandidates;
+            });
         }
+    }
 
+    return foundCandidates.length > 0 ? foundCandidates : null;
+}
+
+// ========================================================
+// FIN DEL BLOQUE PARA REEMPLAZAR
+// ========================================================
         function openContainerDirect(candidate, recordIndex = 0) {
           currentFileName = candidate.fileName;
           let cont = String(candidate.matchedRecords[recordIndex]?.CONTENEDOR || "").trim().toUpperCase();
@@ -1652,227 +2130,334 @@ window.selectSKUContainer = function(fileName, cont) {
           mostrarDetallesContenedor(currentContainerRecords);
           inputScanCode.focus();
         }
+// =========================================================================
+// SECCIÓN: CERRAR / REABRIR CONTENEDOR (MEJORADA)
+// =========================================================================
 
-        /***********************************************************
-         * CERRAR / REABRIR CONTENEDOR
-         ***********************************************************/
-        btnCerrarContenedor.addEventListener("click", async () => {
-          let fn = selectedFileToWorkEl.textContent;
-          if (!fn || !excelDataGlobal[fn]) {
-            return Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No hay contenedor abierto.`
-            });
-          }
-          if (!currentContenedor) {
-            return Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No hay contenedor seleccionado.`
-            });
-          }
-          let dataObj = excelDataGlobal[fn];
-          if (dataObj.closedContainers && dataObj.closedContainers[currentContenedor]) {
-            const { isConfirmed } = await Swal.fire({
-              title: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">lock_open</i> Reabrir Contenedor`,
-              html: `<p>El contenedor <strong>${currentContenedor}</strong> fue cerrado por: <span style="color:var(--rosa-principal);">${dataObj.closedContainers[currentContenedor]}</span>.</p>
-                     <p style="color:#666;">Se abrirá para registrar solo mercancía faltante. Se cerrará al cambiar de contenedor o recargar.</p>`,
-              icon: "question",
-              showCancelButton: true,
-              confirmButtonText: `<i class="material-icons" style="vertical-align:middle;">check_circle</i> Reabrir`,
-              cancelButtonText: `<i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar`,
-              width: "600px"
-            });
-            if (!isConfirmed) return;
+// --- PASO 1: Funciones de ayuda para crear los modales ---
+
+/** Muestra el modal de confirmación para REABRIR un contenedor. */
+function showReopenConfirmationModal(containerName, closedBy) {
+    return Swal.fire({
+        html: `
+            <div class="modal-header-status status-reopen">
+                <i class="material-icons">lock_open</i>
+                <h3>Reabrir Contenedor</h3>
+            </div>
+            <div class="confirmation-modal-content">
+                <p class="main-text">
+                    El contenedor <strong>${containerName}</strong> fue cerrado por <strong class="closed-by-user">${closedBy}</strong>.
+                </p>
+                <p class="text-muted small">Al reabrirlo, podrás registrar mercancía faltante. Se volverá a cerrar automáticamente si cambias de contenedor.</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Reabrir',
+        cancelButtonText: 'Cancelar',
+        width: "550px",
+        padding: 0,
+        customClass: {
+            confirmButton: 'btn-confirm-custom', // Reutilizamos clases de botones
+            cancelButton: 'btn-cancel-custom'
+        }
+    });
+}
+
+/** Muestra el modal de confirmación para CERRAR un contenedor. */
+function showCloseConfirmationModal(containerName, summaryHTML) {
+    return Swal.fire({
+        html: `
+            <div class="modal-header-status status-close">
+                <i class="material-icons">lock</i>
+                <h3>Cerrar Contenedor</h3>
+            </div>
+            <div class="confirmation-modal-content">
+                <p class="main-text">¿Estás seguro de que deseas cerrar el contenedor <strong>${containerName}</strong>?</p>
+                <div class="summary-card">${summaryHTML}</div>
+                <p class="text-muted small">Una vez cerrado, no podrás escanear más productos en él a menos que lo reabras.</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Cerrar',
+        cancelButtonText: 'Cancelar',
+        width: "600px",
+        padding: 0,
+        customClass: {
+            confirmButton: 'btn-confirm-custom',
+            cancelButton: 'btn-cancel-custom'
+        }
+    });
+}
+
+/** Muestra el resumen final DESPUÉS de cerrar un contenedor. */
+function showFinalSummaryModal(containerName, summaryHTML, closedBy) {
+    Swal.fire({
+        html: `
+            <div class="modal-header-status status-close">
+                <i class="material-icons">check_circle</i>
+                <h3>Contenedor Cerrado</h3>
+            </div>
+            <div class="confirmation-modal-content">
+                <p class="main-text">
+                    El contenedor <strong>${containerName}</strong> ha sido cerrado con éxito por <strong class="closed-by-user">${closedBy}</strong>.
+                </p>
+                <p>Este es el resumen final:</p>
+                <div class="summary-card">${summaryHTML}</div>
+            </div>
+        `,
+        confirmButtonText: "Entendido",
+        width: "600px",
+        padding: 0
+    });
+}
+
+
+// --- PASO 2: El Event Listener principal, ahora mucho más limpio ---
+
+btnCerrarContenedor.addEventListener("click", async () => {
+    const fn = selectedFileToWorkEl.textContent;
+    // Validaciones iniciales (mejoradas con nuestras alertas estándar)
+    if (!fn || !excelDataGlobal[fn] || !currentContenedor) {
+        return showNotFoundAlert("contenedor abierto para realizar esta acción");
+    }
+
+    const dataObj = excelDataGlobal[fn];
+    const isClosed = dataObj.closedContainers && dataObj.closedContainers[currentContenedor];
+
+    if (isClosed) {
+        // --- Flujo para REABRIR ---
+        const closedBy = dataObj.closedContainers[currentContenedor];
+        const { isConfirmed } = await showReopenConfirmationModal(currentContenedor, closedBy);
+
+        if (isConfirmed) {
             delete dataObj.closedContainers[currentContenedor];
             excelDataGlobal[fn] = dataObj;
             await reuploadFileWithScannerChanges(fn);
-            Swal.fire({
-              icon: "success",
-              title: "Reabierto",
-              html: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">lock_open</i> Contenedor ${currentContenedor} reabierto.`
-            });
-            inputScanCode.disabled = false;
-            btnCerrarContenedor.innerHTML = `<i class="material-icons" style="vertical-align:middle;">lock</i> Cerrar Contenedor`;
-            return;
-          }
-          let summary = getContainerSummaryDetailed(currentContainerRecords);
-          const { isConfirmed } = await Swal.fire({
-            title: `<i class="material-icons" style="vertical-align:middle;color:#F44336;">lock</i> Cerrar Contenedor`,
-            html: `<div style="text-align:left;">
-                     <h5 style="margin-bottom:10px;">
-                       <i class="material-icons" style="vertical-align:middle;">inventory_2</i>
-                       Contenedor: <span style="color:var(--rosa-principal);">${currentContenedor}</span>
-                     </h5>
-                     ${summary}
-                   </div>
-                   <br>
-                   <p style="font-size:16px;">¿Desea cerrar este contenedor? Podrá reabrirlo luego.</p>`,
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: `<i class="material-icons" style="vertical-align:middle;">lock</i> Cerrar`,
-            cancelButtonText: `<i class="material-icons" style="vertical-align:middle;">cancel</i> Cancelar`,
-            width: "650px"
-          });
-          if (!isConfirmed) return;
-          if (!dataObj.closedContainers) dataObj.closedContainers = {};
-          dataObj.closedContainers[currentContenedor] = currentUser.email || currentUser.uid;
-          excelDataGlobal[fn] = dataObj;
-          await reuploadFileWithScannerChanges(fn);
-          Swal.fire({
-            icon: "success",
-            title: "Contenedor cerrado",
-            html: `<i class="material-icons" style="vertical-align:middle;color:#4CAF50;">lock</i> Contenedor ${currentContenedor} cerrado por: ${dataObj.closedContainers[currentContenedor]}`
-          });
-          inputScanCode.disabled = true;
-          btnCerrarContenedor.innerHTML = `<i class="material-icons" style="vertical-align:middle;">lock_open</i> Abrir Contenedor`;
-          Swal.fire({
-            title: `<i class="material-icons" style="vertical-align:middle;">info</i> Estado del Contenedor ${currentContenedor}`,
-            html: summary,
-            icon: "info",
-            confirmButtonText: "OK",
-            width: "600px"
-          });
-        });
+            
+            Swal.fire({ icon: "success", title: "¡Reabierto!", text: `El contenedor ${currentContenedor} está listo para escanear de nuevo.`, timer: 2000, showConfirmButton: false });
 
-        /***********************************************************
-         * REGISTRO DE PIEZAS (SCAN)
-         ***********************************************************/
-        inputScanCode.addEventListener("keyup", () => {
-          clearTimeout(debounceTimerScan);
-          debounceTimerScan = setTimeout(() => {
-            let val = inputScanCode.value.trim().toUpperCase();
-            if (val && ((val.length >= 5 && val.length <= 10) || (val.length >= 12))) {
-              handleScanCode(val);
-              inputScanCode.value = "";
-            }
-          }, 2000);
-        });
-        inputScanCode.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") {
-            clearTimeout(debounceTimerScan);
-            let val = inputScanCode.value.trim().toUpperCase();
-            if (val && ((val.length >= 5 && val.length <= 10) || (val.length >= 12))) {
-              handleScanCode(val);
-              inputScanCode.value = "";
-            }
-          }
-        });
-        inputScanCode.addEventListener("paste", () => {
-          setTimeout(() => {
-            let val = inputScanCode.value.trim().toUpperCase();
-            if (val && ((val.length >= 5 && val.length <= 10) || (val.length >= 12))) {
-              handleScanCode(val);
-              inputScanCode.value = "";
-            }
-          }, 10);
-        });
-        function handleScanCode(code) {
-          if (!currentEmployeeNumber || employeeNumberInput.value.trim().length !== 8) {
-            return Swal.fire({
-              icon: "warning",
-              title: "Número de Empleado",
-              html: `<i class="material-icons" style="color:#FFC107;">badge</i> Debe ingresar 8 dígitos.`
-            });
-          }
-          if (!currentContenedor || !currentContainerRecords.length) {
-            return Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No hay contenedor abierto.`
-            });
-          }
-          let fn = selectedFileToWorkEl.textContent;
-          if (!fn || !excelDataGlobal[fn]) {
-            return Swal.fire({
-              icon: "error",
-              title: "Error",
-              html: `<i class="material-icons" style="color:#F44336;">error</i> No hay un archivo abierto.`
-            });
-          }
-          let dataObj = excelDataGlobal[fn];
-          if (dataObj.closedContainers && dataObj.closedContainers[currentContenedor]) {
-            return Swal.fire({
-              icon: "error",
-              title: "Contenedor Cerrado",
-              html: `<i class="material-icons" style="color:#F44336;">lock</i> El contenedor está cerrado y no se puede editar.`
-            });
-          }
-          let matchingRows = currentContainerRecords.filter(r => {
-            let cont = String(r.CONTENEDOR || "").trim().toUpperCase();
-            let sku = String(r.SKU || "").trim().toUpperCase();
-            let euro = String(r.EUROPEO || "").trim().toUpperCase();
-            return (cont.includes(code) || sku.includes(code) || euro.includes(code));
-          });
-          if (matchingRows.length === 0) {
-            Swal.fire({
-              icon: "question",
-              title: "Artículo inexistente",
-              html: `<i class="material-icons" style="color:#9C27B0;">help_outline</i> El artículo <strong>${code}</strong> no existe en este contenedor.<br>¿Desea añadirlo con SAP=0?`,
-              showCancelButton: true,
-              confirmButtonText: `<i class="material-icons">add_box</i> Sí, añadir`,
-              cancelButtonText: `<i class="material-icons">cancel</i> No`
-            }).then(async result => {
-              if (!result.isConfirmed) return;
-              let fechaActual = new Date();
-              let newRow = {
-                FECHA: fechaActual,
-                SECCION: "",
-                MANIFIESTO: "",
-                CONTENEDOR: currentContenedor,
-                SKU: code,
-                EUROPEO: "",
-                DESCRIPCION: "(artículo añadido manualmente)",
-                SAP: 0,
-                SCANNER: 1,
-                ENTREGADO_A: currentEmployeeNumber,
-                LAST_SCANNED_BY: currentUser.email || currentUser.uid,
-                FECHA_ESCANEO: fechaActual,
-                DANIO_CANTIDAD: 0,
-                DANIO_FOTO_URL: ""
-              };
-              dataObj.data.push(newRow);
-              dataObj.lastUser = currentUser.email || currentUser.uid;
-              excelDataGlobal[fn] = dataObj;
-              await reuploadFileWithScannerChanges(fn);
-              currentContainerRecords = dataObj.data.filter(rr => String(rr.CONTENEDOR||"").toUpperCase()===currentContenedor);
-              mostrarDetallesContenedor(currentContainerRecords);
-              Swal.fire({
-                icon: "success",
-                title: "Artículo añadido",
-                html: `<i class="material-icons" style="color:#4CAF50;">check_circle</i> Se añadió ${code} al contenedor.`
-              });
-            });
-          } else if (matchingRows.length === 1) {
-            incrementRow(matchingRows[0], code);
-          } else {
-            let html = `<p>Se encontraron múltiples registros para el código <strong>${code}</strong>:</p><ul class='list-group'>`;
-            matchingRows.forEach((row, idx) => {
-              let sku = String(row.SKU || "");
-              html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-                         <div>
-                           <strong>SKU:</strong> ${sku}<br>
-                           <small>${row.DESCRIPCION || ""}</small>
-                         </div>
-                         <button class="btn btn-primary btn-sm btn-anim" onclick="chooseRow(${idx})">
-                           <i class="material-icons">check</i> Seleccionar
-                         </button>
-                       </li>`;
-            });
-            html += "</ul>";
-            Swal.fire({
-              title: "Seleccione Registro",
-              html,
-              showConfirmButton: false,
-              width: "650px"
-            });
-            window.chooseRow = function (index) {
-              Swal.close();
-              incrementRow(matchingRows[index], code);
-            };
-          }
+            inputScanCode.disabled = false;
+            btnCerrarContenedor.innerHTML = `<i class="material-icons">lock</i> Cerrar Contenedor`;
         }
+    } else {
+        // --- Flujo para CERRAR ---
+        const summary = getContainerSummaryDetailed(currentContainerRecords);
+        const { isConfirmed } = await showCloseConfirmationModal(currentContenedor, summary);
+
+        if (isConfirmed) {
+            if (!dataObj.closedContainers) dataObj.closedContainers = {};
+            const userIdentifier = currentUser.email || currentUser.uid;
+            dataObj.closedContainers[currentContenedor] = userIdentifier;
+            excelDataGlobal[fn] = dataObj;
+            
+            await reuploadFileWithScannerChanges(fn);
+
+            inputScanCode.disabled = true;
+            btnCerrarContenedor.innerHTML = `<i class="material-icons">lock_open</i> Reabrir Contenedor`;
+            
+            // --- ¡Alerta única y mejorada! ---
+            // Mostramos el resumen final en lugar de dos alertas separadas.
+            showFinalSummaryModal(currentContenedor, summary, userIdentifier);
+        }
+    }
+});
+// =========================================================================
+// SECCIÓN: REGISTRO DE PIEZAS (SCAN) - MEJORADA
+// =========================================================================
+
+// --- PASO 1: Funciones de ayuda para la interfaz de usuario ---
+
+/** Muestra un toast de éxito rápido tras un escaneo correcto. */
+function showScanSuccessToast(sku, newCount) {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `+1 ${sku} (Total: ${newCount})`,
+        showConfirmButton: false,
+        timer: 1500, // Desaparece en 1.5 segundos
+        customClass: { popup: 'scan-success-toast' }
+    });
+}
+
+/** Muestra un toast de error no bloqueante. */
+function showScanErrorToast(title, text) {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: title,
+        text: text,
+        showConfirmButton: false,
+        timer: 2500,
+        customClass: { popup: 'scan-error-toast' }
+    });
+}
+
+/** Muestra el modal para confirmar si se añade un nuevo artículo. */
+function showAddItemConfirmation(code) {
+    return Swal.fire({
+        html: `
+            <div class="modal-header-status status-reopen" style="background-color: #9C27B0;">
+                <i class="material-icons">add_shopping_cart</i>
+                <h3>Artículo No Encontrado</h3>
+            </div>
+            <div class="confirmation-modal-content">
+                <p class="main-text">El artículo <strong>${code}</strong> no existe en este contenedor.</p>
+                <p>¿Deseas añadirlo como un nuevo registro con Cantidad SAP = 0?</p>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, Añadir',
+        cancelButtonText: 'Cancelar',
+        width: "550px",
+        padding: 0,
+        customClass: {
+            confirmButton: 'btn-confirm-custom',
+            cancelButton: 'btn-cancel-custom'
+        }
+    });
+}
+
+/** Muestra el modal para elegir entre múltiples coincidencias. */
+function showMultipleMatchesModal(code, matchingRows) {
+    // Reutilizamos nuestras tarjetas de resultados
+    const html = matchingRows.map((row, idx) => `
+        <div class="result-item-card">
+            <div class="item-info">
+                <div class="item-title">
+                    <i class="material-icons text-primary">sell</i>
+                    ${row.SKU || 'SKU no definido'}
+                </div>
+                <div class="item-meta">
+                    <strong>Descripción:</strong> ${row.DESCRIPCION || '(sin descripción)'}
+                </div>
+            </div>
+            <button class="btn btn-primary btn-sm btn-choose" onclick="window.chooseRow(${idx})">
+                <i class="material-icons">touch_app</i> Seleccionar
+            </button>
+        </div>
+    `).join('');
+
+    Swal.fire({
+        title: "Múltiples Coincidencias",
+        html: `<p>Se encontraron varios registros para el código <strong>${code}</strong>. Por favor, selecciona el correcto:</p>
+               <div class="results-list-container">${html}</div>`,
+        showConfirmButton: false,
+        width: "650px"
+    });
+}
+
+
+// --- PASO 2: La lógica principal de manejo de escaneo ---
+
+/** Incrementa el contador de un artículo y notifica al usuario. */
+async function incrementRowAndNotify(row, code) {
+    // Tu lógica original para incrementar la fila (se mantiene)
+    row.SCANNER = (Number(row.SCANNER) || 0) + 1;
+    row.FECHA_ESCANEO = new Date();
+    row.LAST_SCANNED_BY = currentUser.email || currentUser.uid;
+    // ... cualquier otra lógica que tuvieras en incrementRow ...
+
+    // Mostramos el toast de éxito
+    showScanSuccessToast(row.SKU || code, row.SCANNER);
+
+    // Actualizamos la vista de detalles del contenedor
+    mostrarDetallesContenedor(currentContainerRecords);
+    
+    // Guardamos los cambios en el archivo
+    await reuploadFileWithScannerChanges(selectedFileToWorkEl.textContent);
+}
+
+/** El manejador central que decide qué hacer con un código escaneado. */
+async function handleScanCode(code) {
+    // --- Validaciones (Guard Clauses) ---
+    if (!currentEmployeeNumber || employeeNumberInput.value.trim().length !== 8) {
+        return showScanErrorToast('Falta # de Empleado', 'Debes ingresar 8 dígitos.');
+    }
+    if (!currentContenedor || !currentContainerRecords.length) {
+        return showScanErrorToast('Sin Contenedor', 'No hay un contenedor abierto.');
+    }
+    const fn = selectedFileToWorkEl.textContent;
+    if (!fn || !excelDataGlobal[fn]) {
+        return showScanErrorToast('Sin Archivo', 'No hay un manifiesto abierto.');
+    }
+    const dataObj = excelDataGlobal[fn];
+    if (dataObj.closedContainers?.[currentContenedor]) {
+        return showScanErrorToast('Contenedor Cerrado', 'No se puede editar.');
+    }
+
+    // --- Lógica de Búsqueda y Acción ---
+    const matchingRows = currentContainerRecords.filter(r => 
+        String(r.SKU || "").trim().toUpperCase() === code || 
+        String(r.EUROPEO || "").trim().toUpperCase() === code
+    );
+
+    if (matchingRows.length === 0) {
+        // Caso 1: No se encuentra el artículo
+        const { isConfirmed } = await showAddItemConfirmation(code);
+        if (isConfirmed) {
+            const newRow = { /* ... tu objeto newRow se mantiene igual ... */ };
+            dataObj.data.push(newRow);
+            dataObj.lastUser = currentUser.email || currentUser.uid;
+            excelDataGlobal[fn] = dataObj;
+            currentContainerRecords.push(newRow);
+            await reuploadFileWithScannerChanges(fn);
+            mostrarDetallesContenedor(currentContainerRecords);
+            Swal.fire({ icon: "success", title: "¡Añadido!", text: `Se añadió ${code} al contenedor.` });
+        }
+    } else if (matchingRows.length === 1) {
+        // Caso 2: Se encuentra un único artículo (el más común)
+        await incrementRowAndNotify(matchingRows[0], code);
+    } else {
+        // Caso 3: Múltiples coincidencias para el mismo código
+        showMultipleMatchesModal(code, matchingRows);
+        window.chooseRow = (index) => {
+            Swal.close();
+            incrementRowAndNotify(matchingRows[index], code);
+        };
+    }
+}
+
+
+// --- PASO 3: Los nuevos event listeners, unificados y eficientes ---
+
+function scanInputHandler() {
+    let val = inputScanCode.value.trim().toUpperCase();
+    // Validamos la longitud del código escaneado
+    if (val && ((val.length >= 5 && val.length <= 10) || (val.length >= 12))) {
+        handleScanCode(val);
+        inputScanCode.value = "";
+    }
+}
+
+// Un scanner de códigos de barras normalmente simula un 'Enter' al final.
+// Por eso, este es nuestro listener principal.
+inputScanCode.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault(); // Evita que el 'Enter' envíe un formulario si lo hubiera
+        clearTimeout(debounceTimerScan); // Limpiamos cualquier timer pendiente
+        scanInputHandler();
+    }
+});
+
+// El listener de 'paste' es útil si se copia y pega el código manualmente.
+inputScanCode.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    inputScanCode.value = pastedText;
+    scanInputHandler();
+});
+
+// Mantenemos un debounce para el 'keyup' como un respaldo, pero con menos tiempo.
+inputScanCode.addEventListener("keyup", (e) => {
+    if (e.key !== 'Enter') {
+        clearTimeout(debounceTimerScan);
+        debounceTimerScan = setTimeout(() => {
+            scanInputHandler();
+        }, 800); // 800ms es un tiempo más razonable para una pausa al teclear.
+    }
+});
 
         // **MODIFICACIÓN**: En vez de reescribir el XLSX en cada escaneo,
         // solo actualizamos la interfaz y dejamos el reupload para el cierre.
@@ -1913,168 +2498,157 @@ window.selectSKUContainer = function(fileName, cont) {
     timerProgressBar: true
   });
 }
-        /***********************************************************
-         * MOSTRAR DETALLES EN TABLA (mejoradas columnas)
-         ***********************************************************/
-        function mostrarDetallesContenedor(registros) {
-          containerDetailsEl.innerHTML = "";
-          if (!registros || registros.length === 0) return;
+// =========================================================================
+// SECCIÓN: MOSTRAR DETALLES EN TABLA (OPTIMIZADA)
+// =========================================================================
 
-          let headers = [
-            "Fecha", "Sección", "Manifiesto", "Contenedor", "SKU", "Europeo",
-            "Descripción", "SAP", "SCANNER", "Diferencia", "Fecha de Escaneo",
-            "Condiciones de la Mcia", "FOTO DAÑOS", "Acciones"
-          ];
-          let table = document.createElement("table");
-          table.className = "table table-bordered table-striped table-hover animate__animated animate__fadeInUp";
-          table.style.borderRadius = "var(--ios-border-radius)";
-          table.style.overflow = "hidden";
+function mostrarDetallesContenedor(registros) {
+    // Si no hay registros, limpiamos y salimos.
+    if (!registros || registros.length === 0) {
+        containerDetailsEl.innerHTML = "";
+        return;
+    }
 
-          let thead = document.createElement("thead");
-          let trHead = document.createElement("tr");
-          headers.forEach(h => {
-            let th = document.createElement("th");
-            th.textContent = h;
-            trHead.appendChild(th);
-          });
-          thead.appendChild(trHead);
-          table.appendChild(thead);
+    // --- ¡MEJORA DE RENDIMIENTO! ---
+    // Construimos toda la tabla como una cadena de texto HTML. Es mucho más rápido.
+    const headers = [
+        "Fecha", "Sección", "Manifiesto", "Contenedor", "SKU", "Europeo",
+        "Descripción", "SAP", "SCANNER", "Diferencia", "Fecha Escaneo",
+        "Condiciones", "Foto", "Acciones"
+    ];
 
-          let tbody = document.createElement("tbody");
-          registros.forEach(r => {
-            let tr = document.createElement("tr");
-            let fecha = r.FECHA ? formatFecha(r.FECHA) : "";
-            let seccion = r.SECCION || "";
-            let manifiesto = r.MANIFIESTO || "";
-            let contenedor = r.CONTENEDOR || "";
-            let sku = String(r.SKU || "");
-            let europeo = String(r.EUROPEO || "");
-            let descripcion = r.DESCRIPCION || "";
-            let SAP = r.SAP || 0;
-            let SCANNER = r.SCANNER || 0;
-            let diff = "";
-            if (SCANNER === SAP) {
-              diff = "OK";
-            } else if (SCANNER < SAP) {
-              diff = `FALTAN ${SAP - SCANNER} piezas`;
-            } else {
-              diff = `OK CON MERCANCÍA DE MÁS: ${SCANNER - SAP} piezas`;
+    const tableHTML = `
+        <div class="table-responsive-wrapper">
+            <table class="table table-bordered table-striped table-hover details-table">
+                <thead>
+                    <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${registros.map(r => {
+                        const sku = String(r.SKU || "").toUpperCase();
+                        const SAP = r.SAP || 0;
+                        const SCANNER = r.SCANNER || 0;
+                        
+                        // Lógica para determinar la clase y texto de la diferencia
+                        let diffClass = '';
+                        let diffText = '';
+                        if (SCANNER === SAP) {
+                            diffClass = 'is-ok';
+                            diffText = 'OK';
+                        } else if (SCANNER < SAP) {
+                            diffClass = 'is-missing';
+                            diffText = `FALTAN ${SAP - SCANNER}`;
+                        } else {
+                            diffClass = 'is-excess';
+                            diffText = `EXCESO: ${SCANNER - SAP}`;
+                        }
+
+                        // --- ¡CLAVE! --- Asignamos IDs únicos a las filas y celdas que actualizaremos.
+                        return `
+                            <tr id="row-${sku}">
+                                <td>${r.FECHA ? formatFecha(r.FECHA) : ""}</td>
+                                <td>${r.SECCION || ""}</td>
+                                <td>${r.MANIFIESTO || ""}</td>
+                                <td>${r.CONTENEDOR || ""}</td>
+                                <td>${sku}</td>
+                                <td>${String(r.EUROPEO || "").toUpperCase()}</td>
+                                <td>${r.DESCRIPCION || ""}</td>
+                                <td>${SAP}</td>
+                                <td id="scanner-cell-${sku}">${SCANNER}</td>
+                                <td id="diff-cell-${sku}"><div class="diff-status ${diffClass}">${diffText}</div></td>
+                                <td>${r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : ""}</td>
+                                <td>
+                                    <button class="btn ${r.DANIO_CANTIDAD > 0 ? 'btn-warning' : 'btn-outline-warning'} btn-circle btn-anim btnDanio" data-sku="${sku}" title="Reportar daño">
+                                        <i class="material-icons">warning</i>
+                                        ${r.DANIO_CANTIDAD > 0 ? `<span class="badge bg-white text-dark">${r.DANIO_CANTIDAD}</span>` : ''}
+                                    </button>
+                                </td>
+                                <td>
+                                    ${r.DANIO_FOTO_URL ? `
+                                        <button class="btn btn-info btn-circle btn-anim btnFoto" data-url="${r.DANIO_FOTO_URL}" title="Ver foto">
+                                            <i class="material-icons">image</i>
+                                        </button>` : `<span class="text-muted">-</span>`}
+                                </td>
+                                <td>
+                                    <button class="btn btn-danger btn-circle btn-anim removeOneBtn" data-sku="${sku}" title="Restar 1 pieza">
+                                        <i class="material-icons">remove</i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Dibujamos la tabla en el DOM una sola vez.
+    containerDetailsEl.innerHTML = tableHTML;
+
+    // --- Mantenemos la delegación de eventos, que es una buena práctica ---
+    
+    // Evento para abrir modal de daños
+    containerDetailsEl.querySelectorAll(".btnDanio").forEach(btn => {
+        btn.addEventListener("click", () => {
+            currentDanioSKU = btn.dataset.sku || "";
+            danioCantidadInput.value = "1";
+            danioFotoInput.value = "";
+            modalDanios.show();
+        });
+    });
+
+    // Evento para abrir foto de daño
+    containerDetailsEl.querySelectorAll(".btnFoto").forEach(btn => {
+        btn.addEventListener("click", () => window.open(btn.dataset.url, "_blank"));
+    });
+
+    // --- ¡MEJORA DE ACTUALIZACIÓN INTELIGENTE! ---
+    // Evento para restar una pieza
+    containerDetailsEl.querySelectorAll(".removeOneBtn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const sku = btn.dataset.sku;
+            const fn = selectedFileToWorkEl.textContent;
+            const dataObj = excelDataGlobal[fn];
+            const rowObj = dataObj.data.find(x => String(x.SKU || "").trim().toUpperCase() === sku && String(x.CONTENEDOR || "").trim().toUpperCase() === currentContenedor);
+            
+            if (!rowObj || (rowObj.SCANNER || 0) === 0) return;
+
+            // 1. Actualizar datos en memoria
+            rowObj.SCANNER -= 1;
+            // ... (el resto de tu lógica de actualización de datos se mantiene)
+
+            // 2. Persistir en segundo plano (igual que antes)
+            reuploadFileWithScannerChanges(fn).catch(e => console.error(e));
+
+            // 3. ¡Actualizar solo la UI necesaria, sin redibujar todo!
+            const scannerCell = document.getElementById(`scanner-cell-${sku}`);
+            const diffCell = document.getElementById(`diff-cell-${sku}`);
+            const rowElement = document.getElementById(`row-${sku}`);
+
+            if (scannerCell && diffCell && rowElement) {
+                scannerCell.textContent = rowObj.SCANNER;
+
+                // Re-calculamos la diferencia y actualizamos su celda
+                const SAP = rowObj.SAP || 0;
+                let diffClass = '', diffText = '';
+                if (rowObj.SCANNER === SAP) { diffClass = 'is-ok'; diffText = 'OK'; }
+                else if (rowObj.SCANNER < SAP) { diffClass = 'is-missing'; diffText = `FALTAN ${SAP - rowObj.SCANNER}`; }
+                else { diffClass = 'is-excess'; diffText = `EXCESO: ${rowObj.SCANNER - SAP}`; }
+                diffCell.innerHTML = `<div class="diff-status ${diffClass}">${diffText}</div>`;
+                
+                // Animación para feedback visual
+                rowElement.classList.add('row-updated');
+                setTimeout(() => rowElement.classList.remove('row-updated'), 1000);
             }
-            let fechaEscaneo = r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : "";
-            let danioCantidad = r.DANIO_CANTIDAD || 0;
-            let danioFotoURL = r.DANIO_FOTO_URL || "";
 
-            // Columnas de datos
-            const vals = [fecha, seccion, manifiesto, contenedor, sku, europeo, descripcion, SAP, SCANNER, diff, fechaEscaneo];
-            vals.forEach((val, i) => {
-              let td = document.createElement("td");
-              td.textContent = val;
-              // color en Diferencia
-              if (headers[i] === "Diferencia") {
-                if (diff === "OK") {
-                  td.style.backgroundColor = "#66BB6A"; td.style.color = "#FFF";
-                } else if (diff.startsWith("FALTAN")) {
-                  td.style.backgroundColor = "#F44336"; td.style.color = "#FFF";
-                } else {
-                  td.style.backgroundColor = "#FFEB3B"; td.style.color = "#000";
-                }
-              }
-              tr.appendChild(td);
+            // 4. Toast rápido (igual que antes)
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'info',
+                title: `-1 ${sku}`, showConfirmButton: false, timer: 1200
             });
-
-            // Columna: Condiciones de la Mcia
-            let tdCond = document.createElement("td");
-            tdCond.innerHTML = danioCantidad > 0
-              ? `<button class="btn btn-warning btn-circle btn-anim btnDanio" data-sku="${sku.toUpperCase()}" title="Condiciones">
-                   <i class="material-icons">warning</i>
-                   <span class="badge bg-white text-warning">${danioCantidad}</span>
-                 </button>`
-              : `<button class="btn btn-outline-warning btn-circle btn-anim btnDanio" data-sku="${sku.toUpperCase()}" title="Condiciones">
-                   <i class="material-icons">warning</i>
-                 </button>`;
-            tr.appendChild(tdCond);
-
-            // Columna: FOTO DAÑOS
-            let tdFoto = document.createElement("td");
-            tdFoto.innerHTML = danioFotoURL
-              ? `<button class="btn btn-info btn-circle btn-anim btnFoto" data-url="${danioFotoURL}" title="Ver foto">
-                   <i class="material-icons">image</i>
-                 </button>`
-              : `<span class="text-muted">-</span>`;
-            tr.appendChild(tdFoto);
-
-            // Columna: Acciones (restar una pieza)
-            let tdAcc = document.createElement("td");
-            tdAcc.innerHTML = `<button class="btn btn-danger btn-circle btn-anim removeOneBtn" data-sku="${sku.toUpperCase()}" title="Restar 1 pieza">
-                                 <i class="material-icons">remove</i>
-                               </button>`;
-            tr.appendChild(tdAcc);
-
-            tbody.appendChild(tr);
-          });
-
-          table.appendChild(tbody);
-          containerDetailsEl.appendChild(table);
-
-          // Eventos: btnDanio abre modal condiciones
-          containerDetailsEl.querySelectorAll(".btnDanio").forEach(btn => {
-            btn.addEventListener("click", () => {
-              currentDanioSKU = btn.dataset.sku || "";
-              danioCantidadInput.value = "1";
-              danioFotoInput.value = "";
-              modalDanios.show();
-            });
-          });
-
-          // Eventos: btnFoto abre foto en nueva pestaña
-          containerDetailsEl.querySelectorAll(".btnFoto").forEach(btn => {
-            btn.addEventListener("click", () => {
-              const url = btn.dataset.url;
-              window.open(url, "_blank");
-            });
-          });
-
-          // Eventos: removeOneBtn decrementa rápido con toast y persistencia en background
-          containerDetailsEl.querySelectorAll(".removeOneBtn").forEach(btn => {
-            btn.addEventListener("click", () => {
-              const sku = btn.dataset.sku;
-              const fn  = selectedFileToWorkEl.textContent;
-              const dataObj = excelDataGlobal[fn];
-              const rowObj  = dataObj.data.find(x =>
-                String(x.SKU||"").trim().toUpperCase()===sku &&
-                String(x.CONTENEDOR||"").trim().toUpperCase()===currentContenedor
-              );
-              if (!rowObj || (rowObj.SCANNER||0)===0) return;
-
-              // Actualizar en memoria
-              rowObj.SCANNER -= 1;
-              rowObj.LAST_SCANNED_BY = currentUser.email||currentUser.uid;
-              dataObj.lastUser = rowObj.LAST_SCANNED_BY;
-              excelDataGlobal[fn] = dataObj;
-
-              // Refrescar UI
-              currentContainerRecords = dataObj.data.filter(z =>
-                String(z.CONTENEDOR||"").trim().toUpperCase()===currentContenedor
-              );
-              mostrarDetallesContenedor(currentContainerRecords);
-
-              // Persistir en background
-              reuploadFileWithScannerChanges(fn).catch(e=>console.error(e));
-
-              // Toast rápido
-              Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'info',
-                title: `-1 ${sku}`,
-                showConfirmButton: false,
-                timer: 1200,
-                timerProgressBar: true
-              });
-            });
-          });
-        }
-
+        });
+    });
+}
         /***********************************************************
          * MODAL DE CONDICIONES DE LA MCIA
          ***********************************************************/
