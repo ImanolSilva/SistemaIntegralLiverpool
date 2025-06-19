@@ -8,9 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
-  
+ 
     <style>
         :root {
             --rosa-principal: #E6007E;
@@ -20,7 +19,7 @@
             --gris-claro: #f8f9fa;
             --gris-medio: #dee2e6;
             --gris-oscuro: #6c757d;
-            --texto-principal: #343a40;
+            --texto-principal: #212529;
             --azul-precios: #1E88E5;
             --verde-inventarios: #43A047;
             --naranja-manifiestos: #FB8C00;
@@ -29,51 +28,49 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #ff4081 0%, var(--negro-fondo) 100%);
+            background-color: var(--negro-fondo);
+            background-image: linear-gradient(135deg, #E6007E 0%, var(--negro-fondo) 100%);
             color: var(--texto-principal);
         }
         
         /* ======== Estructura Principal (Encabezado, Menú, Preloader) ======== */
         .preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--negro-fondo);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .7s ease,visibility .7s ease}.preloader .spinner{width:50px;height:50px;border:5px solid #444;border-top-color:var(--rosa-principal);border-radius:50%;animation:spin 1s linear infinite}.preloader.hidden{opacity:0;visibility:hidden}@keyframes spin{to{transform:rotate(360deg)}}
-        .app-header{background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}.header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}.offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:var(--blanco);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:background-color .3s ease,padding-left .3s ease;border-radius:0 50px 50px 0}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem}.offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
-        .main-container{max-width:1200px;margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .app-header{background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}.header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg); box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);}
+        .offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:all .3s ease;border-radius:0 50px 50px 0; border-left: 4px solid transparent;}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem; border-left: 4px solid var(--rosa-gradiente-luz); color: var(--rosa-principal);}
+        .offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
+        .main-container{margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         
         /* ======== Estilos del Contenido de la Página de Inicio ======== */
-        .hero-content h1 { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 700; color: var(--texto-principal); }
+        .hero-content h1 { font-size: clamp(2.2rem, 5vw, 3rem); font-weight: 700; color: var(--texto-principal); }
         .hero-content h1 span { color: var(--rosa-principal); }
-        .hero-content .lead { font-size: 1.2rem; margin: 1.5rem 0; color: var(--gris-oscuro); }
-        .typewriter-text { color: var(--rosa-gradiente-luz); font-weight: 600; }
-        #authButton{background-image:linear-gradient(45deg, var(--rosa-gradiente-luz), var(--rosa-principal));padding:12px 40px;font-size:1.2rem;border:none;border-radius:50px;color:white;transition:all .3s ease}.authButton:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 6px 20px rgba(230,0,126,.4)}
+        .hero-content .lead { font-size: clamp(1.1rem, 3vw, 1.25rem); margin: 1.5rem 0; color: var(--gris-oscuro); }
+        .typewriter-text { color: var(--rosa-principal); font-weight: 600; }
+        #authButton{background-image:linear-gradient(45deg, var(--rosa-gradiente-luz), var(--rosa-principal));padding:14px 45px;font-size:1.2rem;font-weight: 600;border:none;border-radius:50px;color:white;transition:all .3s ease; letter-spacing: 0.5px;}
+        #authButton:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 8px 25px rgba(230,0,126,.4)}
 
         /* Cuadros de información del usuario */
-        .user-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin:2rem auto;max-width:800px}.info-card{background:var(--gris-claro);padding:1rem;border-radius:12px;text-align:center;border:1px solid var(--gris-medio)}.info-card i{font-size:1.75rem;color:var(--rosa-principal)}.info-card .info-label{font-size:.8rem;color:var(--gris-oscuro);display:block;margin-top:.5rem}.info-card .info-value{font-size:1rem;font-weight:600;color:var(--texto-principal)}
+        .user-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin:2.5rem auto;max-width:800px}.info-card{background:var(--gris-claro);padding:1.25rem;border-radius:16px;text-align:center;border:1px solid var(--gris-medio)}.info-card i{font-size:2rem;color:var(--rosa-principal)}.info-card .info-label{font-size:.8rem;color:var(--gris-oscuro);display:block;margin-top:.5rem; text-transform: uppercase;}.info-card .info-value{font-size:1rem;font-weight:600;color:var(--texto-principal)}
 
-        /* ======== NUEVA SECCIÓN: ACCESO RÁPIDO ======== */
-        .quick-access-section h2 {
-            font-weight: 700;
-            color: var(--texto-principal);
-        }
-        .quick-access-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.5rem;
-        }
+        /* ======== SECCIÓN: ACCESO RÁPIDO MEJORADA ======== */
+        .quick-access-section h2 { font-weight: 700; color: var(--texto-principal); }
+        .quick-access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
         .action-card {
             background: var(--blanco);
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 2rem;
             text-align: center;
             text-decoration: none;
             color: var(--texto-principal);
             border: 1px solid var(--gris-medio);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
         .action-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+            border-color: var(--rosa-principal);
         }
         .card-icon {
             width: 70px;
@@ -85,26 +82,16 @@
             color: var(--blanco);
             font-size: 2rem;
             margin-bottom: 1rem;
+            transition: transform 0.3s ease;
         }
-        .action-card h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+        .action-card:hover .card-icon {
+            transform: scale(1.15) rotate(-10deg);
         }
-        .action-card p {
-            font-size: 0.9rem;
-            color: var(--gris-oscuro);
-        }
-        /* Agrega estas clases a tu CSS existente */
+        .action-card h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .action-card p { font-size: 0.9rem; color: var(--gris-oscuro); line-height: 1.5; }
 
-.d-none {
-    display: none !important;
-}
-
-.welcome-user-name {
-    color: var(--rosa-principal);
-    font-weight: 700;
-}
+        .welcome-user-name { color: var(--rosa-principal); font-weight: 700; }
+        @keyframes blink { 50% { opacity: 0; } }
 
         /* Colores para cada tarjeta */
         .icon-rechazos { background-image: linear-gradient(45deg, #F50057, #E6007E); }
@@ -113,7 +100,6 @@
         .icon-manifiestos { background-image: linear-gradient(45deg, #FFA726, #FB8C00); }
         .icon-admin { background-image: linear-gradient(45deg, #AB47BC, #8E24AA); }
         .icon-seguimiento { background-image: linear-gradient(45deg, #26A69A, #00897B); }
-
     </style>
 </head>
 <body>
@@ -151,52 +137,46 @@
             <p class="lead typewriter" data-aos="fade-up" data-aos-delay="500">
                 Una herramienta para <span class="typewriter-text"></span><label style="color: var(--rosa-principal); animation: blink 1s infinite;">|</label>
             </p>
-            <style> @keyframes blink { 50% { opacity: 0; } } </style>
-            <button class="authButton" data-aos="fade-up" data-aos-delay="800" id="authButton" onclick="handleAuthClick()">Acceder</button>
+             <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+                <button class="authButton" data-aos="fade-up" data-aos-delay="800" id="authButton">Acceder</button>
+            </div>
         </div>
 
         <hr class="my-5">
 
-        <div class="quick-access-section" data-aos="fade-up" data-aos-delay="300">
+        <div class="quick-access-section" data-aos="fade-up" data-aos-delay="300" style="display: none;">
             <h2 class="text-center mb-4">Acceso Rápido</h2>
             <div class="quick-access-grid">
-                
                 <a href="Rechazos/reportes.html" class="action-card">
                     <div class="card-icon icon-rechazos"><i class="bi bi-x-octagon-fill"></i></div>
                     <h3>Rechazos</h3>
                     <p>Gestiona y comenta los reportes de rechazos de mercancía.</p>
                 </a>
-                
                 <a href="ChecarPrecios/index.html" class="action-card">
                     <div class="card-icon icon-precios"><i class="bi bi-tags-fill"></i></div>
                     <h3>Checar Precios</h3>
                     <p>Verifica precios de artículos escaneando códigos de barras.</p>
                 </a>
-                
                 <a href="Inventarios/Inventarios.html" class="action-card">
                     <div class="card-icon icon-inventarios"><i class="bi bi-archive-fill"></i></div>
                     <h3>Inventarios</h3>
                     <p>Controla y administra el stock de los productos en tienda.</p>
                 </a>
-
                 <a href="Manifiestos/Manifiestos.html" class="action-card">
                     <div class="card-icon icon-manifiestos"><i class="bi bi-file-earmark-check-fill"></i></div>
                     <h3>Manifiestos</h3>
                     <p>Genera y consulta manifiestos de mercancía de forma digital.</p>
                 </a>
-
                 <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;">
                     <div class="card-icon icon-admin"><i class="bi bi-gear-fill"></i></div>
                     <h3>Administrar</h3>
                     <p>Gestiona roles, permisos y usuarios del sistema.</p>
                 </a>
-
                 <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;">
                     <div class="card-icon icon-seguimiento"><i class="bi bi-graph-up-arrow"></i></div>
                     <h3>Seguimiento</h3>
                     <p>Analiza el historial y movimiento de artículos específicos.</p>
                 </a>
-
             </div>
         </div>
     </main>
@@ -206,153 +186,134 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
    <script>
-    // Le decimos al navegador que espere a que todo el HTML esté listo antes de ejecutar el código
     document.addEventListener('DOMContentLoaded', () => {
-
-        // --- PASO 1: CONFIGURACIÓN E INICIALIZACIÓN DE LIBRERÍAS ---
+        // --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
         const firebaseConfig = { apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE", authDomain: "loginliverpool.firebaseapp.com", projectId: "loginliverpool", storageBucket: "loginliverpool.appspot.com", messagingSenderId: "704223815941", appId: "1:704223815941:web:c871525230fb61caf96f6c" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-        // --- ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA! ---
-        // Lista de IDs de usuarios que son administradores.
         const ADMIN_UIDS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"];
+        AOS.init({ once: true, duration: 800 });
 
-        AOS.init({ once: true });
+        // --- 2. REFERENCIAS A ELEMENTOS DEL DOM ---
+        const ui = {
+            authButton: document.getElementById("authButton"),
+            logoutButton: document.getElementById("logout-btn"),
+            adminTab: document.getElementById("adminTab"),
+            segArtTab: document.getElementById("seguimientoArticulosTab"),
+            welcomeMessage: document.getElementById("welcomeMessage"),
+            userInfoContainer: document.getElementById("userInfoContainer"),
+            adminCard: document.getElementById("adminCard"),
+            seguimientoCard: document.getElementById("seguimientoArticulosCard"),
+            preloader: document.querySelector('.preloader'),
+            typewriterText: document.querySelector(".typewriter-text"),
+            quickAccessSection: document.querySelector(".quick-access-section"),
+            heroContent: document.querySelector(".hero-content"),
+        };
 
-
-        // --- PASO 2: OBTENER REFERENCIAS A LOS ELEMENTOS DEL DOM ---
-        const authButton = document.getElementById("authButton");
-        const logoutButton = document.getElementById("logout-btn");
-        const adminTab = document.getElementById("adminTab");
-        const segArtTab = document.getElementById("seguimientoArticulosTab");
-        const welcomeMessage = document.getElementById("welcomeMessage");
-        const userInfoContainer = document.getElementById("userInfoContainer");
-        const adminCard = document.getElementById("adminCard");
-        const seguimientoCard = document.getElementById("seguimientoArticulosCard");
-        const preloader = document.querySelector('.preloader');
-
-
-        // --- PASO 3: DEFINIR LAS FUNCIONES ---
-        function handleAuthClick() {
-            if (auth.currentUser) {
-                auth.signOut();
-            } else {
+        // --- 3. FUNCIONES AUXILIARES ---
+        const handleAuthClick = () => {
+            if (!auth.currentUser) {
                 window.location.href = "Login/login.html";
             }
-        }
+        };
 
-        const texts = ["Verificación de Precios", "Controlar Rechazos", "Gestionar Inventarios", "Configurar el Sistema"];
-        let speed = 100, textIndex = 0, charIndex = 0;
-        const textElement = document.querySelector(".typewriter-text");
-
-        function typeWriter() {
-            if (textElement && charIndex < texts[textIndex].length) {
-                textElement.innerHTML += texts[textIndex].charAt(charIndex);
-                charIndex++;
-                setTimeout(typeWriter, speed);
-            } else {
-                setTimeout(eraseText, 2000);
+        const typewriter = {
+            texts: ["Verificación de Precios", "Controlar Rechazos", "Gestionar Inventarios", "Configurar el Sistema"],
+            speed: 100,
+            textIndex: 0,
+            charIndex: 0,
+            run() {
+                if (this.charIndex < this.texts[this.textIndex].length) {
+                    ui.typewriterText.innerHTML += this.texts[this.textIndex].charAt(this.charIndex);
+                    this.charIndex++;
+                    setTimeout(() => this.run(), this.speed);
+                } else {
+                    setTimeout(() => this.erase(), 2000);
+                }
+            },
+            erase() {
+                if (ui.typewriterText.innerHTML.length > 0) {
+                    ui.typewriterText.innerHTML = ui.typewriterText.innerHTML.slice(0, -1);
+                    setTimeout(() => this.erase(), 50);
+                } else {
+                    this.textIndex = (this.textIndex + 1) % this.texts.length;
+                    this.charIndex = 0;
+                    setTimeout(() => this.run(), 500);
+                }
             }
-        }
+        };
 
-        function eraseText() {
-            if (textElement && textElement.innerHTML.length > 0) {
-                textElement.innerHTML = textElement.innerHTML.slice(0, -1);
-                setTimeout(eraseText, 50);
-            } else {
-                textIndex = (textIndex + 1) % texts.length;
-                charIndex = 0;
-                setTimeout(typeWriter, 500);
+        const updateUIForLoggedOutUser = () => {
+            ui.logoutButton.style.display = 'none';
+            ui.authButton.style.display = 'block';
+            ui.welcomeMessage.innerHTML = `Bienvenido a <span>Sistema Liverpool</span>`;
+            ui.userInfoContainer.style.display = 'none';
+            ui.quickAccessSection.style.display = 'none';
+            [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard].forEach(el => el.style.display = "none");
+        };
+
+        const updateUIForLoggedInUser = async (user) => {
+            ui.logoutButton.style.display = 'inline-flex';
+            ui.authButton.style.display = 'none';
+            ui.heroContent.style.textAlign = 'left';
+
+            const name = user.displayName || user.email.split('@')[0];
+            ui.welcomeMessage.innerHTML = `Hola, <span class="welcome-user-name">${name}</span>`;
+
+            try {
+                const userDoc = await db.collection("usuarios").doc(user.uid).get();
+                if (!userDoc.exists || userDoc.data().status !== "aprobado") {
+                    throw new Error("Tu cuenta no existe o no está aprobada. Contacta a un administrador.");
+                }
+                const data = userDoc.data();
+                const isAdmin = ADMIN_UIDS.includes(user.uid);
+                const role = isAdmin ? "Administrador" : (data.role || "Usuario");
+
+                ui.userInfoContainer.innerHTML = `
+                    <div class="user-info-grid">
+                        <div class="info-card"><i class="bi bi-shop"></i><span class="info-label">Tienda</span><span class="info-value">${data.store || "N/A"}</span></div>
+                        <div class="info-card"><i class="bi bi-building"></i><span class="info-label">Depto.</span><span class="info-value">${data.department || "N/A"}</span></div>
+                        <div class="info-card"><i class="bi bi-person-badge-fill"></i><span class="info-label">Rol</span><span class="info-value">${role}</span></div>
+                    </div>`;
+                ui.userInfoContainer.style.display = 'block';
+
+                ui.quickAccessSection.style.display = 'block';
+                ui.adminTab.style.display = isAdmin ? "block" : "none";
+                ui.segArtTab.style.display = isAdmin ? "block" : "none";
+                ui.adminCard.style.display = isAdmin ? "flex" : "none";
+                ui.seguimientoCard.style.display = isAdmin ? "flex" : "none";
+            } catch (error) {
+                await Swal.fire({
+                    icon: 'warning',
+                    title: 'Acceso Denegado',
+                    text: error.message,
+                    confirmButtonText: 'Entendido'
+                });
+                auth.signOut();
             }
-        }
-
-
-        // --- PASO 4: LA LÓGICA PRINCIPAL Y LOS EVENT LISTENERS ---
-        authButton.addEventListener('click', handleAuthClick);
-        logoutButton.addEventListener('click', () => auth.signOut());
-// ========================================================
-// REEMPLAZA TU FUNCIÓN onAuthStateChanged POR ESTA VERSIÓN FINAL
-// ========================================================
-
-auth.onAuthStateChanged(async user => {
-    // Escondemos el preloader una vez que sabemos el estado del usuario
-    document.querySelector('.preloader').classList.add('hidden');
-
-    if (user) {
-        // --- EL USUARIO ESTÁ LOGUEADO ---
-        logoutButton.style.display = 'inline-flex';
-        authButton.style.display = 'none';
-
-        const name = user.displayName || user.email;
-        welcomeMessage.innerHTML = `Hola, <strong style="color: var(--rosa-principal); font-weight: 700;">${name}</strong>`;
+        };
         
-        // 1. Definimos los valores por defecto
-        let store = "N/A", department = "N/A", role = "Usuario";
+        // --- 4. LÓGICA PRINCIPAL Y EVENT LISTENERS ---
+        ui.authButton.addEventListener('click', handleAuthClick);
+        ui.logoutButton.addEventListener('click', () => auth.signOut());
 
-        // 2. BUSCAMOS los datos del usuario en Firestore para TODOS
-        const userDoc = await db.collection("usuarios").doc(user.uid).get();
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                await updateUIForLoggedInUser(user);
+            } else {
+                updateUIForLoggedOutUser();
+            }
+            ui.preloader.classList.add('hidden');
+        });
 
-        // Verificamos si el documento existe y si el usuario está activo
-        if (userDoc.exists && userDoc.data().status === "aprobado") {
-            const data = userDoc.data();
-            // Llenamos las variables con los datos reales de la base de datos
-            store = data.store || "N/A";
-            department = data.department || "N/A";
-            role = data.role || "Usuario"; // Obtenemos el rol guardado
-        } else {
-            // Si el usuario no existe en la base de datos o su estado no es "aprobado", lo desconectamos.
-            await Swal.fire({
-                icon: 'warning',
-                title: 'Acceso Denegado',
-                text: 'Tu cuenta no existe, no está activa o está pendiente de aprobación. Por favor, contacta a un administrador.',
-                confirmButtonText: 'Entendido'
-            });
-            auth.signOut();
-            return; // Detenemos la ejecución aquí
+        if (ui.typewriterText) {
+             setTimeout(() => typewriter.run(), 500);
         }
-
-        // 3. VERIFICAMOS si el usuario es admin, DESPUÉS de haber obtenido sus datos
-        const isAdmin = ADMIN_UIDS.includes(user.uid);
-        if (isAdmin) {
-            role = "Administrador"; // Sobrescribimos el rol si es un UID de administrador
-        }
-        
-        // 4. Mostramos la información correcta en las tarjetas
-        userInfoContainer.innerHTML = `
-            <div class="user-info-grid">
-                <div class="info-card"><i class="bi bi-shop"></i><span class="info-label">Tienda</span><span class="info-value">${store}</span></div>
-                <div class="info-card"><i class="bi bi-building"></i><span class="info-label">Depto.</span><span class="info-value">${department}</span></div>
-                <div class="info-card"><i class="bi bi-person-badge-fill"></i><span class="info-label">Rol</span><span class="info-value">${role}</span></div>
-            </div>`;
-        userInfoContainer.style.display = 'block';
-
-        // 5. Mostramos los elementos de admin correspondientes
-        adminTab.style.display = isAdmin ? "block" : "none";
-        segArtTab.style.display = isAdmin ? "block" : "none";
-        adminCard.style.display = isAdmin ? "flex" : "none";
-        seguimientoCard.style.display = isAdmin ? "flex" : "none";
-
-    } else {
-        // --- EL USUARIO NO ESTÁ LOGUEADO ---
-        logoutButton.style.display = 'none';
-        authButton.style.display = 'block';
-        welcomeMessage.innerHTML = `Bienvenido a <span>Sistema Liverpool</span>`;
-        userInfoContainer.style.display = 'none';
-        
-        // Ocultamos todos los elementos de admin
-        adminTab.style.display = "none";
-        segArtTab.style.display = "none";
-        adminCard.style.display = "none";
-        seguimientoCard.style.display = "none";
-    }
-});
-
-        // Iniciamos el efecto de máquina de escribir
-        setTimeout(typeWriter, 500);
-
-    }); // <-- Llave de cierre para el DOMContentLoaded
-</script>
+    });
+   </script>
+</body>
+</html>

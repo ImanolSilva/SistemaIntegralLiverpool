@@ -32,7 +32,7 @@
             color: var(--gris-oscuro);
         }
 
-        /* ======== Estilos Generales y Componentes (Sin cambios) ======== */
+        /* ======== Estilos Generales y Componentes (De tu archivo original) ======== */
         .preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--negro-fondo);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .7s ease,visibility .7s ease}.preloader .spinner{width:50px;height:50px;border:5px solid #444;border-top-color:var(--rosa-principal);border-radius:50%;animation:spin 1s linear infinite}.preloader.hidden{opacity:0;visibility:hidden}@keyframes spin{to{transform:rotate(360deg)}}
         .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}
         .header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}
@@ -48,7 +48,7 @@
         .btn-pill.btn-email{background-image:linear-gradient(45deg,var(--morado-accion),#8e24aa)}
         .btn-pill.btn-delete{background-image:linear-gradient(45deg,var(--rojo-peligro),#e53935)}
         .btn-pill.btn-photo{background-image:linear-gradient(45deg,#26c6da,#00acc1)}
-        .tools-panel{background:rgba(0,0,0,.1);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);border:1px solid rgba(255,255,255,.1);padding:1.5rem;border-radius:16px}
+        .tools-panel{background:rgba(248,249,250,0.8);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);border:1px solid rgba(0,0,0,.05);padding:1.5rem;border-radius:16px}
         .tools-panel .file-management-card{background:rgba(255,255,255,.9);border-radius:12px;padding:1.5rem;box-shadow:0 4px 15px rgba(0,0,0,.1)}
         .tools-panel .form-select{background-color:rgba(255,255,255,.9);border:1px solid var(--gris-medio);color:var(--texto-principal);font-weight:600}
         .tools-panel .form-select:focus{border-color:var(--rosa-principal);box-shadow:0 0 0 3px rgba(230,0,126,.2)}
@@ -57,11 +57,78 @@
         .badge-reporte{background-image:linear-gradient(135deg,var(--rosa-gradiente-luz),var(--rosa-principal));color:var(--blanco);font-size:1rem;padding:.5rem 1rem;border-radius:10px;font-weight:700}
         .report-summary-info .sku{font-weight:700;color:var(--texto-principal);font-size:1rem}.report-summary-info .usuario{color:var(--gris-oscuro);font-size:.85rem}
         .state-indicator{width:12px;height:12px;border-radius:50%;transition:all .4s ease;flex-shrink:0}.state-indicator.has-comment{background-color:var(--verde-exito);box-shadow:0 0 8px var(--verde-exito)}.state-indicator:not(.has-comment){background-color:#ffebee;border:1px solid var(--rojo-peligro)}
-        .accordion-body{padding:1.5rem!important;background-color:var(--gris-claro)}
+        .accordion-body{padding:1.5rem!important;background-color:var(--gris-claro); border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;}
         .report-details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem}
         .detail-item{background:#fff;padding:.75rem 1rem;border-radius:10px;border:1px solid #eee;display:flex;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,.05)}.detail-item i{font-size:1.5rem;color:var(--rosa-principal);margin-right:.75rem;background-image:linear-gradient(135deg,var(--rosa-gradiente-luz),var(--rosa-principal));-webkit-background-clip:text;-webkit-text-fill-color:transparent}.detail-item-content small{display:block;color:var(--gris-oscuro);font-size:.75rem;margin-bottom:.1rem}.detail-item-content span{font-weight:600;color:var(--texto-principal);font-size:.9rem}
         .img-placeholder,.img-fluid.rounded{border:3px solid var(--gris-medio);padding:5px;border-radius:12px}
         .hidden{display:none}.fade-in-section{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}.fade-in-section.visible{opacity:1;transform:translateY(0)}
+
+        /* ======== INICIO: NUEVOS ESTILOS PARA LA SECCIÓN DE EVIDENCIA ======== */
+        .evidence-card {
+            background-color: var(--blanco);
+            border: 1px solid var(--gris-medio);
+            border-radius: 16px;
+            padding: 1.5rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,.07);
+        }
+        .evidence-card h6 {
+            font-weight: 700;
+            color: var(--texto-principal);
+        }
+        .product-image-container {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--gris-medio);
+        }
+        .evidence-placeholder {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed var(--gris-medio);
+            border-radius: 12px;
+            padding: 2rem;
+            cursor: pointer;
+            background-color: var(--gris-claro);
+            transition: all 0.3s ease;
+            min-height: 220px;
+            flex-grow: 1;
+        }
+        .evidence-placeholder:hover {
+            border-color: var(--rosa-principal);
+            transform: scale(1.02);
+            background-color: #e9ecef;
+        }
+        .evidence-thumbnail-container {
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid var(--gris-medio);
+            background-color: var(--gris-claro);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        .evidence-thumbnail {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+        .evidence-thumbnail-container a:hover .evidence-thumbnail {
+            transform: scale(1.1);
+        }
+        .evidence-actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: auto;
+            padding-top: 1rem;
+        }
+        /* ======== FIN: NUEVOS ESTILOS PARA LA SECCIÓN DE EVIDENCIA ======== */
     </style>
 </head>
 <body>
@@ -80,7 +147,7 @@
             <nav class="nav flex-column">
                 <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
                 <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
-                <a class="nav-link active" href="reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+                <a class="nav-link active" href="#"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
                 <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
                 <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
                 <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
@@ -89,30 +156,42 @@
     </div>
 
     <main class="container main-container">
-        <div class="text-center"><h2 class="mb-1"><i class="bi bi-file-earmark-medical-fill me-2"></i>Panel de Reportes</h2><p id="correoUsuario" class="text-muted"><i class="bi bi-person-circle me-2"></i>Cargando usuario...</p></div>
+        <div class="text-center">
+            <h2 class="mb-1"><i class="bi bi-file-earmark-medical-fill me-2"></i>Panel de Reportes</h2>
+            <p id="correoUsuario" class="text-muted"><i class="bi bi-person-circle me-2"></i>Cargando usuario...</p>
+        </div>
         <hr class="my-4">
+        
         <section id="file-selection-section" class="fade-in-section">
             <h4><i class="bi bi-folder2-open me-2"></i>1. Seleccionar Archivo</h4>
-            <div id="dropzone" class="hidden text-center p-4 mb-3"><i class="bi bi-cloud-arrow-up-fill"></i><p class="mb-0 mt-2 fw-bold h5">Arrastra y suelta el archivo aquí</p><p class="text-muted small">o haz clic para seleccionarlo</p></div>
+            <div id="dropzone" class="hidden text-center p-4 mb-3">
+                <i class="bi bi-cloud-arrow-up-fill fs-1"></i>
+                <p class="mb-0 mt-2 fw-bold h5">Arrastra y suelta el archivo aquí</p>
+                <p class="text-muted small">o haz clic para seleccionarlo</p>
+            </div>
             <div id="fileListContainer" class="my-3"></div>
             <div id="selectedFileFeedback" class="text-center text-success fw-bold my-3"></div>
-            <div class="text-center mt-3"><button id="confirmFileSelection" class="btn btn-pill btn-confirm" disabled><i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cargar</button></div>
+            <div class="text-center mt-3">
+                <button id="confirmFileSelection" class="btn btn-pill btn-confirm" disabled>
+                    <i class="bi bi-check-circle-fill me-2"></i>Confirmar y Cargar
+                </button>
+            </div>
         </section>
+
         <section id="tools-section" class="fade-in-section hidden">
-             <hr class="my-4">
-             <h4><i class="bi bi-tools me-2"></i>2. Panel de Control</h4>
-             <div class="tools-panel">
-                 <div id="filesManagementContainer" class="mb-4"></div>
-                 <div id="bossFilterContainer" class="mb-4"></div>
-                 <div class="text-center">
-                     <button id="saveCommentsBtn" class="btn btn-pill btn-save">
-                         <i class="bi bi-save-fill me-2"></i>Guardar Todos los Cambios
-                     </button>
-                 </div>
-             </div>
+            <hr class="my-4">
+            <h4><i class="bi bi-tools me-2"></i>2. Panel de Control</h4>
+            <div class="tools-panel">
+                <div id="filesManagementContainer" class="mb-4"></div>
+                <div id="bossFilterContainer" class="mb-4"></div>
+                <div id="syncStatus" class="text-center small text-muted">
+                    </div>
+            </div>
         </section>
+
         <section id="content-section" class="fade-in-section hidden">
-            <hr class="my-4"><h4><i class="bi bi-list-check me-2"></i>3. Lista de Reportes</h4>
+            <hr class="my-4">
+            <h4><i class="bi bi-list-check me-2"></i>3. Lista de Reportes</h4>
             <div id="rechazosContainer" class="mt-3"></div>
         </section>
     </main>
@@ -124,6 +203,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="main.js" defer></script>
+    
+    <script src="main.js"></script>
 </body>
 </html>
