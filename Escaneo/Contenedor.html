@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proceso de Tarimas - Sistema Liverpool</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --rosa-principal: #E6007E;
+            --azul-acento: #0056b3;
+            --blanco: #ffffff;
+            --gris-fondo: #f4f7fa;
+            --gris-borde: #e9ecef;
+            --texto-principal: #212529;
+            --texto-secundario: #6c757d;
+        }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background-color: var(--gris-fondo);
+            color: var(--texto-principal); 
+        }
+        .main-container { max-width: 1700px; }
+        .app-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, var(--rosa-principal) 100%);
+            padding: 1rem 1.5rem; position: sticky; top: 0; z-index: 1030;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .header-title { color: var(--blanco); font-weight: 700; }
+        .btn-menu, #logout-btn {
+            background: transparent; border: 2px solid var(--blanco); color: var(--blanco);
+            border-radius: 50%; width: 45px; height: 45px; display: inline-flex;
+            justify-content: center; align-items: center; font-size: 1.2rem; transition: all .3s ease;
+        }
+        .btn-menu:hover, #logout-btn:hover {
+            background: var(--blanco); color: var(--rosa-principal); transform: scale(1.1);
+        }
+        .offcanvas { background-color: var(--rosa-principal); }
+        .offcanvas .nav-link {
+            color: rgba(255, 255, 255, 0.9); font-size: 1.1rem; font-weight: 500;
+            padding: 1rem 1.5rem; transition: all .3s ease; border-radius: 0 50px 50px 0;
+            border-left: 4px solid transparent;
+        }
+        .offcanvas .nav-link.active, .offcanvas .nav-link:hover {
+            background-color: var(--blanco); color: var(--rosa-principal); border-left-color: var(--rosa-principal); font-weight: 600;
+        }
+        
+        .card {
+            border: none; border-radius: 1rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden; 
+        }
+        .card-header {
+            background: var(--blanco);
+            border-bottom: 1px solid var(--gris-borde);
+            padding: 1rem 1.25rem;
+            color: var(--texto-principal);
+            border-top: 4px solid var(--rosa-principal);
+        }
+        .card-title-icon {
+            display: flex; align-items: center; gap: 0.75rem;
+            font-size: 1.1rem; font-weight: 600;
+        }
+        .form-control:focus {
+            border-color: var(--rosa-principal);
+            box-shadow: 0 0 0 4px rgba(230, 0, 126, 0.2);
+        }
+        .btn {
+            border-radius: 0.5rem; font-weight: 600;
+            padding: 0.6rem 1.2rem; transition: all 0.2s ease-in-out;
+        }
+        .btn-primary {
+            background-color: var(--rosa-principal); border-color: var(--rosa-principal);
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+
+        .table-container { max-height: calc(100vh - 120px); overflow: auto; }
+        .table thead th {
+            background-color: var(--texto-principal); color: var(--blanco);
+            white-space: nowrap; position: sticky; top: 0; z-index: 1;
+        }
+        .table-hover > tbody > tr:hover > * { background-color: #fdf0f7; }
+        .status-badge {
+            padding: 0.35em 0.8em; border-radius: 50px; font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .status-pending { background-color: #fff3cd; color: #664d03; }
+        .status-scanned { background-color: #d1e7dd; color: #0f5132; }
+        .scan-highlight { animation: highlight-animation 1.5s ease-out; }
+        @keyframes highlight-animation {
+            from { background-color: #bde0fe; }
+            to { background-color: transparent; }
+        }
+        fieldset:disabled { opacity: 0.5; }
+    </style>
+</head>
+<body>
+    <header class="app-header d-flex justify-content-between align-items-center">
+        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><i class="bi bi-list"></i></button>
+        <h1 class="header-title h4 m-0">Proceso de Tarimas</h1>
+        <button id="logout-btn" class="btn-menu" title="Cerrar Sesión"><i class="bi bi-power"></i></button>
+    </header>
+
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-list"></i> Menú</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button></div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-2"></i>Inicio</a>
+                <a class="nav-link" href="../Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan me-2"></i>Escanear Tarimas</a>
+                <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-2"></i>Manifiestos</a>
+                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-2"></i>Checar Precios</a>
+                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-2"></i>Rechazos</a>
+                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-2"></i>Inventarios</a>
+                <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-2"></i>Configuración</a>
+                <li class="nav-item" id="admin-nav-link" style="display: none;"><a class="nav-link" href="../Admin/admin.html"><i class="bi bi-gear-fill me-2"></i>Administrar</a></li>
+            </nav>
+        </div>
+    </div>
+    
+<main class="container-fluid main-container mt-4">
+    <div id="userInfo" class="text-end mb-3 text-muted small"></div>
+    
+    <div class="row gy-4">
+        <div class="col-lg-5 col-xl-4">
+            <div class="card" data-aos="fade-right">
+                 <div class="card-header"><h2 class="card-title-icon h6 mb-0"><i class="material-icons">dynamic_feed</i>Panel de Control</h2></div>
+                <div class="card-body vstack gap-4 p-4">
+                    <fieldset>
+                        <legend class="h6 fs-6 fw-bold d-flex align-items-center gap-2"><span class="badge bg-secondary rounded-pill">1</span>Identifícate</legend>
+                        <div class="mb-3">
+                            <label for="employeeNumberInput" class="form-label small fw-bold">Número de Empleado</label>
+                            <input type="text" id="employeeNumberInput" class="form-control" placeholder="Ingresa 8 dígitos" maxlength="8">
+                        </div>
+                    </fieldset>
+                    <fieldset id="step2" disabled>
+                        <legend class="h6 fs-6 fw-bold d-flex align-items-center gap-2"><span class="badge bg-secondary rounded-pill">2</span>Administra o Busca</legend>
+                        <div id="adminToolsSection" style="display: none;" class="vstack gap-3 mb-3">
+                            <button id="btnVerArchivos" class="btn btn-outline-secondary w-100"><i class="material-icons fs-6 me-2">folder_open</i> Ver Archivos</button>
+                            <div>
+                                <label for="fileInput" class="form-label small fw-bold">Subir Nuevo Archivo</label>
+                                <input type="file" id="fileInput" class="form-control" accept=".xlsx, .xls">
+                            </div>
+                            <hr>
+                        </div>
+                        <div id="searchTarimaSection">
+                            <label for="inputBusqueda" class="form-label small fw-bold">Número de Tarima</label>
+                            <input type="text" id="inputBusqueda" class="form-control" placeholder="Ingresa el número">
+                        </div>
+                    </fieldset>
+                    <fieldset id="step3" disabled>
+                         <legend class="h6 fs-6 fw-bold d-flex align-items-center gap-2"><span class="badge bg-secondary rounded-pill">3</span>Escanea</legend>
+                        <div id="scanEntrySection">
+                            <label for="inputScanCode" class="form-label small fw-bold">Código de Contenedor</label>
+                            <input type="text" id="inputScanCode" class="form-control" placeholder="Escanea el código...">
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-7 col-xl-8">
+            <section id="tarimaResultsSection" style="display:none;" data-aos="fade-left">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center" style="background: var(--texto-principal);">
+                        <h2 class="card-title-icon h6 mb-0 text-white" id="tarimaHeader"></h2>
+                        <button id="btnCambiarTarima" class="btn btn-outline-light btn-sm"><i class="material-icons fs-6">search</i> Nueva Búsqueda</button>
+                    </div>
+                    <div id="tarimaDetails" class="card-body table-container p-0"></div>
+                     <div class="card-footer bg-light text-muted small" id="selectedFileToWork"></div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</body>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        AOS.init({ once: true, duration: 600, disable: 'mobile' });
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+            authDomain: "loginliverpool.firebaseapp.com",
+            projectId: "loginliverpool",
+            storageBucket: "loginliverpool.appspot.com",
+            messagingSenderId: "704223815941",
+            appId: "1:704223815941:web:c871525230fb61caf96f6c",
+            measurementId: "G-QFEPQ4TSPY"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
+
+        const ADMIN_UIDS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"];
+        let currentUser = null, currentEmployeeNumber = "", currentUserRole = '', currentUserStore = '';
+        let currentTarima = null, currentTarimaRecords = [], currentFileName = "";
+        let excelDataGlobal = {}, allFilesList = null, debounceTimerBusqueda = null, chartInstance = null;
+        let tarimasCandidatas = [];
+
+        const ui = {
+            logoutBtn: document.getElementById("logout-btn"), userInfo: document.getElementById("userInfo"),
+            employeeInput: document.getElementById("employeeNumberInput"), step2: document.getElementById("step2"),
+            step3: document.getElementById("step3"), adminTools: document.getElementById("adminToolsSection"),
+            btnVerArchivos: document.getElementById("btnVerArchivos"), fileInput: document.getElementById("fileInput"),
+            searchSection: document.getElementById("searchTarimaSection"), searchInput: document.getElementById("inputBusqueda"),
+            resultsSection: document.getElementById("tarimaResultsSection"), detailsTable: document.getElementById("tarimaDetails"),
+            header: document.getElementById("tarimaHeader"), fileInfo: document.getElementById("selectedFileToWork"),
+            changeBtn: document.getElementById("btnCambiarTarima"), scanSection: document.getElementById("scanEntrySection"),
+            scanInput: document.getElementById("inputScanCode"),
+        };
+        
+        ui.employeeInput.focus();
+        
+        const navLinks = document.querySelectorAll('.offcanvas .nav-link');
+        navLinks.forEach(link => {
+            if (link.textContent.includes('Escanear Tarimas')) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) { window.location.href = "../Login/login.html"; return; }
+            currentUser = user;
+            const userDoc = await db.collection("usuarios").doc(user.uid).get();
+            if (userDoc.exists) {
+                const data = userDoc.data();
+                currentUserRole = data.role || 'vendedor';
+                currentUserStore = data.store || 'N/A';
+                ui.userInfo.textContent = data.name || user.email;
+                if (["admin", "jefe", "auxiliar"].includes(currentUserRole) || ADMIN_UIDS.includes(user.uid)) {
+                    ui.adminTools.style.display = "block";
+                }
+            }
+        });
+
+        ui.logoutBtn.addEventListener("click", () => auth.signOut());
+        ui.employeeInput.addEventListener("input", () => {
+            if (/^\d{8}$/.test(ui.employeeInput.value.trim())) {
+                currentEmployeeNumber = ui.employeeInput.value.trim();
+                ui.step2.disabled = false;
+                ui.searchInput.focus();
+            } else { ui.step2.disabled = true; }
+        });
+        ui.fileInput.addEventListener('change', () => {
+            const file = ui.fileInput.files[0];
+            if (!file) return;
+            Swal.fire({ title: 'Confirmar Subida', text: `¿Deseas subir "${file.name}"?`, icon: 'question', showCancelButton: true, confirmButtonText: 'Sí, subir', cancelButtonText: 'Cancelar'
+            }).then(result => {
+                if(result.isConfirmed) subirArchivo(file);
+                else ui.fileInput.value = '';
+            });
+        });
+        ui.btnVerArchivos.addEventListener("click", listarArchivos);
+        ui.changeBtn.addEventListener("click", () => {
+            ui.resultsSection.style.display = 'none';
+            ui.step3.disabled = true;
+            ui.scanInput.value = '';
+            ui.searchInput.value = "";
+            ui.searchInput.focus();
+        });
+        ui.searchInput.addEventListener("keyup", () => {
+            clearTimeout(debounceTimerBusqueda);
+            debounceTimerBusqueda = setTimeout(() => {
+                const valorBusqueda = ui.searchInput.value.trim();
+                if (valorBusqueda) buscarTarima(valorBusqueda);
+            }, 500);
+        });
+        ui.scanInput.addEventListener("input", () => {
+            const codigo = ui.scanInput.value.trim();
+            if (codigo.length === 9 && /^[a-zA-Z]/.test(codigo)) {
+                procesarEscaneo(codigo);
+            }
+        });
+
+        function getRowValue(row, keys) {
+            for (const key of keys) {
+                if (row[key] !== undefined && row[key] !== null) return row[key];
+            }
+            return '';
+        }
+
+        async function subirArchivo(file) {
+             Swal.fire({ title: 'Subiendo archivo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            const folder = currentUserStore || "General";
+            const storageRef = storage.ref(`Tarimas/${folder}/${file.name}`);
+            try {
+                await storageRef.put(file);
+                await db.collection('tarimas').doc(file.name).set({ fileName: file.name, store: folder, uploadedBy: currentUser.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                Swal.fire('¡Éxito!', 'Archivo subido.', 'success');
+                allFilesList = null;
+                ui.fileInput.value = '';
+            } catch(error) { Swal.fire('Error', 'No se pudo subir.', 'error'); }
+        }
+        
+        async function listarArchivos() {
+            Swal.fire({ title: 'Cargando archivos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            
+            allFilesList = [];
+            const rootRef = storage.ref('Tarimas');
+            try {
+                const res = await rootRef.listAll();
+                res.items.forEach(item => allFilesList.push({ fileName: item.name, folder: '' }));
+                for (const prefix of res.prefixes) {
+                    const list = await prefix.listAll();
+                    list.items.forEach(item => allFilesList.push({ fileName: item.name, folder: prefix.name }));
+                }
+            } catch (e) { Swal.fire('Error', 'No se pudo acceder a la carpeta de Tarimas.', 'error'); return; }
+
+            let fileItemsHTML = allFilesList.length > 0 ? '' : '<p class="text-center text-muted">No hay archivos subidos.</p>';
+            
+            for(const file of allFilesList) {
+                const metaDoc = await db.collection('tarimas').doc(file.fileName).get();
+                const updated = metaDoc.exists ? metaDoc.data().updatedAt.toDate().toLocaleString('es-MX') : 'N/A';
+                fileItemsHTML += `<div class="list-group-item d-flex justify-content-between align-items-center flex-wrap"><div class="me-3"><strong>${file.fileName}</strong><small class="d-block text-muted">Últ. mod.: ${updated}</small></div><div class="btn-group mt-2 mt-md-0"><button onclick="window.mostrarDashboardArchivo('${file.fileName}', '${file.folder}')" class="btn btn-sm btn-outline-info" title="Dashboard"><i class="material-icons fs-6">dashboard</i></button><button onclick="window.descargarArchivo('${file.fileName}', '${file.folder}')" class="btn btn-sm btn-outline-success" title="Descargar"><i class="material-icons fs-6">download</i></button>${ADMIN_UIDS.includes(currentUser.uid) ? `<button onclick="window.eliminarArchivo('${file.fileName}', '${file.folder}')" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="material-icons fs-6">delete</i></button>` : ''}</div></div>`;
+            }
+            Swal.fire({ title: 'Archivos de Tarimas', html: `<div class="list-group">${fileItemsHTML}</div>`, width: '800px', showCloseButton: true, showConfirmButton: false });
+        }
+
+        window.mostrarDashboardArchivo = async (fileName, folder) => {
+            Swal.fire({ title: `Cargando dashboard...`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            if (!excelDataGlobal[fileName]) {
+                 try {
+                    const url = await storage.ref(`Tarimas/${folder}/${fileName}`).getDownloadURL();
+                    const buffer = await (await fetch(url)).arrayBuffer();
+                    excelDataGlobal[fileName] = XLSX.utils.sheet_to_json(XLSX.read(buffer, { type: 'array' }).Sheets[XLSX.read(buffer, { type: 'array' }).SheetNames[0]], { raw: false, dateNF: 'dd/mm/yyyy' });
+                } catch (e) { Swal.fire('Error', `No se pudo leer el archivo.`, 'error'); return; }
+            }
+            
+            const data = excelDataGlobal[fileName];
+            const total = data.length;
+            const escaneados = data.filter(row => getRowValue(row, ['CONTENEDOR_ESCAN', 'Contenedor_Escan'])).length;
+            const pendientes = total - escaneados;
+            const progreso = total > 0 ? Math.round((escaneados / total) * 100) : 0;
+            const dashboardHTML = `<div class="container-fluid"><div class="row gy-3"><div class="col-md-4 text-center"><div class="card h-100"><div class="card-body"><h6 class="text-muted">TOTAL</h6><h2 class="fw-bold">${total}</h2></div></div></div><div class="col-md-4 text-center"><div class="card h-100"><div class="card-body"><h6 class="text-success">ESCANEADOS</h6><h2 class="fw-bold text-success">${escaneados}</h2></div></div></div><div class="col-md-4 text-center"><div class="card h-100"><div class="card-body"><h6 class="text-warning">PENDIENTES</h6><h2 class="fw-bold text-warning">${pendientes}</h2></div></div></div><div class="col-12"><h6 class="text-center mt-3">Progreso (${progreso}%)</h6><div class="progress" style="height: 25px;"><div class="progress-bar bg-success" role="progressbar" style="width: ${progreso}%;">${progreso}%</div></div></div><div class="col-md-6 offset-md-3 mt-4"><canvas id="dashboardChart"></canvas></div></div></div>`;
+            Swal.fire({ title: `Dashboard: ${fileName}`, html: dashboardHTML, width: '800px',
+                didOpen: () => {
+                    if (chartInstance) chartInstance.destroy();
+                    const ctx = document.getElementById('dashboardChart').getContext('2d');
+                    chartInstance = new Chart(ctx, { type: 'doughnut', data: { labels: ['Escaneados', 'Pendientes'], datasets: [{ data: [escaneados, pendientes], backgroundColor: ['#198754', '#ffc107'], borderColor: '#ffffff', borderWidth: 3 }] }, options: { responsive: true, cutout: '70%' } });
+                }
+            });
+        };
+
+        window.descargarArchivo = async (fileName, folder) => {
+            if (!excelDataGlobal[fileName]) { Swal.fire('Error', 'Abre el dashboard del archivo para cargarlo antes de descargar.', 'info'); return; }
+            const dataToSave = excelDataGlobal[fileName].map(row => ({'FECHA': getRowValue(row, ['FECHA', 'Fecha']),'SECCION': getRowValue(row, ['SECCION', 'Seccion']),'MANIFIESTO': getRowValue(row, ['MANIFIESTO', 'Manifiesto']),'CONTENEDOR': getRowValue(row, ['CONTENEDOR', 'Contenedor']),'TARIMA': getRowValue(row, ['TARIMA', 'Tarima']),'ESTADO': getRowValue(row, ['CONTENEDOR_ESCAN']) ? 'OK' : 'Pendiente','RESPONSABLE': getRowValue(row, ['RESPONSABLE']), 'EMAIL_RESPONSABLE': getRowValue(row, ['EMAIL_RESPONSABLE']), 'FECHA_ESCANEO': getRowValue(row, ['FECHA_ESCANEO'])}));
+            const ws = XLSX.utils.json_to_sheet(dataToSave);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName || 'archivo.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        window.eliminarArchivo = async (fileName, folder) => {
+            const result = await Swal.fire({ title: '¿Estás seguro?', text: `¡No podrás revertir esto!`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#6c757d', confirmButtonText: 'Sí, ¡bórralo!', cancelButtonText: 'Cancelar' });
+            if(result.isConfirmed){
+                try {
+                    await storage.ref(`Tarimas/${folder}/${fileName}`).delete();
+                    await db.collection('tarimas').doc(fileName).delete();
+                    allFilesList = allFilesList.filter(f => f.fileName !== fileName);
+                    delete excelDataGlobal[fileName];
+                    Swal.fire('¡Eliminado!', 'El archivo ha sido borrado.', 'success').then(listarArchivos);
+                } catch(e) { Swal.fire('Error', 'No se pudo eliminar el archivo.', 'error'); }
+            }
+        };
+
+        async function buscarTarima(numeroTarima) {
+            Swal.fire({ title: 'Buscando tarima...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            if (!allFilesList) {
+                allFilesList = [];
+                const rootRef = storage.ref('Tarimas');
+                try {
+                    const res = await rootRef.listAll();
+                    res.items.forEach(item => allFilesList.push({ fileName: item.name, folder: '' }));
+                    for (const prefix of res.prefixes) {
+                        const list = await prefix.listAll();
+                        list.items.forEach(item => allFilesList.push({ fileName: item.name, folder: prefix.name }));
+                    }
+                } catch (e) { Swal.fire('Error', 'No se pudo acceder a la carpeta de Tarimas.', 'error'); return; }
+            }
+            if (!Array.isArray(allFilesList)) { allFilesList = null; Swal.fire('Error Interno', 'Problema al procesar archivos. Recarga la página.', 'error'); return; }
+            
+            tarimasCandidatas = [];
+            for (const fileInfo of allFilesList) {
+                if (!excelDataGlobal[fileInfo.fileName]) {
+                    try {
+                        const url = await storage.ref(`Tarimas/${fileInfo.folder}/${fileInfo.fileName}`).getDownloadURL();
+                        const buffer = await (await fetch(url)).arrayBuffer();
+                        excelDataGlobal[fileInfo.fileName] = XLSX.utils.sheet_to_json(XLSX.read(buffer, { type: 'array' }).Sheets[XLSX.read(buffer, { type: 'array' }).SheetNames[0]], { raw: false, dateNF: 'dd/mm/yyyy' });
+                    } catch (e) { continue; }
+                }
+                const datosArchivo = excelDataGlobal[fileInfo.fileName];
+                const registrosDeTarima = datosArchivo.filter(row => String(getRowValue(row, ['TARIMA', 'Tarima'])).trim().toUpperCase() === numeroTarima.toUpperCase());
+                if (registrosDeTarima.length > 0) {
+                    tarimasCandidatas.push({ fileName: fileInfo.fileName, folder: fileInfo.folder, registros: registrosDeTarima });
+                }
+            }
+            
+            Swal.close();
+            if (tarimasCandidatas.length === 0) { Swal.fire('No Encontrada', `La tarima "${numeroTarima}" no se encontró.`, 'warning'); } 
+            else if (tarimasCandidatas.length === 1) {
+                const { fileName, registros } = tarimasCandidatas[0];
+                abrirTarimaParaEscanear(fileName, numeroTarima, registros);
+            } else {
+                await mostrarOpcionesDeTarima(numeroTarima, tarimasCandidatas);
+            }
+        }
+        
+        async function mostrarOpcionesDeTarima(numeroTarima, candidatos) {
+            let optionsHTML = '';
+            for(let i = 0; i < candidatos.length; i++) {
+                const candidato = candidatos[i];
+                const metaDoc = await db.collection('tarimas').doc(candidato.fileName).get();
+                const fechaSubida = metaDoc.exists ? metaDoc.data().updatedAt.toDate().toLocaleDateString('es-MX') : 'N/A';
+                const fechaManifesto = getRowValue(candidato.registros[0], ['FECHA', 'Fecha', 'fecha']);
+                optionsHTML += `<div class="card mb-3"><div class="card-body"><h5 class="card-title text-primary">${candidato.fileName}</h5><p class="card-text mb-2"><span class="badge bg-secondary me-2">${candidato.registros.length} Contenedores</span><strong>Fecha Manif.:</strong> ${fechaManifesto} | <strong>Subido el:</strong> ${fechaSubida}</p><button class="btn btn-primary" onclick="window.seleccionarTarima(${i})">Seleccionar este archivo</button></div></div>`;
+            }
+            Swal.fire({ title: `Tarima Duplicada: ${numeroTarima}`, html: `<p class="text-muted">Esta tarima se encontró en múltiples archivos. Elige con cuál deseas trabajar.</p><div class="mt-3">${optionsHTML}</div>`, width: '800px', showConfirmButton: false, didOpen: () => AOS.refresh() });
+        }
+        
+        window.seleccionarTarima = (index) => {
+            const seleccion = tarimasCandidatas[index];
+            if (seleccion) {
+                const numeroTarima = getRowValue(seleccion.registros[0], ['TARIMA', 'Tarima']);
+                abrirTarimaParaEscanear(seleccion.fileName, numeroTarima, seleccion.registros);
+                Swal.close();
+            }
+        };
+
+        function abrirTarimaParaEscanear(fileName, numeroTarima, registros) {
+            currentFileName = fileName; currentTarima = numeroTarima; currentTarimaRecords = registros;
+            ui.searchSection.style.display = 'none';
+            ui.resultsSection.style.display = 'block';
+            ui.step3.disabled = false;
+            ui.header.innerHTML = `<i class="material-icons text-white">inventory</i> Tarima: <strong>${numeroTarima}</strong>`;
+            ui.fileInfo.textContent = `Archivo de origen: ${fileName}`;
+            ui.scanInput.disabled = false;
+            ui.scanInput.focus();
+            mostrarDetallesTarima();
+        }
+
+        function mostrarDetallesTarima() {
+            const headers = ["Fecha", "Sección", "Manifiesto", "Contenedor", "Estado", "Responsable", "Email Responsable", "Fecha de Escaneo"];
+            let tableHTML = `<div class="table-responsive"><table class="table table-hover"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+            tableHTML += currentTarimaRecords.map(row => {
+                const idFila = String(getRowValue(row, ['CONTENEDOR', 'Contenedor']) || Math.random()).replace(/[^a-zA-Z0-9]/g, "");
+                const yaEscaneado = getRowValue(row, ['CONTENEDOR_ESCAN']) !== '';
+                const estadoHTML = yaEscaneado ? `<span class="status-badge status-scanned">OK</span>` : `<span class="status-badge status-pending">Pendiente</span>`;
+                const responsableHTML = getRowValue(row, ['RESPONSABLE']) || '-';
+                const fechaEscanHTML = getRowValue(row, ['FECHA_ESCANEO']) || '-';
+                const emailHTML = getRowValue(row, ['EMAIL_RESPONSABLE']) || '-';
+
+                return `<tr id="row-${idFila}">
+                        <td>${getRowValue(row, ['FECHA', 'Fecha', 'fecha'])}</td>
+                        <td>${getRowValue(row, ['SECCION', 'Seccion', 'seccion'])}</td>
+                        <td>${getRowValue(row, ['MANIFIESTO', 'Manifiesto', 'manifiesto'])}</td>
+                        <td><strong>${getRowValue(row, ['CONTENEDOR', 'Contenedor', 'contenedor'])}</strong></td>
+                        <td id="estado-cell-${idFila}">${estadoHTML}</td>
+                        <td id="responsable-cell-${idFila}">${responsableHTML}</td>
+                        <td id="email-cell-${idFila}">${emailHTML}</td>
+                        <td id="fecha-escaneo-cell-${idFila}">${fechaEscanHTML}</td>
+                    </tr>`;
+            }).join('');
+            tableHTML += `</tbody></table></div>`;
+            ui.detailsTable.innerHTML = tableHTML;
+        }
+
+        async function procesarEscaneo(codigo) {
+            try {
+                const codigoUpper = codigo.toUpperCase();
+                const filaCoincidente = currentTarimaRecords.find(row => String(getRowValue(row, ['CONTENEDOR', 'Contenedor'])).trim().toUpperCase() === codigoUpper);
+                if (filaCoincidente) {
+                    if (getRowValue(filaCoincidente, ['CONTENEDOR_ESCAN'])) {
+                        Swal.fire({ icon: 'warning', title: 'Ya Escaneado', text: `Este contenedor ya fue procesado.`, timer: 2500, showConfirmButton: false});
+                        return;
+                    }
+                    filaCoincidente.CONTENEDOR_ESCAN = codigo; 
+                    filaCoincidente.RESPONSABLE = currentEmployeeNumber;
+                    filaCoincidente.EMAIL_RESPONSABLE = currentUser.email;
+                    filaCoincidente.FECHA_ESCANEO = new Date().toLocaleString('es-MX', { hour12: false });
+                    
+                    const idFila = String(filaCoincidente.CONTENEDOR || '').replace(/[^a-zA-Z0-9]/g, "");
+                    const rowEl = document.getElementById(`row-${idFila}`);
+                    if(rowEl){
+                        document.getElementById(`estado-cell-${idFila}`).innerHTML = `<span class="status-badge status-scanned">OK</span>`;
+                        document.getElementById(`responsable-cell-${idFila}`).textContent = filaCoincidente.RESPONSABLE;
+                        document.getElementById(`email-cell-${idFila}`).textContent = filaCoincidente.EMAIL_RESPONSABLE;
+                        document.getElementById(`fecha-escaneo-cell-${idFila}`).textContent = filaCoincidente.FECHA_ESCANEO;
+                        rowEl.classList.add('scan-highlight');
+                    }
+                    await guardarCambiosEnArchivo();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Contenedor no encontrado', text: `El código "${codigo}" no corresponde a esta tarima.`, timer: 2500, showConfirmButton: false});
+                }
+            } finally {
+                ui.scanInput.value = "";
+                ui.scanInput.focus();
+            }
+        }
+        
+        async function guardarCambiosEnArchivo() {
+            if (!currentFileName || !excelDataGlobal[currentFileName]) return;
+            const datosParaGuardar = excelDataGlobal[currentFileName].map(row => ({
+                'FECHA': getRowValue(row, ['FECHA', 'Fecha']), 'SECCION': getRowValue(row, ['SECCION', 'Seccion']), 'MANIFIESTO': getRowValue(row, ['MANIFIESTO', 'Manifiesto']),
+                'CONTENEDOR': getRowValue(row, ['CONTENEDOR', 'Contenedor']), 'TARIMA': getRowValue(row, ['TARIMA', 'Tarima']),
+                'ESTADO': getRowValue(row, ['CONTENEDOR_ESCAN']) ? 'OK' : 'Pendiente',
+                'RESPONSABLE': getRowValue(row, ['RESPONSABLE']), 'EMAIL_RESPONSABLE': getRowValue(row, ['EMAIL_RESPONSABLE']), 
+                'FECHA_ESCANEO': getRowValue(row, ['FECHA_ESCANEO'])
+            }));
+            
+            const worksheet = XLSX.utils.json_to_sheet(datosParaGuardar);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+            const fileInfo = allFilesList.find(f => f.fileName === currentFileName);
+            if (fileInfo) {
+                const storageRef = storage.ref(`Tarimas/${fileInfo.folder}/${currentFileName}`);
+                await storageRef.put(blob);
+                await db.collection('tarimas').doc(currentFileName).update({ updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                console.log(`Archivo ${currentFileName} actualizado.`);
+            }
+        }
+    });
+</script>
+</body>
+</html>

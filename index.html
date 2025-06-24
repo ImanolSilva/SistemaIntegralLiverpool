@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
- 
+
     <style>
         :root {
             --rosa-principal: #E6007E;
@@ -20,10 +20,6 @@
             --gris-medio: #dee2e6;
             --gris-oscuro: #6c757d;
             --texto-principal: #212529;
-            --azul-precios: #1E88E5;
-            --verde-inventarios: #43A047;
-            --naranja-manifiestos: #FB8C00;
-            --morado-admin: #8E24AA;
         }
 
         body {
@@ -33,73 +29,48 @@
             color: var(--texto-principal);
         }
         
-        /* ======== Estructura Principal (Encabezado, Menú, Preloader) ======== */
         .preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--negro-fondo);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .7s ease,visibility .7s ease}.preloader .spinner{width:50px;height:50px;border:5px solid #444;border-top-color:var(--rosa-principal);border-radius:50%;animation:spin 1s linear infinite}.preloader.hidden{opacity:0;visibility:hidden}@keyframes spin{to{transform:rotate(360deg)}}
         .app-header{background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}.header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg); box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);}
         .offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:all .3s ease;border-radius:0 50px 50px 0; border-left: 4px solid transparent;}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem; border-left: 4px solid var(--rosa-gradiente-luz); color: var(--rosa-principal);}
         .offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
         .main-container{margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         
-        /* ======== Estilos del Contenido de la Página de Inicio ======== */
         .hero-content h1 { font-size: clamp(2.2rem, 5vw, 3rem); font-weight: 700; color: var(--texto-principal); }
         .hero-content h1 span { color: var(--rosa-principal); }
         .hero-content .lead { font-size: clamp(1.1rem, 3vw, 1.25rem); margin: 1.5rem 0; color: var(--gris-oscuro); }
-        .typewriter-text { color: var(--rosa-principal); font-weight: 600; }
+        .typewriter-text { color: var(--rosa-principal); font-weight: 600; border-right: 2px solid var(--rosa-principal); animation: blinkCursor .75s step-end infinite; padding-right: 2px;}
         #authButton{background-image:linear-gradient(45deg, var(--rosa-gradiente-luz), var(--rosa-principal));padding:14px 45px;font-size:1.2rem;font-weight: 600;border:none;border-radius:50px;color:white;transition:all .3s ease; letter-spacing: 0.5px;}
         #authButton:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 8px 25px rgba(230,0,126,.4)}
 
-        /* Cuadros de información del usuario */
         .user-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin:2.5rem auto;max-width:800px}.info-card{background:var(--gris-claro);padding:1.25rem;border-radius:16px;text-align:center;border:1px solid var(--gris-medio)}.info-card i{font-size:2rem;color:var(--rosa-principal)}.info-card .info-label{font-size:.8rem;color:var(--gris-oscuro);display:block;margin-top:.5rem; text-transform: uppercase;}.info-card .info-value{font-size:1rem;font-weight:600;color:var(--texto-principal)}
 
-        /* ======== SECCIÓN: ACCESO RÁPIDO MEJORADA ======== */
         .quick-access-section h2 { font-weight: 700; color: var(--texto-principal); }
         .quick-access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
         .action-card {
-            background: var(--blanco);
-            border-radius: 16px;
-            padding: 2rem;
-            text-align: center;
-            text-decoration: none;
-            color: var(--texto-principal);
-            border: 1px solid var(--gris-medio);
+            background: var(--blanco); border-radius: 16px; padding: 2rem; text-align: center;
+            text-decoration: none; color: var(--texto-principal); border: 1px solid var(--gris-medio);
             transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            display: flex; flex-direction: column; align-items: center;
         }
-        .action-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-            border-color: var(--rosa-principal);
-        }
+        .action-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.12); border-color: var(--rosa-principal); }
         .card-icon {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--blanco);
-            font-size: 2rem;
-            margin-bottom: 1rem;
+            width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; color: var(--blanco); font-size: 2rem; margin-bottom: 1rem;
             transition: transform 0.3s ease;
         }
-        .action-card:hover .card-icon {
-            transform: scale(1.15) rotate(-10deg);
-        }
+        .action-card:hover .card-icon { transform: scale(1.15) rotate(-10deg); }
         .action-card h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
         .action-card p { font-size: 0.9rem; color: var(--gris-oscuro); line-height: 1.5; }
-
         .welcome-user-name { color: var(--rosa-principal); font-weight: 700; }
-        @keyframes blink { 50% { opacity: 0; } }
+        @keyframes blinkCursor { from, to { border-color: transparent } 50% { border-color: var(--rosa-principal); } }
 
-        /* Colores para cada tarjeta */
         .icon-rechazos { background-image: linear-gradient(45deg, #F50057, #E6007E); }
         .icon-precios { background-image: linear-gradient(45deg, #29B6F6, #1E88E5); }
         .icon-inventarios { background-image: linear-gradient(45deg, #66BB6A, #43A047); }
         .icon-manifiestos { background-image: linear-gradient(45deg, #FFA726, #FB8C00); }
         .icon-admin { background-image: linear-gradient(45deg, #AB47BC, #8E24AA); }
         .icon-seguimiento { background-image: linear-gradient(45deg, #26A69A, #00897B); }
+        .icon-contenedores { background-image: linear-gradient(45deg, #4DD0E1, #0097A7); }
     </style>
 </head>
 <body>
@@ -114,68 +85,67 @@
         </button>
     </header>
 
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
-        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-box-seam-fill me-2"></i> Menú Principal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button></div>
-        <div class="offcanvas-body p-0">
-            <nav class="nav flex-column">
-                <a class="nav-link active" href="index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
-                <a class="nav-link" href="ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
-                <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
-                <a class="nav-link" href="Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
-                <a class="nav-link" href="Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
-                <a class="nav-link" href="Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
-                <li class="nav-item" id="adminTab" style="display: none;"><a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
-                <li class="nav-item" id="seguimientoArticulosTab" style="display: none;"><a class="nav-link" href="Seguimiento/Seguimiento.html"><i class="bi bi-graph-up-arrow me-3"></i>Seguimiento</a></li>
-            </nav>
-        </div>
+<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+    <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-list"></i> Menú Principal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button></div>
+    <div class="offcanvas-body p-0">
+        <nav class="nav flex-column">
+            <a class="nav-link" href="index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
+            <a class="nav-link" href="Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan me-3"></i>Escanear Tarimas</a>
+            <a class="nav-link" href="Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+            <a class="nav-link" href="ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
+            <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+            <a class="nav-link" href="Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
+            <a class="nav-link" href="Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
+            <li class="nav-item" id="adminTab" style="display: none;"><a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
+            <li class="nav-item" id="seguimientoArticulosTab" style="display: none;"><a class="nav-link" href="Seguimiento/Seguimiento.html"><i class="bi bi-graph-up-arrow me-3"></i>Seguimiento</a></li>
+        </nav>
     </div>
+</div>
 
     <main class="container main-container">
         <div class="hero-content text-center" data-aos="fade-up">
-            <h1 id="welcomeMessage">Bienvenido a <span>Sistema Liverpool</span></h1>
+            <h1 id="welcomeMessage">Bienvenido al <span>Sistema Liverpool</span></h1>
             <div id="userInfoContainer" data-aos="fade-up" data-aos-delay="200" style="display: none;"></div>
-            <p class="lead typewriter" data-aos="fade-up" data-aos-delay="500">
-                Una herramienta para <span class="typewriter-text"></span><label style="color: var(--rosa-principal); animation: blink 1s infinite;">|</label>
+            <p class="lead" data-aos="fade-up" data-aos-delay="500">
+                Tu herramienta para <span class="typewriter-text"></span>
             </p>
              <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
-                <button class="authButton" data-aos="fade-up" data-aos-delay="800" id="authButton">Acceder</button>
+                <button class="btn btn-primary shadow-lg" data-aos="fade-up" data-aos-delay="800" id="authButton">Acceder</button>
             </div>
         </div>
 
         <hr class="my-5">
 
-        <div class="quick-access-section" data-aos="fade-up" data-aos-delay="300" style="display: none;">
-            <h2 class="text-center mb-4">Acceso Rápido</h2>
+        <div class="quick-access-section" style="display: none;">
+            <h2 class="text-center mb-4" data-aos="fade-up">Acceso Rápido</h2>
             <div class="quick-access-grid">
-                <a href="Rechazos/reportes.html" class="action-card">
+                <a href="Rechazos/reportes.html" class="action-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="card-icon icon-rechazos"><i class="bi bi-x-octagon-fill"></i></div>
-                    <h3>Rechazos</h3>
-                    <p>Gestiona y comenta los reportes de rechazos de mercancía.</p>
+                    <h3>Rechazos</h3><p>Gestiona y comenta los reportes de rechazos de mercancía.</p>
                 </a>
-                <a href="ChecarPrecios/index.html" class="action-card">
+                <a href="ChecarPrecios/index.html" class="action-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="card-icon icon-precios"><i class="bi bi-tags-fill"></i></div>
-                    <h3>Checar Precios</h3>
-                    <p>Verifica precios de artículos escaneando códigos de barras.</p>
+                    <h3>Checar Precios</h3><p>Verifica precios de artículos escaneando códigos de barras.</p>
                 </a>
-                <a href="Inventarios/Inventarios.html" class="action-card">
+                <a href="Inventarios/Inventarios.html" class="action-card" data-aos="fade-up" data-aos-delay="300">
                     <div class="card-icon icon-inventarios"><i class="bi bi-archive-fill"></i></div>
-                    <h3>Inventarios</h3>
-                    <p>Controla y administra el stock de los productos en tienda.</p>
+                    <h3>Inventarios</h3><p>Controla y administra el stock de los productos en tienda.</p>
                 </a>
-                <a href="Manifiestos/Manifiestos.html" class="action-card">
+                <a href="Manifiestos/Manifiestos.html" class="action-card" data-aos="fade-up" data-aos-delay="400">
                     <div class="card-icon icon-manifiestos"><i class="bi bi-file-earmark-check-fill"></i></div>
-                    <h3>Manifiestos</h3>
-                    <p>Genera y consulta manifiestos de mercancía de forma digital.</p>
+                    <h3>Manifiestos</h3><p>Genera y consulta manifiestos de mercancía de forma digital.</p>
                 </a>
-                <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;">
+                <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;" data-aos="fade-up" data-aos-delay="500">
                     <div class="card-icon icon-admin"><i class="bi bi-gear-fill"></i></div>
-                    <h3>Administrar</h3>
-                    <p>Gestiona roles, permisos y usuarios del sistema.</p>
+                    <h3>Administrar</h3><p>Gestiona roles, permisos y usuarios del sistema.</p>
                 </a>
-                <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;">
+                <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;" data-aos="fade-up" data-aos-delay="600">
                     <div class="card-icon icon-seguimiento"><i class="bi bi-graph-up-arrow"></i></div>
-                    <h3>Seguimiento</h3>
-                    <p>Analiza el historial y movimiento de artículos específicos.</p>
+                    <h3>Seguimiento</h3><p>Analiza el historial y movimiento de artículos específicos.</p>
+                </a>
+                <a href="Escaneo/Contenedor.html" class="action-card" id="contenedoresCard" style="display: none;" data-aos="fade-up" data-aos-delay="700">
+                    <div class="card-icon icon-contenedores"><i class="bi bi-box-seam"></i></div>
+                    <h3>Escanear Tarimas</h3><p>Registra y verifica el contenido de las tarimas de mercancía.</p>
                 </a>
             </div>
         </div>
@@ -190,15 +160,26 @@
 
    <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- 1. CONFIGURACIÓN E INICIALIZACIÓN ---
         const firebaseConfig = { apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE", authDomain: "loginliverpool.firebaseapp.com", projectId: "loginliverpool", storageBucket: "loginliverpool.appspot.com", messagingSenderId: "704223815941", appId: "1:704223815941:web:c871525230fb61caf96f6c" };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const ADMIN_UIDS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"];
-        AOS.init({ once: true, duration: 800 });
+        AOS.init({ once: false, duration: 800 });
+        
+        const navLinks = document.querySelectorAll('.offcanvas .nav-link');
+        const currentPath = window.location.pathname;
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            const linkUrl = new URL(link.href, window.location.origin);
+            const linkPath = linkUrl.pathname.endsWith('/') ? linkUrl.pathname + 'index.html' : linkUrl.pathname;
+            const currentFullPath = currentPath.endsWith('/') ? currentPath + 'index.html' : currentPath;
 
-        // --- 2. REFERENCIAS A ELEMENTOS DEL DOM ---
+            if (linkPath === currentFullPath) {
+                link.classList.add('active');
+            }
+        });
+
         const ui = {
             authButton: document.getElementById("authButton"),
             logoutButton: document.getElementById("logout-btn"),
@@ -211,10 +192,16 @@
             preloader: document.querySelector('.preloader'),
             typewriterText: document.querySelector(".typewriter-text"),
             quickAccessSection: document.querySelector(".quick-access-section"),
-            heroContent: document.querySelector(".hero-content"),
+            contenedoresCard: document.getElementById("contenedoresCard")
         };
 
-        // --- 3. FUNCIONES AUXILIARES ---
+        function getGreeting() {
+            const hour = new Date().getHours();
+            if (hour < 12) return "Buenos días";
+            if (hour < 19) return "Buenas tardes";
+            return "Buenas noches";
+        }
+
         const handleAuthClick = () => {
             if (!auth.currentUser) {
                 window.location.href = "Login/login.html";
@@ -222,84 +209,86 @@
         };
 
         const typewriter = {
-            texts: ["Verificación de Precios", "Controlar Rechazos", "Gestionar Inventarios", "Configurar el Sistema"],
-            speed: 100,
-            textIndex: 0,
-            charIndex: 0,
-            run() {
-                if (this.charIndex < this.texts[this.textIndex].length) {
-                    ui.typewriterText.innerHTML += this.texts[this.textIndex].charAt(this.charIndex);
+            texts: [ "optimizar tu flujo de trabajo.", "gestionar tarimas con eficiencia.", "digitalizar tus manifiestos.", "simplificar el control de inventario.", "agilizar el escaneo de contenedores.", "mejorar la precisión de tus registros."],
+            speed: 80, textIndex: 0, charIndex: 0, isDeleting: false,
+            type() {
+                const currentText = this.texts[this.textIndex];
+                let displayedText;
+                if (this.isDeleting) {
+                    displayedText = currentText.substring(0, this.charIndex - 1);
+                    this.charIndex--;
+                } else {
+                    displayedText = currentText.substring(0, this.charIndex + 1);
                     this.charIndex++;
-                    setTimeout(() => this.run(), this.speed);
-                } else {
-                    setTimeout(() => this.erase(), 2000);
                 }
-            },
-            erase() {
-                if (ui.typewriterText.innerHTML.length > 0) {
-                    ui.typewriterText.innerHTML = ui.typewriterText.innerHTML.slice(0, -1);
-                    setTimeout(() => this.erase(), 50);
-                } else {
+                if(ui.typewriterText) ui.typewriterText.innerHTML = displayedText;
+                let typeSpeed = this.isDeleting ? this.speed / 2 : this.speed;
+                if (!this.isDeleting && this.charIndex === currentText.length) {
+                    typeSpeed = 2000;
+                    this.isDeleting = true;
+                } else if (this.isDeleting && this.charIndex === 0) {
+                    this.isDeleting = false;
                     this.textIndex = (this.textIndex + 1) % this.texts.length;
-                    this.charIndex = 0;
-                    setTimeout(() => this.run(), 500);
+                    typeSpeed = 500;
                 }
+                setTimeout(() => this.type(), typeSpeed);
             }
         };
 
         const updateUIForLoggedOutUser = () => {
-            ui.logoutButton.style.display = 'none';
-            ui.authButton.style.display = 'block';
-            ui.welcomeMessage.innerHTML = `Bienvenido a <span>Sistema Liverpool</span>`;
-            ui.userInfoContainer.style.display = 'none';
-            ui.quickAccessSection.style.display = 'none';
-            [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard].forEach(el => el.style.display = "none");
+            if (ui.logoutButton) ui.logoutButton.style.display = 'none';
+            if (ui.authButton) ui.authButton.style.display = 'block';
+            if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()} y bienvenido al <span>Sistema Liverpool</span>`;
+            if (ui.userInfoContainer) ui.userInfoContainer.style.display = 'none';
+            if (ui.quickAccessSection) ui.quickAccessSection.style.display = 'none';
+            
+            [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard, ui.contenedoresCard].forEach(el => {
+                if(el) el.style.display = "none";
+            });
         };
 
         const updateUIForLoggedInUser = async (user) => {
-            ui.logoutButton.style.display = 'inline-flex';
-            ui.authButton.style.display = 'none';
-            ui.heroContent.style.textAlign = 'left';
-
+            if (ui.logoutButton) ui.logoutButton.style.display = 'inline-flex';
+            if (ui.authButton) ui.authButton.style.display = 'none';
+            
             const name = user.displayName || user.email.split('@')[0];
-            ui.welcomeMessage.innerHTML = `Hola, <span class="welcome-user-name">${name}</span>`;
+            if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()}, <span class="welcome-user-name">${name}</span>`;
 
             try {
                 const userDoc = await db.collection("usuarios").doc(user.uid).get();
                 if (!userDoc.exists || userDoc.data().status !== "aprobado") {
-                    throw new Error("Tu cuenta no existe o no está aprobada. Contacta a un administrador.");
+                    throw new Error("Tu cuenta no existe o no está aprobada.");
                 }
                 const data = userDoc.data();
                 const isAdmin = ADMIN_UIDS.includes(user.uid);
                 const role = isAdmin ? "Administrador" : (data.role || "Usuario");
 
-                ui.userInfoContainer.innerHTML = `
-                    <div class="user-info-grid">
-                        <div class="info-card"><i class="bi bi-shop"></i><span class="info-label">Tienda</span><span class="info-value">${data.store || "N/A"}</span></div>
-                        <div class="info-card"><i class="bi bi-building"></i><span class="info-label">Depto.</span><span class="info-value">${data.department || "N/A"}</span></div>
-                        <div class="info-card"><i class="bi bi-person-badge-fill"></i><span class="info-label">Rol</span><span class="info-value">${role}</span></div>
-                    </div>`;
-                ui.userInfoContainer.style.display = 'block';
+                if(ui.userInfoContainer) {
+                    ui.userInfoContainer.innerHTML = `<div class="user-info-grid"><div class="info-card"><i class="bi bi-shop"></i><span class="info-label">Tienda</span><span class="info-value">${data.store || "N/A"}</span></div><div class="info-card"><i class="bi bi-building"></i><span class="info-label">Depto.</span><span class="info-value">${data.department || "N/A"}</span></div><div class="info-card"><i class="bi bi-person-badge-fill"></i><span class="info-label">Rol</span><span class="info-value">${role}</span></div></div>`;
+                    ui.userInfoContainer.style.display = 'block';
+                }
 
-                ui.quickAccessSection.style.display = 'block';
-                ui.adminTab.style.display = isAdmin ? "block" : "none";
-                ui.segArtTab.style.display = isAdmin ? "block" : "none";
-                ui.adminCard.style.display = isAdmin ? "flex" : "none";
-                ui.seguimientoCard.style.display = isAdmin ? "flex" : "none";
+                if(ui.quickAccessSection) ui.quickAccessSection.style.display = 'block';
+                
+                const isAdminDisplayBlock = isAdmin ? "list-item" : "none";
+                const isAdminDisplayFlex = isAdmin ? "flex" : "none";
+
+                // CORRECCIÓN: Usar ui.elemento para acceder a las propiedades
+                if(ui.adminTab) ui.adminTab.style.display = isAdminDisplayBlock;
+                if(ui.segArtTab) ui.segArtTab.style.display = isAdminDisplayBlock;
+
+                if(ui.adminCard) ui.adminCard.style.display = isAdminDisplayFlex;
+                if(ui.seguimientoCard) ui.seguimientoCard.style.display = isAdminDisplayFlex;
+                if(ui.contenedoresCard) ui.contenedoresCard.style.display = isAdminDisplayFlex;
+
             } catch (error) {
-                await Swal.fire({
-                    icon: 'warning',
-                    title: 'Acceso Denegado',
-                    text: error.message,
-                    confirmButtonText: 'Entendido'
-                });
-                auth.signOut();
+                Swal.fire({ icon: 'warning', title: 'Acceso Denegado', text: error.message, confirmButtonText: 'Entendido'
+                }).then(() => auth.signOut());
             }
         };
         
-        // --- 4. LÓGICA PRINCIPAL Y EVENT LISTENERS ---
-        ui.authButton.addEventListener('click', handleAuthClick);
-        ui.logoutButton.addEventListener('click', () => auth.signOut());
+        if (ui.authButton) ui.authButton.addEventListener('click', handleAuthClick);
+        if (ui.logoutButton) ui.logoutButton.addEventListener('click', () => auth.signOut());
 
         auth.onAuthStateChanged(async user => {
             if (user) {
@@ -307,11 +296,11 @@
             } else {
                 updateUIForLoggedOutUser();
             }
-            ui.preloader.classList.add('hidden');
+            if(ui.preloader) ui.preloader.classList.add('hidden');
         });
 
         if (ui.typewriterText) {
-             setTimeout(() => typewriter.run(), 500);
+             typewriter.type();
         }
     });
    </script>
