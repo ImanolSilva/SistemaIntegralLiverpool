@@ -1655,32 +1655,60 @@
                 <h2>2. Cargar o Buscar Manifiesto</h2>
             </div>
             <div class="form-card-body">
-                <div class="row gx-4 gy-4">
-                    <div class="col-md-6 border-end-md">
-                        <p class="form-label">Cargar un nuevo archivo:</p>
-                        <div id="dropzone">
-                            <i class="material-icons">cloud_upload</i>
-                            <p class="fw-bold">Arrastra un archivo Excel aquí</p>
-                            <p class="text-muted small">o haz clic para seleccionarlo.</p>
-                            <input type="file" id="fileInput" accept=".xlsx, .xls" class="d-none">
-                        </div>
-                        <p id="selectedFileName" class="text-center mt-3 mb-0"></p>
-                        <div id="uploadProgressContainer" class="mt-2" style="display: none;">
-                            <div class="progress" style="height: 10px;"><div id="uploadProgressBar" class="progress-bar" role="progressbar"></div></div>
-                        </div>
-                        <div class="form-card-actions">
-                            <button id="uploadFileBtn" class="btn-main btn-primary-main" disabled><i class="material-icons">file_upload</i><span>Subir Archivo</span></button>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <p class="form-label">Buscar un manifiesto existente:</p>
-                        <input type="text" id="inputBusqueda" class="form-control-modern text-center mb-3" placeholder="Buscar por Contenedor o SKU...">
-                        <div class="d-grid">
-                            <button id="btnVerArchivos" class="btn-main btn-secondary-main"><i class="material-icons">folder_open</i><span>Ver Todos los Archivos</span></button>
-                        </div>
-                    </div>
+
+
+<div class="row gx-lg-5 align-items-center">
+
+    <div class="col-lg-5" id="upload-column">
+        <div class="p-3 text-center">
+            <p class="form-label mb-3">Cargar un nuevo archivo</p>
+            <div id="dropzone">
+                <i class="material-icons" style="font-size: 3rem;">cloud_upload</i>
+                <p class="fw-bold mt-2">Arrastra un archivo Excel aquí</p>
+                <p class="text-muted small">o haz clic para seleccionarlo.</p>
+                <input type="file" id="fileInput" accept=".xlsx, .xls" class="d-none">
+            </div>
+            <p id="selectedFileName" class="text-center mt-3 mb-0" style="font-weight: 500;"></p>
+            <div id="uploadProgressContainer" class="mt-2 px-4" style="display: none;">
+                <div class="progress" style="height: 10px;">
+                    <div id="uploadProgressBar" class="progress-bar" role="progressbar"></div>
                 </div>
             </div>
+            <div class="form-card-actions justify-content-center mt-3">
+                <button id="uploadFileBtn" class="btn btn-main btn-primary-main" disabled>
+                    <i class="material-icons">file_upload</i>
+                    <span>Subir Archivo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-2 d-none d-lg-flex justify-content-center">
+        <div class="text-center">
+            <div class="vr" style="height: 150px;"></div>
+            <p class="text-muted fw-bold my-2">Ó</p>
+            <div class="vr" style="height: 150px;"></div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="p-3 text-center">
+            <p class="form-label mb-3">Buscar un manifiesto existente</p>
+            <div class="search-input-container mx-auto" style="max-width: 400px;">
+                 <i class="material-icons">search</i>
+                 <input type="text" id="inputBusqueda" class="form-control-modern text-center" placeholder="Buscar por Contenedor o SKU...">
+            </div>
+           
+            <div class="d-grid mt-4 mx-auto" style="max-width: 400px;">
+                <button id="btnVerArchivos" class="btn btn-main btn-secondary-main">
+                    <i class="material-icons">folder_open</i>
+                    <span>Ver Todos los Archivos</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
         </section>
 
         <div id="containerResultsSection" style="display:none;" class="mb-4">
@@ -1788,6 +1816,13 @@
         let allFilesList = null;
         let globalContainerMap = {};
         let currentDanioSKU = null;
+        let permissions = {
+    canScan: false,
+    canUpload: false,
+    canGenerateReport: false,
+    canArchive: false,
+    hasFullAccess: false
+     };
 
         /***************************************************
          * REFERENCIAS DEL DOM
@@ -1821,6 +1856,8 @@ const dropzone = document.getElementById("dropzone");
         const danioCantidadInput = document.getElementById("danioCantidad");
         const danioFotoInput = document.getElementById("danioFoto");
         const btnGuardarDanio = document.getElementById("btnGuardarDanio");
+        // ...Debajo de las otras referencias...
+        const uploadColumn = document.getElementById("upload-column");
 
         /***************************************************
          * AUTH / LOGOUT
@@ -1837,13 +1874,55 @@ auth.onAuthStateChanged(async (user) => {
             currentUserStore = isAdmin ? "ALL" : (data.store || "");
             currentUserRole = isAdmin ? "admin" : (data.role || "vendedor");
             
-            // ✅ CORRECCIÓN: Ahora usa la nueva variable para todo el panel
-            if (["auxiliar", "jefe", "admin"].includes(currentUserRole)) {
-                uploadAndSearchSection.style.display = "block";
-            } else {
-                uploadAndSearchSection.style.display = "none";
-            }
-            userInfoEl.textContent = `Usuario: ${data.name || 'Admin'} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
+           // --- INICIA BLOQUE DE REEMPLAZO ---
+const userName = data.name || (isAdmin ? 'Admin' : 'Usuario');
+userInfoEl.textContent = `Usuario: ${userName} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
+
+// Definimos los permisos basados en el rol
+switch (currentUserRole) {
+    case 'vendedor':
+        permissions.canScan = true;
+        break;
+    case 'auxiliar':
+        permissions.canScan = true;
+        permissions.canUpload = true;
+        permissions.canGenerateReport = true;
+        break;
+    case 'jefe':
+        permissions.canScan = true;
+        permissions.canUpload = true;
+        permissions.canGenerateReport = true;
+        permissions.canArchive = true;
+        break;
+    case 'admin':
+        permissions.hasFullAccess = true;
+        break;
+}
+
+// Un admin siempre tiene todos los permisos
+if (permissions.hasFullAccess) {
+    permissions = { canScan: true, canUpload: true, canGenerateReport: true, canArchive: true, hasFullAccess: true };
+}
+
+// --- INICIA BLOQUE DE REEMPLAZO ---
+
+// La sección de búsqueda y carga siempre debe ser visible para quienes pueden escanear.
+if (permissions.canScan || permissions.hasFullAccess) {
+    uploadAndSearchSection.style.display = 'block';
+} else {
+    uploadAndSearchSection.style.display = 'none';
+}
+
+// PERO, ocultamos la columna de carga específica si el usuario NO tiene el permiso.
+if (uploadColumn) { // Verificamos que el elemento exista
+    if (permissions.canUpload || permissions.hasFullAccess) {
+        uploadColumn.style.display = 'block';
+    } else {
+        uploadColumn.style.display = 'none';
+    }
+}
+
+// --- TERMINA BLOQUE DE REEMPLAZO ---
         } else {
             Swal.fire({ icon: 'info', title: 'Acceso Denegado', text: 'Tu cuenta no está aprobada. Contacta al administrador.' }).then(() => auth.signOut());
         }
@@ -2199,10 +2278,9 @@ async function listarArchivos() {
 // Función para renderizar CADA TARJETA (reemplaza tu `renderItems` anterior)
 function renderItems(file, isDestacado) {
     const p = file.progreso;
-    const fechaSubida = formatFecha(file.createdAt);
+    const ultimaModificacion = formatFecha(file.createdAt); // Usamos la fecha de creación
     const diasDesdeSubida = Math.floor((new Date() - file.createdAt) / (1000 * 60 * 60 * 24));
     
-    // Lógica para determinar el estado por avance
     let estadoInfo = { texto: 'Sin Iniciar', clase: 'sin-iniciar' };
     if (p.avance >= 100) {
         estadoInfo = (p.totalSCAN > p.totalSAP) 
@@ -2214,37 +2292,49 @@ function renderItems(file, isDestacado) {
         estadoInfo = { texto: 'En Progreso', clase: 'en-progreso' };
     }
 
-// --- BLOQUE CORRECTO ---
-const isOld = diasDesdeSubida > 5;
+    const isOld = diasDesdeSubida > 5;
+    
+    // ✅ CORRECCIÓN: Todos los botones se definen aquí incondicionalmente.
+// --- INICIA BLOQUE DE REEMPLAZO PARA LOS BOTONES ---
+let actionButtons = '';
 
-// 1. Definimos los botones que estarán SIEMPRE presentes.
-let actionButtons = `
-    <button class="btn btn-sm btn-warning" onclick="downloadFile('${file.folder}','${file.name}')" title="Descargar reporte en Excel">
-        <i class="material-icons">assessment</i> Generar Reporte
-    </button>
-    <button class="btn btn-sm btn-primary" onclick="verDashboardArchivo('${file.folder}','${file.name}')" title="Ver análisis detallado">
-        <i class="material-icons">query_stats</i> Analizar
-    </button>
-`;
+// El botón de Analizar siempre está disponible si el usuario puede escanear
+if (permissions.canScan) {
+    actionButtons += `
+        <button class="btn btn-sm btn-primary" onclick="verDashboardArchivo('${file.folder}','${file.name}')" title="Ver análisis detallado">
+            <i class="material-icons">query_stats</i> Analizar
+        </button>`;
+}
 
-// 2. AÑADIMOS el botón de archivar solo si el archivo es antiguo.
-if (isOld) {
+// El botón de Generar Reporte
+if (permissions.canGenerateReport) {
+    actionButtons += `
+        <button class="btn btn-sm btn-warning" onclick="downloadFile('${file.folder}','${file.name}')" title="Descargar reporte en Excel">
+            <i class="material-icons">assessment</i> Generar Reporte
+        </button>`;
+}
+
+// El botón de Archivar
+if (permissions.canArchive) {
     actionButtons += `
         <button class="btn btn-sm btn-danger" onclick="archivarManifiesto('${file.name}', '${file.folder}')" title="Archivar este manifiesto">
             <i class="material-icons">archive</i> Archivar
         </button>`;
 }
-    
+// --- TERMINA BLOQUE DE REEMPLAZO ---
+
     let statusClass = `status-${estadoInfo.clase}`;
-    if (isOld) statusClass = 'is-archivable';
+    if (isOld) {
+        statusClass = 'is-archivable'; // Mantenemos el estilo visual para los archivos antiguos
+    }
 
     return `
         <div class="manifest-card-pro ${statusClass}">
             ${isDestacado ? `<div class="badge-destacado"><i class="bi bi-fire"></i> Destacado</div>` : ''}
-            ${isOld ? `<div class="archivable-notice">REQUIERE ACCIÓN (Subido hace ${diasDesdeSubida} días)</div>` : ''}
+            ${isOld ? `<div class="archivable-notice">ACCIÓN REQUERIDA (Subido hace ${diasDesdeSubida} días)</div>` : ''}
             <div class="card-header">
                 <div class="file-name">${file.name}</div>
-                <div class="file-store">Tienda: <strong>${file.folder}</strong> | Subido: ${fechaSubida}</div>
+                <div class="file-store">Tienda: <strong>${file.folder}</strong> | Subido: ${ultimaModificacion}</div>
             </div>
             <div class="card-body">
                 <div class="progress-preview">
@@ -2700,7 +2790,51 @@ btnCambiarContenedor.addEventListener("click", () => {
 });
     });
 });
+/**
+ * ✨ NUEVA FUNCIÓN DE AYUDA ✨
+ * Calcula las estadísticas de un manifiesto y las guarda en su documento de Firestore.
+ * @param {string} fileName - El nombre del archivo a actualizar.
+ */
+async function actualizarMetadatosManifiesto(fileName) {
+    if (!excelDataGlobal[fileName]) return;
 
+    const datos = excelDataGlobal[fileName].data;
+    if (!datos || datos.length === 0) return;
+
+    let totalSAP = 0;
+    let totalSCAN = 0;
+
+    datos.forEach(r => {
+        totalSAP += Number(r.SAP) || 0;
+        totalSCAN += Number(r.SCANNER) || 0;
+    });
+
+    const avance = totalSAP > 0 ? Math.round((totalSCAN / totalSAP) * 100) : (totalSCAN > 0 ? 100 : 0);
+    
+    let estado = "Sin Iniciar";
+    if (avance >= 100) {
+        estado = (totalSCAN > totalSAP) ? "Completo con Excedentes" : "Completo";
+    } else if (avance >= 50) {
+        estado = "Avanzado";
+    } else if (avance > 0) {
+        estado = "En Progreso";
+    } else if (totalSAP > 0 && avance === 0) {
+        estado = "Faltantes Detectados"; // Si hay SAP pero no se ha escaneado nada
+    }
+
+    const metadata = {
+        progreso: {
+            totalSAP,
+            totalSCAN,
+            avance,
+            estado
+        },
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastUser: currentUser.email || currentUser.uid
+    };
+
+    await db.collection('manifiestos').doc(fileName).set(metadata, { merge: true });
+}
 /****************************************************************************
  * INICIO DE LA SECCIÓN DE BÚSQUEDA MEJORADA
  ****************************************************************************/
@@ -2810,8 +2944,7 @@ async function buscarContenedor(ref) {
     }
 
     const choiceHTML = foundChoices.map(choice => {
-        const isClosedData = excelDataGlobal[choice.fileName]?.closedContainers?.[choice.containerName];
-        let statusHTML = '';
+const isClosedData = excelDataGlobal[choice.fileName] && excelDataGlobal[choice.fileName].closedContainers && excelDataGlobal[choice.fileName].closedContainers[choice.containerName];        let statusHTML = '';
         if (isClosedData) {
             statusHTML = `<span class="status-badge is-closed" title="Cerrado por ${isClosedData}">CERRADO</span>`;
         }
@@ -2877,8 +3010,7 @@ async function buscarSKUenArchivos(sku) {
     const choiceHTML = foundChoices.map(choice => {
         const sap = choice.record.SAP || 0;
         const desc = choice.record.DESCRIPCION || '(sin descripción)';
-        const isClosed = excelDataGlobal[choice.fileName]?.closedContainers?.[choice.containerName];
-        return `
+const isClosed = excelDataGlobal[choice.fileName] && excelDataGlobal[choice.fileName].closedContainers && excelDataGlobal[choice.fileName].closedContainers[choice.containerName];        return `
             <div class="result-item-card">
                 <div class="item-info">
                     <div class="item-title">
@@ -3564,6 +3696,8 @@ async function handleScanCode(code) {
             sku: targetRow.SKU, type: 'add', scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
             employee: currentEmployeeNumber, user: currentUser.email, container: currentContenedor
         });
+           // ✅ ¡LÍNEA AÑADIDA! AHORA ACTUALIZAMOS EL RESUMEN
+    await actualizarMetadatosManifiesto(fn);
 db.collection('manifiestos').doc(fn).set({ lastUser: currentUser.email, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });    } catch (error) {
         showScanErrorToast('Error de Red', 'El escaneo no se guardó. Reinténtalo.');
         targetRow.SCANNER -= 1;

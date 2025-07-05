@@ -6,9 +6,14 @@
     <title>Sistema Liverpool - Inicio</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    
     <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
 
     <style>
         :root {
@@ -20,57 +25,109 @@
             --gris-medio: #dee2e6;
             --gris-oscuro: #6c757d;
             --texto-principal: #212529;
+            --oro: #FFD700;
+            --plata: #C0C0C0;
+            --bronce: #CD7F32;
+            --fuego-naranja: #ffae42;
+            --fuego-rojo: #e25822;
         }
 
+        /* === Fondo Animado y Estilos Base === */
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--negro-fondo);
-            background-image: linear-gradient(135deg, #E6007E 0%, var(--negro-fondo) 100%);
-            color: var(--texto-principal);
+            color: var(--blanco);
+            background: linear-gradient(-45deg, #E6007E, #a3005a, #d11a9a, #1a1a1a);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         
+        /* === Estructura Principal y Menú === */
         .preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--negro-fondo);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .7s ease,visibility .7s ease}.preloader .spinner{width:50px;height:50px;border:5px solid #444;border-top-color:var(--rosa-principal);border-radius:50%;animation:spin 1s linear infinite}.preloader.hidden{opacity:0;visibility:hidden}@keyframes spin{to{transform:rotate(360deg)}}
         .app-header{background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}.header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg); box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);}
         .offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:all .3s ease;border-radius:0 50px 50px 0; border-left: 4px solid transparent;}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem; border-left: 4px solid var(--rosa-gradiente-luz); color: var(--rosa-principal);}
         .offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
-        .main-container{margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        
-        .hero-content h1 { font-size: clamp(2.2rem, 5vw, 3rem); font-weight: 700; color: var(--texto-principal); }
+        .main-container{margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out; color: var(--texto-principal);}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+        /* === Estilos del Hero Section === */
+        .hero-content h1 { font-size: clamp(2.2rem, 5vw, 3rem); font-weight: 700; }
         .hero-content h1 span { color: var(--rosa-principal); }
-        .hero-content .lead { font-size: clamp(1.1rem, 3vw, 1.25rem); margin: 1.5rem 0; color: var(--gris-oscuro); }
-        .typewriter-text { color: var(--rosa-principal); font-weight: 600; border-right: 2px solid var(--rosa-principal); animation: blinkCursor .75s step-end infinite; padding-right: 2px;}
+        .hero-content .lead { font-size: clamp(1.1rem, 3vw, 1.25rem); margin: 1rem 0; color: var(--gris-oscuro); }
+        .typewriter-text { color: var(--rosa-principal); font-weight: 600; border-right: 2px solid var(--rosa-principal); animation: blinkCursor .75s step-end infinite; padding-right: 2px; display: inline-block;}
+        @keyframes blinkCursor { from, to { border-color: transparent } 50% { border-color: var(--rosa-principal); } }
         #authButton{background-image:linear-gradient(45deg, var(--rosa-gradiente-luz), var(--rosa-principal));padding:14px 45px;font-size:1.2rem;font-weight: 600;border:none;border-radius:50px;color:white;transition:all .3s ease; letter-spacing: 0.5px;}
         #authButton:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 8px 25px rgba(230,0,126,.4)}
 
-        .user-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin:2.5rem auto;max-width:800px}.info-card{background:var(--gris-claro);padding:1.25rem;border-radius:16px;text-align:center;border:1px solid var(--gris-medio)}.info-card i{font-size:2rem;color:var(--rosa-principal)}.info-card .info-label{font-size:.8rem;color:var(--gris-oscuro);display:block;margin-top:.5rem; text-transform: uppercase;}.info-card .info-value{font-size:1rem;font-weight:600;color:var(--texto-principal)}
+        /* === Mini-Dashboard de KPIs === */
+        #dashboard-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+        .kpi-card { background: #fff; border-radius: 16px; padding: 1.5rem; border-left: 5px solid var(--rosa-principal); text-align: center; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .kpi-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+        .kpi-card .kpi-icon { font-size: 2.5rem; color: var(--rosa-principal); }
+        .kpi-card .kpi-value { font-size: 2rem; font-weight: 700; color: var(--texto-principal); margin: 0.5rem 0; }
+        .kpi-card .kpi-label { font-size: 0.85rem; color: var(--gris-oscuro); }
+        
+        /* === Paneles de Leaderboard === */
+        .leaderboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; margin-top: 2.5rem; }
+        .leaderboard-panel { background: #fff; border-radius: 16px; padding: 1.5rem; border: 1px solid var(--gris-medio); }
+        .leaderboard-panel .panel-title { font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--texto-principal); font-size: 1.25rem; }
+        .leaderboard-panel .panel-title .bi { color: var(--rosa-principal); }
+        .leaderboard-list { list-style: none; padding: 0; margin: 0; }
+        .leaderboard-list li { display: flex; align-items: center; padding: 0.8rem 0.5rem; border-bottom: 1px solid #f1f1f1; font-size: 1rem; transition: all 0.3s ease; position: relative; }
+        .leaderboard-list li:last-child { border-bottom: none; }
+        
+        /* --- ESTILOS TOP 1 --- */
+        .leaderboard-list li.rank-1 { background: #4a0e0e; background-image: linear-gradient(0deg, #2c0b0b, #4a1a1a); transform: scale(1.05); border-radius: 12px; margin: 1.5rem 0; z-index: 2; border: 1px solid #ffae424d; animation: pulse-glow 2s infinite alternate; }
+        .rank-1 .user-name, .rank-1 .rank { color: white !important; }
+        @keyframes pulse-glow { from { box-shadow: 0 0 15px -5px var(--fuego-naranja), 0 0 30px -10px var(--fuego-rojo); } to { box-shadow: 0 0 25px 0px var(--fuego-naranja), 0 0 40px -5px var(--fuego-rojo); } }
+        .fire-animation-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+        .fire { position: absolute; bottom: -20px; left: 50%; width: 120px; height: 120px; transform: translateX(-50%); filter: blur(2px); }
+        .fire .particle { position: absolute; bottom: 0; left: 50%; background: var(--fuego-naranja); border-radius: 50%; animation: flame-up 2s ease-in-out infinite; }
+        @keyframes flame-up { 0% { transform: translateY(0) scale(1); opacity: 1; box-shadow: 0 0 10px 5px var(--fuego-naranja), 0 0 20px 10px var(--fuego-rojo); } 100% { transform: translateY(-100px) scale(0); opacity: 0; box-shadow: 0 0 2px 1px var(--fuego-naranja), 0 0 5px 2px var(--fuego-rojo); } }
+        .fire .particle:nth-child(1) { width: 15px; height: 15px; animation-delay: 0s; left: 45%; }
+        .fire .particle:nth-child(2) { width: 10px; height: 10px; animation-delay: 0.2s; left: 50%; }
+        .fire .particle:nth-child(3) { width: 12px; height: 12px; animation-delay: 0.5s; left: 55%; }
+        .fire .particle:nth-child(4) { width: 18px; height: 18px; animation-delay: 0.8s; left: 40%; }
+        .fire .particle:nth-child(5) { width: 8px; height: 8px; animation-delay: 1s; left: 60%; }
+        .fire .particle:nth-child(6) { width: 15px; height: 15px; animation-delay: 1.2s; left: 48%; }
+        .fire .particle:nth-child(7) { width: 10px; height: 10px; animation-delay: 1.5s; left: 52%; }
+        .crown-container { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; color: var(--oro); z-index: 10; animation: crown-float 3s ease-in-out infinite; }
+        @keyframes crown-float { 0%, 100% { transform: translateX(-50%) translateY(0px) rotate(-3deg); } 50% { transform: translateX(-50%) translateY(-8px) rotate(3deg); } }
+        
+        /* --- ESTILOS TOP 2 y 3 --- */
+        .leaderboard-list li.rank-2, .leaderboard-list li.rank-3 { border-radius: 8px; margin: 0.25rem 0; }
+        .leaderboard-list li.rank-2 { background: #f0f4f8; border-left: 4px solid var(--plata); }
+        .leaderboard-list li.rank-3 { background: #fff5e9; border-left: 4px solid var(--bronce); }
+        .leaderboard-list li.rank-2:hover, .leaderboard-list li.rank-3:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.08); z-index: 1; }
+        .detail-icon { margin-left: 8px; font-size: 1.1rem; animation: bounce-icon 2.5s ease-in-out infinite; display: inline-block; }
+        @keyframes bounce-icon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px) rotate(5deg); } }
 
-        .quick-access-section h2 { font-weight: 700; color: var(--texto-principal); }
-        .quick-access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
-        .action-card {
-            background: var(--blanco); border-radius: 16px; padding: 2rem; text-align: center;
-            text-decoration: none; color: var(--texto-principal); border: 1px solid var(--gris-medio);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .action-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.12); border-color: var(--rosa-principal); }
-        .card-icon {
-            width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center;
-            justify-content: center; color: var(--blanco); font-size: 2rem; margin-bottom: 1rem;
-            transition: transform 0.3s ease;
-        }
-        .action-card:hover .card-icon { transform: scale(1.15) rotate(-10deg); }
-        .action-card h3 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .action-card p { font-size: 0.9rem; color: var(--gris-oscuro); line-height: 1.5; }
+        /* --- ESTILOS GENERALES Y CORRECCIONES --- */
+        .leaderboard-list .rank { font-weight: 700; font-size: 1.2rem; width: 30px; color: var(--texto-principal); }
+        .leaderboard-list .user-name { font-weight: 600; color: #333; display: flex; align-items: center; }
+        .leaderboard-list .scan-count { margin-left: auto; font-weight: 700; background-color: var(--gris-claro); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.9rem; color: var(--texto-principal); }
+        .rank-1 .scan-count { color: var(--blanco) !important; background-color: rgba(255, 255, 255, 0.15); text-shadow: 0 0 3px black; } /* CORRECCIÓN DE VISIBILIDAD */
+        .leaderboard-list .trophy-icon { font-size: 1.8rem; margin-right: 0.75rem; }
+        .trophy-gold { color: var(--oro); }
+        .trophy-silver { color: var(--plata); }
+        .trophy-bronze { color: var(--bronce); }
+
+        /* === Tarjetas de Acceso Rápido (Diseño Mejorado) === */
+        .quick-access-section h2 { font-weight: 700; margin-bottom: 2.5rem; }
+        .quick-access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+        .action-card { background: var(--blanco); border-radius: 16px; text-decoration: none; color: var(--texto-principal); border: 1px solid #e0e0e0; transition: all 0.3s ease-out; position: relative; overflow: hidden; padding: 2rem; }
+        .action-card:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 25px 40px -15px rgba(0,0,0,0.15); border-color: var(--rosa-principal); }
+        .card-content { position: relative; z-index: 2; text-align: left; }
+        .action-card .card-icon { font-size: 2.5rem; color: var(--rosa-principal); margin-bottom: 1rem; display: inline-block; }
+        .action-card h3 { font-size: 1.4rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .action-card p { font-size: 0.9rem; color: var(--gris-oscuro); line-height: 1.6; }
+        .action-card .go-corner { display: flex; align-items: center; justify-content: center; position: absolute; width: 32px; height: 32px; overflow: hidden; top: 0; right: 0; background-color: var(--rosa-principal); border-radius: 0 4px 0 32px; }
+        .action-card .go-arrow { margin-top: -4px; margin-right: -4px; color: white; font-family: 'bootstrap-icons'; content: '\F138'; font-size: 1.2rem; }
         .welcome-user-name { color: var(--rosa-principal); font-weight: 700; }
-        @keyframes blinkCursor { from, to { border-color: transparent } 50% { border-color: var(--rosa-principal); } }
-
-        .icon-rechazos { background-image: linear-gradient(45deg, #F50057, #E6007E); }
-        .icon-precios { background-image: linear-gradient(45deg, #29B6F6, #1E88E5); }
-        .icon-inventarios { background-image: linear-gradient(45deg, #66BB6A, #43A047); }
-        .icon-manifiestos { background-image: linear-gradient(45deg, #FFA726, #FB8C00); }
-        .icon-admin { background-image: linear-gradient(45deg, #AB47BC, #8E24AA); }
-        .icon-seguimiento { background-image: linear-gradient(45deg, #26A69A, #00897B); }
-        .icon-contenedores { background-image: linear-gradient(45deg, #4DD0E1, #0097A7); }
     </style>
 </head>
 <body>
@@ -85,114 +142,129 @@
         </button>
     </header>
 
-<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
-    <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-list"></i> Menú Principal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button></div>
-    <div class="offcanvas-body p-0">
-        <nav class="nav flex-column">
-            <a class="nav-link" href="index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
-            <a class="nav-link" href="Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan me-3"></i>Escanear Tarimas</a>
-            <a class="nav-link" href="Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
-            <a class="nav-link" href="ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
-            <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
-            <a class="nav-link" href="Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
-            <a class="nav-link" href="Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
-            <li class="nav-item" id="adminTab" style="display: none;"><a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
-            <li class="nav-item" id="seguimientoArticulosTab" style="display: none;"><a class="nav-link" href="Seguimiento/Seguimiento.html"><i class="bi bi-graph-up-arrow me-3"></i>Seguimiento</a></li>
-        </nav>
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
+        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-list"></i> Menú Principal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button></div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
+                <a class="nav-link" href="Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan me-3"></i>Escanear Tarimas</a>
+                <a class="nav-link" href="Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+                <a class="nav-link" href="ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
+                <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
+                <a class="nav-link" href="Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
+                <a class="nav-link" href="Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
+                <li class="nav-item" id="adminTab" style="display: none;"><a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
+                <li class="nav-item" id="seguimientoArticulosTab" style="display: none;"><a class="nav-link" href="Seguimiento/Seguimiento.html"><i class="bi bi-graph-up-arrow me-3"></i>Seguimiento</a></li>
+            </nav>
+        </div>
     </div>
-</div>
 
     <main class="container main-container">
         <div class="hero-content text-center" data-aos="fade-up">
             <h1 id="welcomeMessage">Bienvenido al <span>Sistema Liverpool</span></h1>
-            <div id="userInfoContainer" data-aos="fade-up" data-aos-delay="200" style="display: none;"></div>
-            <p class="lead" data-aos="fade-up" data-aos-delay="500">
+            <p class="lead" data-aos="fade-up" data-aos-delay="200">
                 Tu herramienta para <span class="typewriter-text"></span>
             </p>
-             <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
-                <button class="btn btn-primary shadow-lg" data-aos="fade-up" data-aos-delay="800" id="authButton">Acceder</button>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+                <button class="btn btn-primary shadow-lg" data-aos="fade-up" data-aos-delay="400" id="authButton">Acceder</button>
             </div>
         </div>
+
+        <div id="dashboard-kpis" style="display: none;"></div>
+        <div id="leaderboard-container" class="leaderboard-grid"></div>
 
         <hr class="my-5">
 
         <div class="quick-access-section" style="display: none;">
-            <h2 class="text-center mb-4" data-aos="fade-up">Acceso Rápido</h2>
+            <h2 class="text-center mb-5" data-aos="fade-up">Acceso Rápido</h2>
             <div class="quick-access-grid">
-                <a href="Rechazos/reportes.html" class="action-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="card-icon icon-rechazos"><i class="bi bi-x-octagon-fill"></i></div>
-                    <h3>Rechazos</h3><p>Gestiona y comenta los reportes de rechazos de mercancía.</p>
+                <a href="Escaneo/Contenedor.html" class="action-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="card-content">
+                        <div class="card-icon"><i class="bi bi-qr-code-scan"></i></div>
+                        <h3>Escanear Tarimas</h3>
+                        <p>Registra y verifica el contenido de las tarimas de mercancía.</p>
+                    </div>
+                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
                 </a>
-                <a href="ChecarPrecios/index.html" class="action-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="card-icon icon-precios"><i class="bi bi-tags-fill"></i></div>
-                    <h3>Checar Precios</h3><p>Verifica precios de artículos escaneando códigos de barras.</p>
+                <a href="Manifiestos/Manifiestos.html" class="action-card" data-aos="fade-up" data-aos-delay="200">
+                     <div class="card-content">
+                        <div class="card-icon"><i class="bi bi-file-earmark-check-fill"></i></div>
+                        <h3>Manifiestos</h3>
+                        <p>Genera y consulta manifiestos de mercancía de forma digital.</p>
+                    </div>
+                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
                 </a>
-                <a href="Inventarios/Inventarios.html" class="action-card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="card-icon icon-inventarios"><i class="bi bi-archive-fill"></i></div>
-                    <h3>Inventarios</h3><p>Controla y administra el stock de los productos en tienda.</p>
+                <a href="ChecarPrecios/index.html" class="action-card" data-aos="fade-up" data-aos-delay="300">
+                     <div class="card-content">
+                        <div class="card-icon"><i class="bi bi-tags-fill"></i></div>
+                        <h3>Checar Precios</h3>
+                        <p>Verifica precios de artículos escaneando códigos de barras.</p>
+                    </div>
+                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
                 </a>
-                <a href="Manifiestos/Manifiestos.html" class="action-card" data-aos="fade-up" data-aos-delay="400">
-                    <div class="card-icon icon-manifiestos"><i class="bi bi-file-earmark-check-fill"></i></div>
-                    <h3>Manifiestos</h3><p>Genera y consulta manifiestos de mercancía de forma digital.</p>
+                <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;" data-aos="fade-up" data-aos-delay="400">
+                     <div class="card-content">
+                        <div class="card-icon"><i class="bi bi-gear-fill"></i></div>
+                        <h3>Administrar</h3>
+                        <p>Gestiona roles, permisos y usuarios del sistema.</p>
+                    </div>
+                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
                 </a>
-                <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;" data-aos="fade-up" data-aos-delay="500">
-                    <div class="card-icon icon-admin"><i class="bi bi-gear-fill"></i></div>
-                    <h3>Administrar</h3><p>Gestiona roles, permisos y usuarios del sistema.</p>
-                </a>
-                <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;" data-aos="fade-up" data-aos-delay="600">
-                    <div class="card-icon icon-seguimiento"><i class="bi bi-graph-up-arrow"></i></div>
-                    <h3>Seguimiento</h3><p>Analiza el historial y movimiento de artículos específicos.</p>
-                </a>
-                <a href="Escaneo/Contenedor.html" class="action-card" id="contenedoresCard" style="display: none;" data-aos="fade-up" data-aos-delay="700">
-                    <div class="card-icon icon-contenedores"><i class="bi bi-box-seam"></i></div>
-                    <h3>Escanear Tarimas</h3><p>Registra y verifica el contenido de las tarimas de mercancía.</p>
+                <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;" data-aos="fade-up" data-aos-delay="500">
+                     <div class="card-content">
+                        <div class="card-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                        <h3>Seguimiento</h3>
+                        <p>Analiza el historial y movimiento de artículos específicos.</p>
+                    </div>
+                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
                 </a>
             </div>
         </div>
     </main>
 
-    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script> 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
    <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const firebaseConfig = { apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE", authDomain: "loginliverpool.firebaseapp.com", projectId: "loginliverpool", storageBucket: "loginliverpool.appspot.com", messagingSenderId: "704223815941", appId: "1:704223815941:web:c871525230fb61caf96f6c" };
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+        AOS.init({ once: true, duration: 800 });
+
+        const firebaseConfig = {
+         apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+         authDomain: "loginliverpool.firebaseapp.com",
+         projectId: "loginliverpool",
+         storageBucket: "loginliverpool.appspot.com",
+         messagingSenderId: "704223815941",
+         appId: "1:704223815941:web:c871525230fb61caf96f6c",
+         measurementId: "G-QFEPQ4TSPY"
+        };
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
         const ADMIN_UIDS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"];
-        AOS.init({ once: false, duration: 800 });
         
-        const navLinks = document.querySelectorAll('.offcanvas .nav-link');
-        const currentPath = window.location.pathname;
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            const linkUrl = new URL(link.href, window.location.origin);
-            const linkPath = linkUrl.pathname.endsWith('/') ? linkUrl.pathname + 'index.html' : linkUrl.pathname;
-            const currentFullPath = currentPath.endsWith('/') ? currentPath + 'index.html' : currentPath;
-
-            if (linkPath === currentFullPath) {
-                link.classList.add('active');
-            }
-        });
-
         const ui = {
             authButton: document.getElementById("authButton"),
             logoutButton: document.getElementById("logout-btn"),
             adminTab: document.getElementById("adminTab"),
             segArtTab: document.getElementById("seguimientoArticulosTab"),
             welcomeMessage: document.getElementById("welcomeMessage"),
-            userInfoContainer: document.getElementById("userInfoContainer"),
+            kpisContainer: document.getElementById("dashboard-kpis"),
+            leaderboardContainer: document.getElementById("leaderboard-container"),
             adminCard: document.getElementById("adminCard"),
             seguimientoCard: document.getElementById("seguimientoArticulosCard"),
             preloader: document.querySelector('.preloader'),
             typewriterText: document.querySelector(".typewriter-text"),
-            quickAccessSection: document.querySelector(".quick-access-section"),
-            contenedoresCard: document.getElementById("contenedoresCard")
+            typewriterContainer: document.querySelector(".lead"),
+            quickAccessSection: document.querySelector(".quick-access-section")
         };
 
         function getGreeting() {
@@ -202,16 +274,11 @@
             return "Buenas noches";
         }
 
-        const handleAuthClick = () => {
-            if (!auth.currentUser) {
-                window.location.href = "Login/login.html";
-            }
-        };
-
         const typewriter = {
             texts: [ "optimizar tu flujo de trabajo.", "gestionar tarimas con eficiencia.", "digitalizar tus manifiestos.", "simplificar el control de inventario.", "agilizar el escaneo de contenedores.", "mejorar la precisión de tus registros."],
             speed: 80, textIndex: 0, charIndex: 0, isDeleting: false,
             type() {
+                if (!ui.typewriterText) return;
                 const currentText = this.texts[this.textIndex];
                 let displayedText;
                 if (this.isDeleting) {
@@ -221,7 +288,7 @@
                     displayedText = currentText.substring(0, this.charIndex + 1);
                     this.charIndex++;
                 }
-                if(ui.typewriterText) ui.typewriterText.innerHTML = displayedText;
+                ui.typewriterText.innerHTML = displayedText;
                 let typeSpeed = this.isDeleting ? this.speed / 2 : this.speed;
                 if (!this.isDeleting && this.charIndex === currentText.length) {
                     typeSpeed = 2000;
@@ -239,10 +306,12 @@
             if (ui.logoutButton) ui.logoutButton.style.display = 'none';
             if (ui.authButton) ui.authButton.style.display = 'block';
             if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()} y bienvenido al <span>Sistema Liverpool</span>`;
-            if (ui.userInfoContainer) ui.userInfoContainer.style.display = 'none';
+            if (ui.kpisContainer) ui.kpisContainer.style.display = 'none';
+            if (ui.leaderboardContainer) ui.leaderboardContainer.style.display = 'none';
             if (ui.quickAccessSection) ui.quickAccessSection.style.display = 'none';
+            if (ui.typewriterContainer) ui.typewriterContainer.style.display = 'block';
             
-            [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard, ui.contenedoresCard].forEach(el => {
+            [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard].forEach(el => {
                 if(el) el.style.display = "none";
             });
         };
@@ -253,6 +322,7 @@
             
             const name = user.displayName || user.email.split('@')[0];
             if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()}, <span class="welcome-user-name">${name}</span>`;
+            if (ui.typewriterContainer) ui.typewriterContainer.style.display = 'none';
 
             try {
                 const userDoc = await db.collection("usuarios").doc(user.uid).get();
@@ -261,33 +331,195 @@
                 }
                 const data = userDoc.data();
                 const isAdmin = ADMIN_UIDS.includes(user.uid);
-                const role = isAdmin ? "Administrador" : (data.role || "Usuario");
+                
+                const kpiData = await fetchDashboardData(data.store);
+                
+                if (ui.kpisContainer) {
+                    ui.kpisContainer.innerHTML = `
+                        <div class="kpi-card" data-aos="fade-up" data-aos-delay="100">
+                            <div class="kpi-icon"><i class="bi bi-journal-album"></i></div>
+                            <div class="kpi-value">${kpiData.manifestsCount}</div>
+                            <div class="kpi-label">Manifiestos en Tienda</div>
+                        </div>
+                        <div class="kpi-card" data-aos="fade-up" data-aos-delay="200">
+                            <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
+                            <div class="kpi-value">${kpiData.closedContainersCount.toLocaleString()}</div>
+                            <div class="kpi-label">Contenedores Cerrados</div>
+                        </div>
+                        <div class="kpi-card" data-aos="fade-up" data-aos-delay="300">
+                            <div class="kpi-icon"><i class="bi bi-check-all"></i></div>
+                            <div class="kpi-value">${kpiData.totalScanned.toLocaleString()}</div>
+                            <div class="kpi-label">Piezas Escaneadas (Total)</div>
+                        </div>
+                    `;
+                    ui.kpisContainer.style.display = 'grid';
+                }
 
-                if(ui.userInfoContainer) {
-                    ui.userInfoContainer.innerHTML = `<div class="user-info-grid"><div class="info-card"><i class="bi bi-shop"></i><span class="info-label">Tienda</span><span class="info-value">${data.store || "N/A"}</span></div><div class="info-card"><i class="bi bi-building"></i><span class="info-label">Depto.</span><span class="info-value">${data.department || "N/A"}</span></div><div class="info-card"><i class="bi bi-person-badge-fill"></i><span class="info-label">Rol</span><span class="info-value">${role}</span></div></div>`;
-                    ui.userInfoContainer.style.display = 'block';
+                if (ui.leaderboardContainer) {
+                    const nombreMesActual = new Date().toLocaleString('es-MX', { month: 'long' });
+                    const tituloMensual = `Top 3 de ${nombreMesActual.charAt(0).toUpperCase() + nombreMesActual.slice(1)}`;
+
+                    ui.leaderboardContainer.innerHTML = `
+                        ${kpiData.topScannersMensual.length > 0 ? createLeaderboardHTML(tituloMensual, kpiData.topScannersMensual, 'bi-calendar-month') : ''}
+                        ${kpiData.topScannersHistorico.length > 0 ? createLeaderboardHTML('Top 3 Histórico (MVP)', kpiData.topScannersHistorico, 'bi-trophy-fill') : ''}
+                    `;
                 }
 
                 if(ui.quickAccessSection) ui.quickAccessSection.style.display = 'block';
                 
-                const isAdminDisplayBlock = isAdmin ? "list-item" : "none";
-                const isAdminDisplayFlex = isAdmin ? "flex" : "none";
-
-                // CORRECCIÓN: Usar ui.elemento para acceder a las propiedades
-                if(ui.adminTab) ui.adminTab.style.display = isAdminDisplayBlock;
-                if(ui.segArtTab) ui.segArtTab.style.display = isAdminDisplayBlock;
-
-                if(ui.adminCard) ui.adminCard.style.display = isAdminDisplayFlex;
-                if(ui.seguimientoCard) ui.seguimientoCard.style.display = isAdminDisplayFlex;
-                if(ui.contenedoresCard) ui.contenedoresCard.style.display = isAdminDisplayFlex;
+                const isAdminDisplay = isAdmin ? "flex" : "none";
+                if(ui.adminTab) ui.adminTab.style.display = isAdmin ? "list-item" : "none";
+                if(ui.segArtTab) ui.segArtTab.style.display = isAdmin ? "list-item" : "none";
+                if(ui.adminCard) ui.adminCard.style.display = isAdminDisplay;
+                if(ui.seguimientoCard) ui.seguimientoCard.style.display = isAdminDisplay;
 
             } catch (error) {
+                console.error("Error al actualizar UI de usuario:", error);
                 Swal.fire({ icon: 'warning', title: 'Acceso Denegado', text: error.message, confirmButtonText: 'Entendido'
                 }).then(() => auth.signOut());
             }
         };
+
+        function createLeaderboardHTML(title, scanners, titleIcon) {
+            const trophies = [
+                { icon: 'bi-trophy-fill', color: 'trophy-gold' },
+                { icon: 'bi-award-fill', color: 'trophy-silver' },
+                { icon: 'bi-star-fill', color: 'trophy-bronze' }
+            ];
+            
+            const rankOneAnimation = `
+                <div class="crown-container">👑</div>
+                <div class="fire-animation-container">
+                    <div class="fire">
+                        ${Array.from({length: 7}).map(() => `<div class="particle"></div>`).join('')}
+                    </div>
+                </div>
+            `;
+            
+            return `
+                <div class="leaderboard-panel" data-aos="fade-up">
+                    <h3 class="panel-title"><i class="bi ${titleIcon}"></i> ${title}</h3>
+                    <ul class="leaderboard-list">
+                        ${scanners.length > 0 ? scanners.map((scanner, index) => {
+                            const rankClasses = ['rank-1', 'rank-2', 'rank-3'];
+                            const detailIcons = {
+                                1: '<span class="detail-icon">⚡️</span>', // Icono para el Top 2
+                                2: '<span class="detail-icon">✨</span>'  // Icono para el Top 3
+                            };
+
+                            const rankClass = rankClasses[index] || '';
+                            const detailIcon = detailIcons[index] || '';
+
+                            return `
+                                <li class="${rankClass}">
+                                    ${index === 0 ? rankOneAnimation : ''}
+                                    <span class="rank">${index + 1}.</span>
+                                    <i class="bi ${trophies[index]?.icon || 'person-fill'} trophy-icon ${trophies[index]?.color || ''}"></i>
+                                    <span class="user-name">${scanner.email}${detailIcon}</span>
+                                    <span class="scan-count">${scanner.count.toLocaleString()} pz.</span>
+                                </li>
+                            `;
+                        }).join('') : '<li class="text-muted">Aún no hay datos para este período.</li>'}
+                    </ul>
+                </div>`;
+        }
+
+
+        async function fetchDashboardData(userStore) {
+            Swal.fire({
+                title: 'Calculando Estadísticas Reales...',
+                html: 'Este proceso puede tardar, estamos leyendo todos los archivos para darte la información más precisa.',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading(),
+                timer: 4000,
+                timerProgressBar: true
+            });
+
+            try {
+                let manifestsQuery = db.collection('manifiestos');
+                if (userStore && userStore !== "ALL") {
+                    manifestsQuery = manifestsQuery.where('store', '==', userStore);
+                }
+                const manifestSnapshot = await manifestsQuery.get();
+                const manifests = manifestSnapshot.docs.map(doc => doc.data());
+
+                const allTimeScanCounts = {};
+                const monthlyScanCounts = {};
+                const now = new Date();
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                let closedContainersCount = 0;
+                let totalScanned = 0;
+
+                const fileDataPromises = manifests.map(manifest => {
+                    if (!manifest.fileName || !manifest.store) return Promise.resolve([]);
+                    return storage.ref(`Manifiestos/${manifest.store}/${manifest.fileName}`).getDownloadURL()
+                        .then(url => fetch(url))
+                        .then(res => res.arrayBuffer())
+                        .then(buf => XLSX.read(buf, { type: "array" }))
+                        .then(wb => XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]))
+                        .catch(err => {
+                            console.warn(`No se pudo procesar el archivo ${manifest.fileName}:`, err);
+                            return [];
+                        })
+                });
+
+                const allFilesData = await Promise.all(fileDataPromises);
+                
+                manifests.forEach((manifest, index) => {
+                    if (manifest.closedContainers) {
+                        closedContainersCount += Object.keys(manifest.closedContainers).length;
+                    }
+                    if (manifest.progreso?.totalSCAN) {
+                        totalScanned += manifest.progreso.totalSCAN;
+                    }
+
+                    const fileRows = allFilesData[index];
+                    fileRows.forEach(row => {
+                        const userEmail = row.LAST_SCANNED_BY;
+                        const scanCount = Number(row.SCANNER) || 0;
+
+                        if (userEmail && scanCount > 0) {
+                            allTimeScanCounts[userEmail] = (allTimeScanCounts[userEmail] || 0) + scanCount;
+                            
+                            let scanDate;
+                            if (row.FechaEscaneo) {
+                                if (typeof row.FechaEscaneo === 'number' && row.FechaEscaneo > 40000) {
+                                    scanDate = new Date(Math.round((row.FechaEscaneo - 25569) * 864e5));
+                                } else {
+                                    scanDate = new Date(row.FechaEscaneo);
+                                }
+                            } else if (manifest.updatedAt) {
+                                scanDate = manifest.updatedAt.toDate();
+                            }
+
+                            if (scanDate instanceof Date && !isNaN(scanDate.getTime()) && scanDate >= startOfMonth) {
+                                monthlyScanCounts[userEmail] = (monthlyScanCounts[userEmail] || 0) + scanCount;
+                            }
+                        }
+                    });
+                });
+                
+                const topScannersMensual = Object.entries(monthlyScanCounts)
+                    .map(([email, count]) => ({ email: email.split('@')[0], count }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 3);
+                    
+                const topScannersHistorico = Object.entries(allTimeScanCounts)
+                    .map(([email, count]) => ({ email: email.split('@')[0], count }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 3);
+
+                Swal.close();
+                return { manifestsCount: manifests.length, closedContainersCount, totalScanned, topScannersMensual, topScannersHistorico };
+
+            } catch (error) {
+                console.error("Error al calcular datos del dashboard:", error);
+                Swal.fire('Error', 'No se pudieron calcular las estadísticas. Revisa la consola.', 'error');
+                return { manifestsCount: 0, closedContainersCount: 0, totalScanned: 0, topScannersMensual: [], topScannersHistorico: [] };
+            }
+        }
         
-        if (ui.authButton) ui.authButton.addEventListener('click', handleAuthClick);
+        if (ui.authButton) ui.authButton.addEventListener('click', () => window.location.href = "Login/login.html");
         if (ui.logoutButton) ui.logoutButton.addEventListener('click', () => auth.signOut());
 
         auth.onAuthStateChanged(async user => {
