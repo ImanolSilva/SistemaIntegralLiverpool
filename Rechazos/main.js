@@ -393,7 +393,7 @@ function renderRechazoItem(rechazo, i) {
     const commentTitle = hasComment ? 'Tiene comentarios' : 'Sin comentarios';
 
     const productoSlug = descripcionSku.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const liverpoolUrl = `https://www.liverpool.com.mx/tienda/pdp/${productoSlug}/${Sku}`;
+    const liverpoolUrl = `https://www.liverpool.com.mx/tienda/pdp/producto/${Sku}`;
 
     const createDetailRow = (icon, label, value) => `
         <div class="detail-row d-flex justify-content-between align-items-center py-2 px-1">
