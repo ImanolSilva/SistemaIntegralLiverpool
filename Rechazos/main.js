@@ -359,9 +359,10 @@ function updatePhotoPreview(rowIndex, url) {
             </div>`;
     } else {
         previewContainer.innerHTML = `
-            <div class="evidence-placeholder-gif" data-action="choose-photo" data-row-index="${rowIndex}" style="cursor: pointer;">
-                <img src="${getRandomNotFoundGif()}" alt="Sin evidencia" style="width: 150px; height: 150px; object-fit: cover; border-radius: 8px;">
-                <span class="mt-2 fw-bold text-muted">Agregar Evidencia</span>
+            <div class="evidence-placeholder" data-action="choose-photo" data-row-index="${rowIndex}" style="cursor: pointer; text-align: center; padding: 20px; border: 2px dashed #dee2e6; border-radius: 8px;">
+                <button class="btn btn-pill btn-pill-sm btn-primary">
+                    <i class="bi bi-camera-fill me-2"></i>Agregar Evidencia
+                </button>
             </div>`;
     }
 }
@@ -388,69 +389,112 @@ function renderRechazoItem(rechazo, i) {
     const usuarioName = user?.Nombre || usuarioRechazo;
     const hasComment = (rechazo.Comentarios || "").trim() !== "";
     
-    // Define la clase del ícono y el título según si hay o no un comentario
+    // Mejorado: Responsive, visualmente atractivo, accesible y con tooltips.
     const commentIconClass = hasComment ? 'bi-chat-left-text-fill text-primary' : 'bi-chat-left-text';
     const commentTitle = hasComment ? 'Tiene comentarios' : 'Sin comentarios';
 
-    const productoSlug = descripcionSku.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const liverpoolUrl = `https://www.liverpool.com.mx/tienda/pdp/producto/${Sku}`;
+    // Corrige la URL para buscar el SKU correctamente en Liverpool
+    let liverpoolUrl = "#";
+    if (/^\d{10,}$/.test(Sku)) {
+        liverpoolUrl = `https://www.liverpool.com.mx/tienda/pdp/producto/${Sku}`;
+    } else if (Sku && Sku.toString().trim() !== "") {
+        liverpoolUrl = `https://www.liverpool.com.mx/tienda/busca?busqueda=${encodeURIComponent(Sku)}`;
+    } else if (descripcionSku && descripcionSku !== "N/A") {
+        liverpoolUrl = `https://www.liverpool.com.mx/tienda/busca?busqueda=${encodeURIComponent(descripcionSku)}`;
+    }
 
+    // Botón de búsqueda en Google por SKU
+    let googleQuerySku = Sku && Sku.toString().trim() !== "" ? Sku : descripcionSku;
+    const googleUrlSku = `https://www.google.com/search?q=${encodeURIComponent(googleQuerySku)}`;
+
+    // Botón de búsqueda en Google por descripción
+    const googleUrlDesc = descripcionSku && descripcionSku !== "N/A"
+        ? `https://www.google.com/search?q=${encodeURIComponent(descripcionSku)}`
+        : "#";
+
+    // Responsive: iconos y etiquetas con tooltips y mejor contraste
     const createDetailRow = (icon, label, value) => `
-        <div class="detail-row d-flex justify-content-between align-items-center py-2 px-1">
-            <div class="d-flex align-items-center">
-                <i class="bi ${icon} text-muted me-3"></i>
-                <span class="text-muted">${label}</span>
+        <div class="detail-row d-flex justify-content-between align-items-center py-2 px-1 flex-wrap">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi ${icon} text-secondary me-2" title="${label}"></i>
+                <span class="text-muted small">${label}</span>
             </div>
-            <strong class="text-dark text-end">${value}</strong>
+            <strong class="text-dark text-end small">${value}</strong>
         </div>
     `;
 
     return `
-    <div class="accordion-item report-card" id="item-${_rowIndex}">
+    <div class="accordion-item report-card shadow-sm mb-3 rounded-4 border-0" id="item-${_rowIndex}">
         <h2 class="accordion-header" id="heading-${_rowIndex}">
-            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${_rowIndex}">
-                <div class="badge bg-dark rounded-pill">${Remisión}</div>
-                <div class="report-summary">
-                    <div class="sku-title" title="${descripcionSku}">${descripcionSku}</div>
-                    <div class="user-info"><i class="bi bi-person"></i> ${usuarioName}</div>
+            <button class="accordion-button collapsed px-2 py-2 d-flex flex-row align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${_rowIndex}" aria-expanded="false" aria-controls="collapse-${_rowIndex}">
+                <span class="badge bg-dark rounded-pill me-2" style="min-width:60px;">${Remisión}</span>
+                <div class="report-summary flex-grow-1 d-flex flex-column flex-md-row align-items-md-center gap-2">
+                    <span class="sku-title fw-semibold text-truncate" title="${descripcionSku}" style="max-width:180px;">${descripcionSku}</span>
+                    <span class="user-info text-muted small"><i class="bi bi-person"></i> ${usuarioName}</span>
                 </div>
-                <i class="bi ${commentIconClass} comment-indicator" title="${commentTitle}"></i>
+                <span class="ms-2">
+                    <i class="bi ${commentIconClass} comment-indicator fs-5" title="${commentTitle}" aria-label="${commentTitle}"></i>
+                </span>
             </button>
         </h2>
         <div id="collapse-${_rowIndex}" class="accordion-collapse collapse" data-bs-parent="#rechazosAccordion">
-            <div class="accordion-body">
-                <div class="row g-4">
-                    <div class="col-lg-7">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0 fw-bold">Detalles del Rechazo</h5>
-                            <a href="${liverpoolUrl}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill">
-                                <i class="bi bi-box-arrow-up-right"></i> Ver en liverpool.com.mx
-                            </a>
+            <div class="accordion-body px-2 py-3">
+                <div class="row g-3">
+                    <div class="col-12 col-lg-7">
+                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                            <h5 class="mb-0 fw-bold text-dark"><i class="bi bi-info-circle me-2"></i>Detalles del Rechazo</h5>
+                            <div class="d-flex gap-2">
+                                <a href="${liverpoolUrl}" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill d-flex align-items-center gap-1" title="Ver producto en Liverpool">
+                                    <i class="bi bi-box-arrow-up-right"></i> <span class="d-none d-md-inline">Ver en Liverpool</span>
+                                </a>
+                                <a href="${googleUrlSku}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1" title="Buscar en Google por SKU">
+                                    <i class="bi bi-google"></i> <span class="d-none d-md-inline">Google SKU</span>
+                                </a>
+                                <a href="${googleUrlDesc}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill d-flex align-items-center gap-1" title="Buscar en Google por descripción">
+                                    <i class="bi bi-google"></i> <span class="d-none d-md-inline">Google Descripción</span>
+                                </a>
+                            </div>
                         </div>
-                        
-                        <div class="details-list-container border rounded p-2">
+                        <div class="details-list-container border rounded-3 p-2 bg-light">
                             ${createDetailRow('bi-upc-scan', 'SKU', Sku)}
                             ${createDetailRow('bi-box-seam', 'Piezas', piezas)}
                             ${createDetailRow('bi-calendar-event', 'Fecha', fecha)}
                             ${createDetailRow('bi-tag-fill', 'Sección', Sección)}
                             ${createDetailRow('bi-person-workspace', 'Jefatura', jefatura)}
                         </div>
-                        
-                        <div class="mt-4">
-                            <label for="comentario-${_rowIndex}" class="form-label fw-bold"><i class="bi bi-chat-left-dots-fill"></i> Comentarios:</label>
-                            <textarea id="comentario-${_rowIndex}" rows="4" class="form-control comentario-input" data-row-index="${_rowIndex}" placeholder="Añade tus comentarios aquí...">${rechazo.Comentarios}</textarea>
+                        <div class="mt-3">
+                            <label for="comentario-${_rowIndex}" class="form-label fw-bold text-dark">
+                                <i class="bi bi-chat-left-dots-fill"></i> Comentarios:
+                            </label>
+                            <textarea id="comentario-${_rowIndex}" rows="3" class="form-control comentario-input rounded-3 shadow-sm" data-row-index="${_rowIndex}" placeholder="Añade tus comentarios aquí..." style="resize:vertical; min-height:60px;">${rechazo.Comentarios}</textarea>
                         </div>
                     </div>
-                    <div class="col-lg-5">
+                    <div class="col-12 col-lg-5">
                         <div class="evidence-section">
-                            <h6 class="mb-3"><i class="bi bi-camera-fill me-2"></i>Evidencia</h6>
-                            <div id="imgContainer-${Sku}-${i}" class="product-image-container mb-3"></div>
-                            <div id="evidencia-preview-${_rowIndex}" class="evidence-preview-container"></div>
+                            <h6 class="mb-2 fw-bold text-dark"><i class="bi bi-camera-fill me-2"></i>Evidencia</h6>
+                            <div id="imgContainer-${Sku}-${i}" class="product-image-container mb-2 w-100 d-flex justify-content-center"></div>
+                            <div id="evidencia-preview-${_rowIndex}" class="evidence-preview-container w-100"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>`;
+    </div>
+    <style>
+        @media (max-width: 767px) {
+            .accordion-button { font-size: 1rem; padding: 0.5rem 0.75rem; }
+            .sku-title { max-width: 120px !important; }
+            .details-list-container { font-size: 0.95rem; }
+            .evidence-section img, .evidence-placeholder-gif img { max-width: 100%; height: auto; }
+            .evidence-section { margin-top: 1rem; }
+        }
+        .report-card { background: #fff; }
+        .evidence-thumbnail-container img { border-radius: 8px; max-width: 100%; height: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.07);}
+        .evidence-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .evidence-placeholder-gif { text-align: center; }
+        .evidence-placeholder-gif img { border-radius: 8px; }
+        .comment-indicator { transition: color 0.2s, filter 0.2s; }
+    </style>
+    `;
 }
 // ===== SECCIÓN MODIFICADA (FIN) =====
