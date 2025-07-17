@@ -1466,8 +1466,9 @@ async function reconstructManifestDataFromFirebase(manifestoId) {
             // Deshabilitar botón para evitar dobles clics
             uploadFileBtn.disabled = true;
 
-            const folder = (currentUserStore === "ALL") ? "General" : currentUserStore;
-            const storageRef = storage.ref(`Manifiestos/${folder}/${file.name}`);
+// --- CÓDIGO CORREGIDO ---
+const folder = "0042"; // Carpeta fija para todos los usuarios
+const storageRef = storage.ref(`Manifiestos/${folder}/${file.name}`);
 
             try {
                 // PRIMERO: Verificamos si ya existe un archivo con ese nombre
@@ -1677,10 +1678,12 @@ async function reconstructManifestDataFromFirebase(manifestoId) {
     });
 
     try {
-        let query = db.collection('manifiestos');
-        if (currentUserStore !== 'ALL' && !SUPER_ADMINS.includes(currentUser.uid)) {
-            query = query.where('store', '==', currentUserStore);
-        }
+// --- CÓDIGO CORREGIDO ---
+let query = db.collection('manifiestos');
+// Permite que 'jefe' y 'admin' vean todos los archivos, los demás solo los de su tienda.
+if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
+    query = query.where('store', '==', currentUserStore);
+}
 
         const manifestosSnapshot = await query.orderBy('createdAt', 'desc').get();
 
@@ -1811,12 +1814,13 @@ async function reconstructManifestDataFromFirebase(manifestoId) {
     }
 }
 /**
- * --- VERSIÓN FINAL (PULIDA) ---
+ * --- VERSIÓN FINAL (PULIDA Y CORREGIDA) ---
  * Esta versión incorpora todos los ajustes de diseño y funcionalidad:
  * - Paleta de colores e iconografía de Liverpool.
  * - Tarjetas de sección compactas con contadores de piezas y barras de progreso mejoradas.
  * - Diseño de Ranking de Operadores mejorado.
  * - Funcionalidad de descarga de Excel completamente restaurada.
+ * - CORRECCIÓN: Se ajustó la creación de fechas para manejar correctamente las zonas horarias y asegurar que el rango sea inclusivo.
  */
 window.generarResumenSemanal = async function() {
     // Helper para obtener propiedades de un objeto sin importar mayúsculas/minúsculas
@@ -1898,10 +1902,16 @@ window.generarResumenSemanal = async function() {
             return;
         }
 
-        const startDate = new Date(startDateStr);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(endDateStr);
-        endDate.setHours(23, 59, 59, 999);
+        // --- INICIO DE LA CORRECCIÓN ---
+        // Se modifica la creación de fechas para evitar problemas con zonas horarias.
+        // El método new Date('YYYY-MM-DD') puede interpretarse como UTC, causando errores de un día.
+        // Al construir la fecha a partir de sus componentes, nos aseguramos de que se cree en la zona horaria local.
+        const [startY, startM, startD] = startDateStr.split('-').map(Number);
+        const startDate = new Date(startY, startM - 1, startD, 0, 0, 0, 0); // Mes es 0-indexado (0=Enero)
+
+        const [endY, endM, endD] = endDateStr.split('-').map(Number);
+        const endDate = new Date(endY, endM - 1, endD, 23, 59, 59, 999);
+        // --- FIN DE LA CORRECCIÓN ---
 
         let query = db.collection('manifiestos').where('createdAt', '>=', startDate).where('createdAt', '<=', endDate);
         if (currentUserStore !== 'ALL' && !SUPER_ADMINS.includes(currentUser.uid)) {
@@ -2010,119 +2020,331 @@ window.generarResumenSemanal = async function() {
 
         const avanceGeneral = report.totalSAP > 0 ? (report.totalSCAN / report.totalSAP) * 100 : 0;
         const totalFaltantes = report.totalSAP > report.totalSCAN ? report.totalSAP - report.totalSCAN : 0;
-const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) => acc + seccion.excedentes, 0);        const topScanners = Object.entries(report.usuarios).sort((a, b) => b[1].scans - a[1].scans);
+        const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) => acc + seccion.excedentes, 0);
+        const topScanners = Object.entries(report.usuarios).sort((a, b) => b[1].scans - a[1].scans);
         const jefaturasUnicas = [...new Set(Object.values(report.secciones).map(s => s.jefatura))].filter(j => j !== 'Sin Asignar').sort();
 
- const descargarResumenExcel = () => {
-    // --- ESTILOS PROFESIONALES ---
-    const headerStyle = {
-        font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-        fill: { fgColor: { rgb: "414141" } }, // Gris oscuro Liverpool
-        alignment: { horizontal: "center", vertical: "center" },
-        border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }
-    };
-    const titleStyle = { font: { sz: 18, bold: true, color: { rgb: "E10098" } } }; // Rosa Liverpool
-    const kpiTitleStyle = { font: { sz: 12, bold: true, color: { rgb: "414141" } } };
-    const cellStyle = {
-        border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }
-    };
-    const redTextStyle = { font: { color: { rgb: "E10098" } }, ...cellStyle };
-    const greenTextStyle = { font: { color: { rgb: "95C11F" } }, ...cellStyle };
-    const orangeTextStyle = { font: { color: { rgb: "f0ad4e" } }, ...cellStyle };
+        const descargarResumenExcel = () => {
+            // --- ESTILOS PROFESIONALES ---
+            const headerStyle = {
+                font: {
+                    bold: true,
+                    color: {
+                        rgb: "FFFFFF"
+                    },
+                    sz: 11
+                },
+                fill: {
+                    fgColor: {
+                        rgb: "414141"
+                    }
+                }, // Gris oscuro Liverpool
+                alignment: {
+                    horizontal: "center",
+                    vertical: "center"
+                },
+                border: {
+                    top: {
+                        style: "thin"
+                    },
+                    bottom: {
+                        style: "thin"
+                    },
+                    left: {
+                        style: "thin"
+                    },
+                    right: {
+                        style: "thin"
+                    }
+                }
+            };
+            const titleStyle = {
+                font: {
+                    sz: 18,
+                    bold: true,
+                    color: {
+                        rgb: "E10098"
+                    }
+                }
+            }; // Rosa Liverpool
+            const kpiTitleStyle = {
+                font: {
+                    sz: 12,
+                    bold: true,
+                    color: {
+                        rgb: "414141"
+                    }
+                }
+            };
+            const cellStyle = {
+                border: {
+                    top: {
+                        style: "thin"
+                    },
+                    bottom: {
+                        style: "thin"
+                    },
+                    left: {
+                        style: "thin"
+                    },
+                    right: {
+                        style: "thin"
+                    }
+                }
+            };
+            const redTextStyle = {
+                font: {
+                    color: {
+                        rgb: "E10098"
+                    }
+                },
+                ...cellStyle
+            };
+            const greenTextStyle = {
+                font: {
+                    color: {
+                        rgb: "95C11F"
+                    }
+                },
+                ...cellStyle
+            };
+            const orangeTextStyle = {
+                font: {
+                    color: {
+                        rgb: "f0ad4e"
+                    }
+                },
+                ...cellStyle
+            };
 
-    const wb = XLSX.utils.book_new();
+            const wb = XLSX.utils.book_new();
 
-    // --- HOJA 1: RESUMEN EJECUTIVO ---
-    const wsResumenData = [
-        ["Reporte de Inteligencia Semanal"], [null],
-        ["Periodo Analizado:", `${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}`], [null],
-        ["Métricas Clave"],
-        ["Manifiestos Procesados", report.manifestos.length],
-        ["Avance General de Escaneo", { v: avanceGeneral / 100, t: 'n', z: '0.00%' }],
-        ["Piezas Totales (SAP)", report.totalSAP],
-        ["Piezas Totales Escaneadas", report.totalSCAN],
-        ["Piezas Faltantes", { v: totalFaltantes, s: redTextStyle }],
-        ["Piezas Excedentes", { v: totalExcedentes, s: orangeTextStyle }],
-    ];
-    const wsResumen = XLSX.utils.aoa_to_sheet(wsResumenData);
-    wsResumen["A1"].s = titleStyle;
-    wsResumen["A5"].s = kpiTitleStyle;
-    wsResumen["A6"].s = wsResumen["A7"].s = wsResumen["A8"].s = wsResumen["A9"].s = wsResumen["A10"].s = wsResumen["A11"].s = cellStyle;
-    wsResumen["B6"].s = wsResumen["B7"].s = wsResumen["B8"].s = wsResumen["B9"].s = cellStyle;
-    wsResumen['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
-    wsResumen['!cols'] = [{ wch: 30 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen Ejecutivo");
+            // --- HOJA 1: RESUMEN EJECUTIVO ---
+            const wsResumenData = [
+                ["Reporte de Inteligencia Semanal"],
+                [null],
+                ["Periodo Analizado:", `${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}`],
+                [null],
+                ["Métricas Clave"],
+                ["Manifiestos Procesados", report.manifestos.length],
+                ["Avance General de Escaneo", {
+                    v: avanceGeneral / 100,
+                    t: 'n',
+                    z: '0.00%'
+                }],
+                ["Piezas Totales (SAP)", report.totalSAP],
+                ["Piezas Totales Escaneadas", report.totalSCAN],
+                ["Piezas Faltantes", {
+                    v: totalFaltantes,
+                    s: redTextStyle
+                }],
+                ["Piezas Excedentes", {
+                    v: totalExcedentes,
+                    s: orangeTextStyle
+                }],
+            ];
+            const wsResumen = XLSX.utils.aoa_to_sheet(wsResumenData);
+            wsResumen["A1"].s = titleStyle;
+            wsResumen["A5"].s = kpiTitleStyle;
+            wsResumen["A6"].s = wsResumen["A7"].s = wsResumen["A8"].s = wsResumen["A9"].s = wsResumen["A10"].s = wsResumen["A11"].s = cellStyle;
+            wsResumen["B6"].s = wsResumen["B7"].s = wsResumen["B8"].s = wsResumen["B9"].s = cellStyle;
+            wsResumen['!merges'] = [{
+                s: {
+                    r: 0,
+                    c: 0
+                },
+                e: {
+                    r: 0,
+                    c: 2
+                }
+            }];
+            wsResumen['!cols'] = [{
+                wch: 30
+            }, {
+                wch: 20
+            }];
+            XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen Ejecutivo");
 
 
-    // --- HOJA 2: ANÁLISIS POR SECCIÓN ---
-    const wsSeccionesData = [["Sección", "Jefatura", "SKUs Únicos", "Pzs. SAP", "Pzs. Escaneadas", "Faltantes", "Excedentes", "Avance"]];
-    const sortedSecciones = Object.entries(report.secciones).sort((a,b) => (b[1].sap - b[1].scan) - (a[1].sap - a[1].scan));
-    
-    sortedSecciones.forEach(([nombre, data]) => {
-        const avance = data.sap > 0 ? data.scan / data.sap : 1;
-        const avanceCell = { v: avance, t: 'n', z: '0.00%' };
-        
-        // Formato condicional de color
-        if (avance < 0.5) avanceCell.s = { font: { color: { rgb: "E10098" } }, ...cellStyle };
-        else if (avance < 0.9) avanceCell.s = { font: { color: { rgb: "f0ad4e" } }, ...cellStyle };
-        else avanceCell.s = { font: { color: { rgb: "95C11F" } }, ...cellStyle };
+            // --- HOJA 2: ANÁLISIS POR SECCIÓN ---
+            const wsSeccionesData = [
+                ["Sección", "Jefatura", "SKUs Únicos", "Pzs. SAP", "Pzs. Escaneadas", "Faltantes", "Excedentes", "Avance"]
+            ];
+            const sortedSecciones = Object.entries(report.secciones).sort((a, b) => (b[1].sap - b[1].scan) - (a[1].sap - a[1].scan));
 
-        wsSeccionesData.push([
-            {v: nombre, s: cellStyle},
-            {v: data.jefatura, s: cellStyle},
-            {v: data.skus, s: cellStyle},
-            {v: data.sap, s: cellStyle},
-            {v: data.scan, s: cellStyle},
-            {v: data.faltantes, s: data.faltantes > 0 ? redTextStyle : cellStyle},
-            {v: data.excedentes, s: data.excedentes > 0 ? orangeTextStyle : cellStyle},
-            avanceCell
-        ]);
-    });
-    const wsSecciones = XLSX.utils.aoa_to_sheet(wsSeccionesData, { cellStyles: true });
-    wsSecciones['!cols'] = [{wch: 18}, {wch: 25}, {wch: 12}, {wch: 12}, {wch: 15}, {wch: 12}, {wch: 12}, {wch: 12}];
-    // Aplicar estilo de encabezado a la primera fila
-    Object.keys(wsSecciones).forEach(cell => {
-        if(cell.match(/^[A-Z]1$/)) {
-            wsSecciones[cell].s = headerStyle;
-        }
-    });
-    XLSX.utils.book_append_sheet(wb, wsSecciones, "Análisis por Sección");
-    
+            sortedSecciones.forEach(([nombre, data]) => {
+                const avance = data.sap > 0 ? data.scan / data.sap : 1;
+                const avanceCell = {
+                    v: avance,
+                    t: 'n',
+                    z: '0.00%'
+                };
 
-    // --- HOJA 3: RANKING DE OPERADORES ---
-    const wsUsuariosData = [["Ranking", "Operador", "Escaneos Totales", "Manifiestos Trabajados"]];
-    topScanners.forEach(([email, data], index) => {
-        wsUsuariosData.push([
-            {v: index + 1, s: cellStyle},
-            {v: email, s: cellStyle},
-            {v: data.scans, s: cellStyle},
-            {v: data.manifests.size, s: cellStyle}
-        ]);
-    });
-    const wsUsuarios = XLSX.utils.aoa_to_sheet(wsUsuariosData);
-    wsUsuarios["A1"].s = wsUsuarios["B1"].s = wsUsuarios["C1"].s = wsUsuarios["D1"].s = headerStyle;
-    wsUsuarios['!cols'] = [{wch: 10}, {wch: 35}, {wch: 18}, {wch: 22}];
-    XLSX.utils.book_append_sheet(wb, wsUsuarios, "Ranking Operadores");
-    
+                // Formato condicional de color
+                if (avance < 0.5) avanceCell.s = {
+                    font: {
+                        color: {
+                            rgb: "E10098"
+                        }
+                    },
+                    ...cellStyle
+                };
+                else if (avance < 0.9) avanceCell.s = {
+                    font: {
+                        color: {
+                            rgb: "f0ad4e"
+                        }
+                    },
+                    ...cellStyle
+                };
+                else avanceCell.s = {
+                    font: {
+                        color: {
+                            rgb: "95C11F"
+                        }
+                    },
+                    ...cellStyle
+                };
 
-    // --- HOJA 4: EVIDENCIA (NO ESCANEADOS) ---
-    const wsEvidenciaData = [["SKU", "Descripción", "Piezas Faltantes (SAP)", "Manifiesto"]];
-     report.skusSinEscanear.forEach(item => {
-        wsEvidenciaData.push([
-            {v: item.sku, s: cellStyle},
-            {v: item.desc, s: cellStyle},
-            {v: item.sap, s: redTextStyle},
-            {v: item.manifiesto.id, s: cellStyle}
-        ]);
-    });
-    const wsEvidencia = XLSX.utils.aoa_to_sheet(wsEvidenciaData);
-    wsEvidencia["A1"].s = wsEvidencia["B1"].s = wsEvidencia["C1"].s = wsEvidencia["D1"].s = headerStyle;
-    wsEvidencia['!cols'] = [{wch: 18}, {wch: 45}, {wch: 25}, {wch: 40}];
-    XLSX.utils.book_append_sheet(wb, wsEvidencia, "Evidencia (No Escaneados)");
+                wsSeccionesData.push([
+                    {
+                        v: nombre,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.jefatura,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.skus,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.sap,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.scan,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.faltantes,
+                        s: data.faltantes > 0 ? redTextStyle : cellStyle
+                    },
+                    {
+                        v: data.excedentes,
+                        s: data.excedentes > 0 ? orangeTextStyle : cellStyle
+                    },
+                    avanceCell
+                ]);
+            });
+            const wsSecciones = XLSX.utils.aoa_to_sheet(wsSeccionesData, {
+                cellStyles: true
+            });
+            wsSecciones['!cols'] = [{
+                wch: 18
+            }, {
+                wch: 25
+            }, {
+                wch: 12
+            }, {
+                wch: 12
+            }, {
+                wch: 15
+            }, {
+                wch: 12
+            }, {
+                wch: 12
+            }, {
+                wch: 12
+            }];
+            // Aplicar estilo de encabezado a la primera fila
+            Object.keys(wsSecciones).forEach(cell => {
+                if (cell.match(/^[A-Z]1$/)) {
+                    wsSecciones[cell].s = headerStyle;
+                }
+            });
+            XLSX.utils.book_append_sheet(wb, wsSecciones, "Análisis por Sección");
 
-    // --- Descarga del archivo ---
-    XLSX.writeFile(wb, `Reporte_Inteligencia_Semanal_${startDateStr}_a_${endDateStr}.xlsx`);
-};
+
+            // --- HOJA 3: RANKING DE OPERADORES ---
+            const wsUsuariosData = [
+                ["Ranking", "Operador", "Escaneos Totales", "Manifiestos Trabajados"]
+            ];
+            topScanners.forEach(([email, data], index) => {
+                wsUsuariosData.push([
+                    {
+                        v: index + 1,
+                        s: cellStyle
+                    },
+                    {
+                        v: email,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.scans,
+                        s: cellStyle
+                    },
+                    {
+                        v: data.manifests.size,
+                        s: cellStyle
+                    }
+                ]);
+            });
+            const wsUsuarios = XLSX.utils.aoa_to_sheet(wsUsuariosData);
+            wsUsuarios["A1"].s = wsUsuarios["B1"].s = wsUsuarios["C1"].s = wsUsuarios["D1"].s = headerStyle;
+            wsUsuarios['!cols'] = [{
+                wch: 10
+            }, {
+                wch: 35
+            }, {
+                wch: 18
+            }, {
+                wch: 22
+            }];
+            XLSX.utils.book_append_sheet(wb, wsUsuarios, "Ranking Operadores");
+
+
+            // --- HOJA 4: EVIDENCIA (NO ESCANEADOS) ---
+            const wsEvidenciaData = [
+                ["SKU", "Descripción", "Piezas Faltantes (SAP)", "Manifiesto"]
+            ];
+            report.skusSinEscanear.forEach(item => {
+                wsEvidenciaData.push([
+                    {
+                        v: item.sku,
+                        s: cellStyle
+                    },
+                    {
+                        v: item.desc,
+                        s: cellStyle
+                    },
+                    {
+                        v: item.sap,
+                        s: redTextStyle
+                    },
+                    {
+                        v: item.manifiesto.id,
+                        s: cellStyle
+                    }
+                ]);
+            });
+            const wsEvidencia = XLSX.utils.aoa_to_sheet(wsEvidenciaData);
+            wsEvidencia["A1"].s = wsEvidencia["B1"].s = wsEvidencia["C1"].s = wsEvidencia["D1"].s = headerStyle;
+            wsEvidencia['!cols'] = [{
+                wch: 18
+            }, {
+                wch: 45
+            }, {
+                wch: 25
+            }, {
+                wch: 40
+            }];
+            XLSX.utils.book_append_sheet(wb, wsEvidencia, "Evidencia (No Escaneados)");
+
+            // --- Descarga del archivo ---
+            XLSX.writeFile(wb, `Reporte_Inteligencia_Semanal_${startDateStr}_a_${endDateStr}.xlsx`);
+        };
 
         const mainHTML = `
             <style>
@@ -2204,20 +2426,20 @@ const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) =>
                 </div>
                 <div class="epic-content">
                     <div id="dashboard" class="epic-tab-pane active">
-                         <h4><i class="bi bi-speedometer2"></i>Resumen General</h4>
-                         <div class="row g-4 mb-5">
-                            <div class="col-lg-7">
-                                <div class="row g-3">
-                                    <div class="col-6"><div class="stat-card-main sap"><i class="bi bi-box-seam icon"></i><div class="value">${report.totalSAP.toLocaleString('es-MX')}</div><div class="label">Piezas SAP</div></div></div>
-                                    <div class="col-6"><div class="stat-card-main scan"><i class="bi bi-check-circle-fill icon"></i><div class="value">${report.totalSCAN.toLocaleString('es-MX')}</div><div class="label">Escaneadas</div></div></div>
-                                    <div class="col-6"><div class="stat-card-main missing"><i class="bi bi-exclamation-triangle-fill icon"></i><div class="value">${totalFaltantes.toLocaleString('es-MX')}</div><div class="label">Faltantes</div></div></div>
-                                    <div class="col-6"><div class="stat-card-main excess"><i class="bi bi-plus-circle-dotted icon"></i><div class="value">${totalExcedentes.toLocaleString('es-MX')}</div><div class="label">Excedentes</div></div></div>
+                            <h4><i class="bi bi-speedometer2"></i>Resumen General</h4>
+                            <div class="row g-4 mb-5">
+                                <div class="col-lg-7">
+                                    <div class="row g-3">
+                                        <div class="col-6"><div class="stat-card-main sap"><i class="bi bi-box-seam icon"></i><div class="value">${report.totalSAP.toLocaleString('es-MX')}</div><div class="label">Piezas SAP</div></div></div>
+                                        <div class="col-6"><div class="stat-card-main scan"><i class="bi bi-check-circle-fill icon"></i><div class="value">${report.totalSCAN.toLocaleString('es-MX')}</div><div class="label">Escaneadas</div></div></div>
+                                        <div class="col-6"><div class="stat-card-main missing"><i class="bi bi-exclamation-triangle-fill icon"></i><div class="value">${totalFaltantes.toLocaleString('es-MX')}</div><div class="label">Faltantes</div></div></div>
+                                        <div class="col-6"><div class="stat-card-main excess"><i class="bi bi-plus-circle-dotted icon"></i><div class="value">${totalExcedentes.toLocaleString('es-MX')}</div><div class="label">Excedentes</div></div></div>
+                                    </div>
                                 </div>
+                                <div class="col-lg-5 d-flex align-items-center justify-content-center"><canvas id="gaugeChart"></canvas></div>
                             </div>
-                            <div class="col-lg-5 d-flex align-items-center justify-content-center"><canvas id="gaugeChart"></canvas></div>
-                        </div>
-                         <h4><i class="bi bi-archive-fill me-2"></i>Manifiestos Incluidos</h4>
-                         <ul class="list-group list-group-flush">${report.manifestos.map(m => `<li class="list-group-item d-flex justify-content-between align-items-center"><i class="bi bi-file-earmark-text me-2" style="color:var(--liverpool-pink);"></i><div><strong>${m.id}</strong> <br><span class="text-muted small">N° Manif: ${m.numero}</span></div></li>`).join('')}</ul>
+                            <h4><i class="bi bi-archive-fill me-2"></i>Manifiestos Incluidos</h4>
+                            <ul class="list-group list-group-flush">${report.manifestos.map(m => `<li class="list-group-item d-flex justify-content-between align-items-center"><i class="bi bi-file-earmark-text me-2" style="color:var(--liverpool-pink);"></i><div><strong>${m.id}</strong> <br><span class="text-muted small">N° Manif: ${m.numero}</span></div></li>`).join('')}</ul>
                     </div>
                     <div id="jefaturas" class="epic-tab-pane">
                         <h4><i class="bi bi-person-badge-fill me-2"></i>Rendimiento por Jefatura</h4>
@@ -2242,7 +2464,7 @@ const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) =>
                                 </div>`).join('') : '<p class="text-muted text-center mt-4">No hay datos de rendimiento de usuarios.</p>'}
                         </div>
                     </div>
-                     <div id="evidencia" class="epic-tab-pane">
+                    <div id="evidencia" class="epic-tab-pane">
                         <h4 style="color: var(--liverpool-pink);"><i class="bi bi-exclamation-diamond-fill me-2"></i>Artículos con Cero Escaneos</h4>
                         <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;"><ul class="list-group list-group-flush">${report.skusSinEscanear.length > 0 ? report.skusSinEscanear.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center"><div><strong style="color:var(--liverpool-dark);">${item.sku}</strong> - ${item.desc}<br><small class="text-muted">Manifiesto: ${item.manifiesto.id}</small></div><span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${item.sap} pz.</span></li>`).join('') : '<li class="list-group-item text-center text-success fs-5 p-4">¡Felicidades! Todos los artículos fueron escaneados.</li>'}</ul></div>
                     </div>
@@ -2303,7 +2525,7 @@ const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) =>
 
                     grid.innerHTML = jefesOrdenados.map(([nombreJefe, data]) => {
                         const chartId = `chart-jefe-${nombreJefe.replace(/[^a-zA-Z0-9]/g, '')}`;
-                        const seccionesHTML = data.secciones.sort((a,b)=>b.avance-a.avance).map(s => `
+                        const seccionesHTML = data.secciones.sort((a, b) => b.avance - a.avance).map(s => `
                             <li>
                                 <span class="section-name">${s.nombre}</span>
                                 <span class="badge rounded-pill" style="background-color: ${s.avance < 50 ? 'var(--liverpool-pink)' : s.avance < 90 ? '#f0ad4e' : 'var(--liverpool-green)'}; min-width: 50px;">${s.avance.toFixed(0)}%</span>
@@ -2331,14 +2553,40 @@ const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) =>
                                 const colorAvance = avance < 50 ? 'var(--liverpool-pink)' : avance < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
                                 new Chart(doughnutCtx, {
                                     type: 'doughnut',
-                                    data: { datasets: [{ data: [avance, 100 - avance], backgroundColor: [colorAvance, '#f1f3f5'], borderWidth: 0, cutout: '75%' }] },
-                                    options: { responsive: true, plugins: { legend: { display: false }, tooltip: { enabled: false }}},
+                                    data: {
+                                        datasets: [{
+                                            data: [avance, 100 - avance],
+                                            backgroundColor: [colorAvance, '#f1f3f5'],
+                                            borderWidth: 0,
+                                            cutout: '75%'
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        plugins: {
+                                            legend: {
+                                                display: false
+                                            },
+                                            tooltip: {
+                                                enabled: false
+                                            }
+                                        }
+                                    },
                                     plugins: [{
                                         id: `gaugeText-jefe-${nombreJefe}`,
                                         beforeDraw: chart => {
-                                            const { ctx, width, height } = chart; ctx.restore();
-                                            ctx.font = `700 ${ (height / 4).toFixed(0) }px Poppins`; ctx.fillStyle = colorAvance; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                                            ctx.fillText(`${avance.toFixed(0)}%`, width / 2, height / 2); ctx.save();
+                                            const {
+                                                ctx,
+                                                width,
+                                                height
+                                            } = chart;
+                                            ctx.restore();
+                                            ctx.font = `700 ${ (height / 4).toFixed(0) }px Poppins`;
+                                            ctx.fillStyle = colorAvance;
+                                            ctx.textAlign = 'center';
+                                            ctx.textBaseline = 'middle';
+                                            ctx.fillText(`${avance.toFixed(0)}%`, width / 2, height / 2);
+                                            ctx.save();
                                         }
                                     }]
                                 });
@@ -2350,19 +2598,19 @@ const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) =>
                 const renderSecciones = (filtroJefe = 'Todos') => {
                     const grid = document.getElementById('secciones-grid-container');
                     if (!grid) return;
-                    
+
                     const seccionesFiltradas = Object.entries(report.secciones)
                         .filter(([_, data]) => filtroJefe === 'Todos' || data.jefatura === filtroJefe);
-                    
+
                     if (seccionesFiltradas.length === 0) {
                         grid.innerHTML = '<div class="col-12"><p class="text-center text-muted mt-4">No hay secciones que coincidan con el filtro.</p></div>';
                         return;
                     }
-                    
+
                     grid.innerHTML = seccionesFiltradas.sort((a, b) => b[1].sap - a[1].sap).map(([nombre, data]) => {
                         const avance = data.sap > 0 ? (data.scan / data.sap * 100) : 100;
                         const progressColorClass = avance < 50 ? 'progress-pink' : avance < 90 ? 'progress-yellow' : 'progress-green';
-                        
+
                         return `<div class="col">
                             <div class="section-card-compact">
                                 <div class="section-name" title="${data.descripcion}">${nombre}</div>
@@ -2382,13 +2630,45 @@ const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) =>
 
                 new Chart(document.getElementById('gaugeChart'), {
                     type: 'doughnut',
-                    data: { datasets: [{ data: [avanceGeneral, 100 - avanceGeneral], backgroundColor: ['var(--liverpool-pink)', '#e9ecef'], borderWidth: 0, circumference: 180, rotation: 270 }] },
-                    options: { responsive: true, aspectRatio: 2, cutout: '80%', plugins: { legend: { display: false }, tooltip: { enabled: false } } },
-                    plugins: [{ id: 'gaugeText-main', beforeDraw: chart => {
-                        const { ctx, width, height } = chart; ctx.restore();
-                        ctx.font = `800 ${ (height / 6).toFixed(0) }px Poppins`; ctx.fillStyle = 'var(--liverpool-pink)'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        ctx.fillText(`${avanceGeneral.toFixed(1)}%`, width / 2, height - (height * 0.1)); ctx.save();
-                    }}]
+                    data: {
+                        datasets: [{
+                            data: [avanceGeneral, 100 - avanceGeneral],
+                            backgroundColor: ['var(--liverpool-pink)', '#e9ecef'],
+                            borderWidth: 0,
+                            circumference: 180,
+                            rotation: 270
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        aspectRatio: 2,
+                        cutout: '80%',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            }
+                        }
+                    },
+                    plugins: [{
+                        id: 'gaugeText-main',
+                        beforeDraw: chart => {
+                            const {
+                                ctx,
+                                width,
+                                height
+                            } = chart;
+                            ctx.restore();
+                            ctx.font = `800 ${ (height / 6).toFixed(0) }px Poppins`;
+                            ctx.fillStyle = 'var(--liverpool-pink)';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${avanceGeneral.toFixed(1)}%`, width / 2, height - (height * 0.1));
+                            ctx.save();
+                        }
+                    }]
                 });
             }
         });
