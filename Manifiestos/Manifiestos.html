@@ -12,6 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <style>
         :root {
@@ -1080,14 +1081,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.full.min.js"></script>
-        <script src="../libs/vfs_fonts.js"></script>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="../libs/vfs_fonts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/xlsx-js-style/dist/xlsx.bundle.js"></script>
 
     <script>
         (function() {
@@ -2678,84 +2683,82 @@ window.generarResumenSemanal = async function() {
     }
 }
  function renderItems(file, isDestacado) {
-                    const p = file.progreso;
-                    const ultimaModificacion = formatFecha(file.createdAt);
-                    const diasDesdeSubida = Math.floor((new Date() - file.createdAt) / (1000 * 60 * 60 * 24));
+    const p = file.progreso;
+    const ultimaModificacion = formatFecha(file.createdAt);
+    const diasDesdeSubida = Math.floor((new Date() - file.createdAt) / (1000 * 60 * 60 * 24));
 
-                    let estadoInfo;
-                    if (p.avance >= 100) {
-                        estadoInfo = (p.totalSCAN > p.totalSAP) ? { texto: 'Con Sobrantes', clase: 'con-sobrantes' } : { texto: 'Completo', clase: 'completo' };
-                    } else if (p.avance >= 50) {
-                        estadoInfo = { texto: 'Avanzado', clase: 'avanzado' };
-                    } else if (p.avance > 0) {
-                        estadoInfo = { texto: 'En Progreso', clase: 'en-progreso' };
-                    } else {
-                        estadoInfo = { texto: 'Sin Iniciar', clase: 'sin-iniciar' };
-                    }
+    let estadoInfo;
+    if (p.avance >= 100) {
+        estadoInfo = (p.totalSCAN > p.totalSAP) ? { texto: 'Con Sobrantes', clase: 'con-sobrantes' } : { texto: 'Completo', clase: 'completo' };
+    } else if (p.avance >= 50) {
+        estadoInfo = { texto: 'Avanzado', clase: 'avanzado' };
+    } else if (p.avance > 0) {
+        estadoInfo = { texto: 'En Progreso', clase: 'en-progreso' };
+    } else {
+        estadoInfo = { texto: 'Sin Iniciar', clase: 'sin-iniciar' };
+    }
 
-                    const isOld = diasDesdeSubida > 5;
-                    const actionButtons = [];
+    const isOld = diasDesdeSubida > 5;
+    const actionButtons = [];
 
-                    // Usaremos Bootstrap Icons para mejor calidad y claridad.
-                    if (permissions.canScan) {
-                        actionButtons.push(`<button class="btn btn-sm btn-primary" onclick="verDashboardArchivo('${file.folder}','${file.name}')" title="Ver análisis detallado" aria-label="Ver análisis detallado para ${file.name}">
-                            <i class="bi bi-bar-chart-line-fill fs-5"></i>
-                        </button>`);
-                    }
+    if (permissions.canScan) {
+        actionButtons.push(`<button class="btn btn-sm btn-primary" onclick="verDashboardArchivo('${file.folder}','${file.name}')" title="Ver análisis detallado y abrir contenedor" aria-label="Abrir ${file.name}">
+            <i class="bi bi-box-arrow-in-right fs-5"></i>
+        </button>`);
+    }
 
-                    if (permissions.canGenerateReport) {
-                        actionButtons.push(`<button class="btn btn-sm btn-success text-white" onclick="window.downloadFile('${file.folder}','${file.name}')" title="Descargar reporte en Excel" aria-label="Descargar ${file.name} como Excel">
-                            <i class="bi bi-file-earmark-excel-fill fs-5"></i>
-                        </button>`);
-                        
-                        actionButtons.push(`<button class="btn btn-sm btn-danger" onclick="window.generatePdfReport('${file.folder}','${file.name}')" title="Generar reporte PDF" aria-label="Generar PDF para ${file.name}">
-                            <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
-                        </button>`);
-                    }
+    if (permissions.canGenerateReport) {
+        // ✅ Este es el botón que ejecuta toda la nueva lógica
+actionButtons.push(`<button class="btn btn-sm btn-success text-white" onclick="window.generarReportesYCorreo('${file.folder}','${file.name}')" title="Generar reportes (Excel, PDF, Captura) y enviar por correo" aria-label="Generar reportes y correo para ${file.name}">            <i class="bi bi-file-earmarked-excel-fill fs-5"></i>
+        </button>`);
+        
+        actionButtons.push(`<button class="btn btn-sm btn-danger" onclick="window.generatePdfReport('${file.folder}','${file.name}')" title="Generar reporte PDF" aria-label="Generar PDF para ${file.name}">
+            <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+        </button>`);
+    }
 
-                    if (permissions.canArchive) {
-                        actionButtons.push(`<button class="btn btn-sm btn-secondary" onclick="window.archivarManifiesto('${file.name}', '${file.folder}')" title="Archivar este manifiesto" aria-label="Archivar manifiesto ${file.name}">
-                            <i class="bi bi-archive-fill fs-5"></i>
-                        </button>`);
-                    }
+    if (permissions.canArchive) {
+        actionButtons.push(`<button class="btn btn-sm btn-secondary" onclick="window.archivarManifiesto('${file.name}', '${file.folder}')" title="Archivar este manifiesto" aria-label="Archivar manifiesto ${file.name}">
+            <i class="bi bi-archive-fill fs-5"></i>
+        </button>`);
+    }
 
-                    let statusClass = isOld ? 'is-archivable' : `status-${estadoInfo.clase}`;
+    let statusClass = isOld ? 'is-archivable' : `status-${estadoInfo.clase}`;
 
-
-                    return `
-                        <div class="manifest-card-pro ${statusClass}">
-                            ${isDestacado ? `<div class="badge-destacado"><i class="bi bi-fire"></i> Destacado</div>` : ''}
-                            ${isOld ? `<div class="archivable-notice">ACCIÓN REQUERIDA (Subido hace ${diasDesdeSubida} días)</div>` : ''}
-                            <div class="card-header">
-                                <div class="file-name">${file.name}</div>
-                                <div class="file-store">Tienda: <strong>${file.folder}</strong> | Subido: ${ultimaModificacion}</div>
-                            </div>
-                            <div class="card-body">
-                                <div class="progress-preview">
-                                    <div class="progress-title">
-                                        <span>Progreso de Escaneo</span>
-                                        <span>${p.avance}%</span>
-                                    </div>
-                                    <div class="progress-bar-container">
-                                        <div class="progress-bar-fill" style="width: ${p.avance}%;"></div>
-                                    </div>
-                                </div>
-                                <div class="card-stats">
-                                    <div>
-                                        <div class="stat-value">${p.totalSCAN.toLocaleString()} / ${p.totalSAP.toLocaleString()}</div>
-                                        <div class="stat-label">Escaneado vs. SAP</div>
-                                    </div>
-                                    <div>
-                                        <span class="status-tag ${estadoInfo.clase}">${estadoInfo.texto}</span>
-                                        <div class="stat-label">Estado</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                ${actionButtons}
-                            </div>
-                        </div>`;
-                }
+    return `
+        <div class="manifest-card-pro ${statusClass}">
+            ${isDestacado ? `<div class="badge-destacado"><i class="bi bi-fire"></i> Destacado</div>` : ''}
+            ${isOld ? `<div class="archivable-notice">ACCIÓN REQUERIDA (Subido hace ${diasDesdeSubida} días)</div>` : ''}
+            <div class="card-header">
+                <div class="file-name">${file.name}</div>
+                <div class="file-store">Tienda: <strong>${file.folder}</strong> | Subido: ${ultimaModificacion}</div>
+            </div>
+            <div class="card-body">
+                <div class="progress-preview">
+                    <div class="progress-title">
+                        <span>Progreso de Escaneo</span>
+                        <span>${p.avance}%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: ${p.avance}%;"></div>
+                    </div>
+                </div>
+                <div class="card-stats">
+                    <div>
+                        <div class="stat-value">${p.totalSCAN.toLocaleString()} / ${p.totalSAP.toLocaleString()}</div>
+                        <div class="stat-label">Escaneado vs. SAP</div>
+                    </div>
+                    <div>
+                        <span class="status-tag ${estadoInfo.clase}">${estadoInfo.texto}</span>
+                        <div class="stat-label">Estado</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                ${actionButtons.join('')}
+            </div>
+        </div>`;
+}
 
                 window.archivarManifiesto = async (fileName, folder) => {
                     const {
@@ -2798,492 +2801,204 @@ window.generarResumenSemanal = async function() {
                     }
                 };
 
-                window.verDashboardArchivo = async (folder, fileName) => {
-                    try {
-                        await reconstructManifestDataFromFirebase(fileName);
-                        const datos = excelDataGlobal[fileName].data;
+window.verDashboardArchivo = async (folder, fileName) => {
+    try {
+        await reconstructManifestDataFromFirebase(fileName);
+        const datos = excelDataGlobal[fileName].data;
+        const stats = calculateProStatistics(datos);
 
-                        const stats = calculateProStatistics(datos);
+        const statColors = {
+            total: { bg: 'linear-gradient(135deg, #E6007E 0%, #fff 100%)', icon: 'apps', color: '#E6007E' },
+            expected: { bg: 'linear-gradient(135deg, #6f42c1 0%, #fff 100%)', icon: 'inventory', color: '#6f42c1' },
+            scanned: { bg: 'linear-gradient(135deg, #198754 0%, #fff 100%)', icon: 'task_alt', color: '#198754' },
+            missing: { bg: 'linear-gradient(135deg, #dc3545 0%, #fff 100%)', icon: 'remove_circle', color: '#dc3545' },
+            excess: { bg: 'linear-gradient(135deg, #ffc107 0%, #fff 100%)', icon: 'add_circle', color: '#ffc107' }
+        };
 
-                        const statColors = {
-                            total: { bg: 'linear-gradient(135deg, #E6007E 0%, #fff 100%)', icon: 'apps', color: '#E6007E' },
-                            expected: { bg: 'linear-gradient(135deg, #6f42c1 0%, #fff 100%)', icon: 'inventory', color: '#6f42c1' },
-                            scanned: { bg: 'linear-gradient(135deg, #198754 0%, #fff 100%)', icon: 'task_alt', color: '#198754' },
-                            missing: { bg: 'linear-gradient(135deg, #dc3545 0%, #fff 100%)', icon: 'remove_circle', color: '#dc3545' },
-                            excess: { bg: 'linear-gradient(135deg, #ffc107 0%, #fff 100%)', icon: 'add_circle', color: '#ffc107' }
-                        };
-                        const createProStatCard = (title, value, iconKey, className) => {
-                            const colorObj = statColors[className] || statColors.total;
-                            return `
-                                <div class="stat-card ${className} animate__animated animate__fadeInUp" style="
-                                    display: flex; 
-                                    align-items: center; 
-                                    justify-content: center;
-                                    gap: 1.2rem; 
-                                    box-shadow: 0 8px 24px rgba(0,0,0,0.10); 
-                                    border-left: 8px solid ${colorObj.color}; 
-                                    background: ${colorObj.bg};
-                                    transition: transform 0.3s cubic-bezier(.4,2,.3,1);
-                                    text-align: center;
-                                ">
-                                    <div class="stat-icon d-flex align-items-center justify-content-center" style="
-                                        background: ${colorObj.bg};
-                                        border-radius: 50%; 
-                                        width: 56px; 
-                                        height: 56px; 
-                                        box-shadow: 0 4px 16px ${colorObj.color}22;
-                                        animation: bounceIn 1s;
-                                    ">
-                                        <i class="material-icons" style="font-size: 2.5rem; color: ${colorObj.color}; filter: drop-shadow(0 2px 4px ${colorObj.color}33);">${colorObj.icon}</i>
-                                    </div>
-                                    <div class="stat-info" style="flex: 1;">
-                                        <div class="stat-value" style="
-                                            font-size: 2.5rem; 
-                                            font-weight: 800; 
-                                            color: #343a40; 
-                                            margin-bottom: 4px;
-                                            letter-spacing: 1px;
-                                            text-shadow: 0 2px 8px ${colorObj.color}11;
-                                            animation: pulse 1.2s;
-                                        ">${value.toLocaleString('es-MX')}</div>
-                                        <div class="stat-title" style="
-                                            font-size: 1.05rem; 
-                                            color: ${colorObj.color}; 
-                                            font-weight: 700;
-                                            letter-spacing: 0.5px;
-                                        ">${title}</div>
-                                    </div>
-                                </div>
-                                <style>
-                                    @keyframes bounceIn {
-                                        0% { transform: scale(0.7); opacity: 0; }
-                                        60% { transform: scale(1.15); opacity: 1; }
-                                        80% { transform: scale(0.95); }
-                                        100% { transform: scale(1); }
-                                    }
-                                    @keyframes pulse {
-                                        0% { text-shadow: 0 0 0 #e6007e11; }
-                                        50% { text-shadow: 0 4px 16px #e6007e33; }
-                                        100% { text-shadow: 0 2px 8px #e6007e11; }
-                                    }
-                                </style>
-                            `;
-                        };
-                        const createKeyInsightsPanel = (stats) => {
-                            // Iconos modernos y con sentido para cada tipo de insight
-                            const icons = {
-                                missingContainer: { icon: 'bi bi-box-seam', color: '#dc3545', bg: '#fff0f3' },
-                                excessContainer: { icon: 'bi bi-boxes', color: '#ffc107', bg: '#fffbe6' },
-                                missingSection: { icon: 'bi bi-grid-3x3-gap', color: '#dc3545', bg: '#fff0f3' },
-                                excessSection: { icon: 'bi bi-grid-1x2-fill', color: '#ffc107', bg: '#fffbe6' }
-                            };
-                            // Badge para cantidad, menos saturado y más legible
-                            const quantityBadge = (qty, color) => `
-                                <span class="quantity-badge" style="
-                                    background: ${color}22;
-                                    color: ${color};
-                                    font-weight:700;
-                                    border-radius:12px;
-                                    padding:2px 10px;
-                                    margin-left:auto;
-                                    font-size:1rem;
-                                    min-width:60px;
-                                    text-align:right;
-                                ">${qty.toLocaleString('es-MX')} pz</span>
-                            `;
-                            // Lista de insights con botón "Ver más" y "Ver menos"
-                            function createListItems(items, type, listId) {
-                                if (items.length === 0)
-                                    return `<li class="insight-empty"><i class="bi bi-emoji-neutral" style="font-size:1.3rem;color:#adb5bd;"></i> Sin datos relevantes.</li>`;
-                                const maxToShow = 5;
-                                const showMore = items.length > maxToShow;
-                                const visibleItems = items.slice(0, maxToShow);
-                                const hiddenItems = items.slice(maxToShow);
-
-                                let html = visibleItems.map(([name, quantity], idx) => {
-                                    let iconObj;
-                                    if (type === 'missingContainer') iconObj = icons.missingContainer;
-                                    else if (type === 'excessContainer') iconObj = icons.excessContainer;
-                                    else if (type === 'missingSection') iconObj = icons.missingSection;
-                                    else iconObj = icons.excessSection;
-                                    return `
-                                        <li class="insight-list-item animate__animated animate__fadeInUp" style="animation-delay:${idx * 0.08}s;">
-                                            <span class="insight-icon" style="background:${iconObj.bg};">
-                                                <i class="${iconObj.icon}" style="color:${iconObj.color};font-size:1.4rem;opacity:0.8;"></i>
-                                            </span>
-                                            <span class="item-name fw-bold" style="color:#343a40;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${name}</span>
-                                            ${quantityBadge(quantity, iconObj.color)}
-                                        </li>
-                                    `;
-                                }).join('');
-                                if (showMore) {
-                                    html += `<li class="insight-list-item show-more-btn" style="justify-content:center;">
-                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="
-                                            document.getElementById('${listId}').classList.add('show-all');
-                                            this.style.display='none';
-                                            document.getElementById('${listId}-ver-menos').style.display='inline-block';
-                                        ">Ver más (${hiddenItems.length})</button>
-                                        <button id="${listId}-ver-menos" type="button" class="btn btn-sm btn-outline-secondary" style="display:none;" onclick="
-                                            document.getElementById('${listId}').classList.remove('show-all');
-                                            this.style.display='none';
-                                            document.getElementById('${listId}').querySelector('.show-more-btn button').style.display='inline-block';
-                                        ">Ver menos</button>
-                                    </li>`;
-                                    html += hiddenItems.map(([name, quantity], idx) => {
-                                        let iconObj;
-                                        if (type === 'missingContainer') iconObj = icons.missingContainer;
-                                        else if (type === 'excessContainer') iconObj = icons.excessContainer;
-                                        else if (type === 'missingSection') iconObj = icons.missingSection;
-                                        else iconObj = icons.excessSection;
-                                        return `
-                                            <li class="insight-list-item extra-item" style="display:none;">
-                                                <span class="insight-icon" style="background:${iconObj.bg};">
-                                                    <i class="${iconObj.icon}" style="color:${iconObj.color};font-size:1.4rem;opacity:0.8;"></i>
-                                                </span>
-                                                <span class="item-name fw-bold" style="color:#343a40;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${name}</span>
-                                                ${quantityBadge(quantity, iconObj.color)}
-                                            </li>
-                                        `;
-                                    }).join('');
-                                }
-                                return html;
-                            }
-                            // IDs únicos para cada lista
-                            const idMissingCont = "insight-list-missing-container";
-                            const idExcessCont = "insight-list-excess-container";
-                            const idMissingSec = "insight-list-missing-section";
-                            const idExcessSec = "insight-list-excess-section";
-                            return `
-                                <div class="key-insights-panel" style="
-                                    background: linear-gradient(135deg,#f8f9fa 80%,#e6007e08 100%);
-                                    border-radius: 18px;
-                                    box-shadow: 0 8px 32px rgba(230,0,126,0.07);
-                                    padding: 2rem 1.5rem;
-                                    margin-top: 1rem;
-                                    font-family: 'Poppins',sans-serif;
-                                    display: flex;
-                                    flex-direction: column;
-                                    align-items: center;
-                                ">
-                                    <h4 style="display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:800;color:#E6007E;margin-bottom:2rem;justify-content:center;">
-                                        <i class="bi bi-lightbulb" style="font-size:2rem;color:#E6007E;opacity:0.7;"></i>
-                                        Insights Clave del Manifiesto
-                                    </h4>
-                                    <div style="width:100%;max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
-                                        <div>
-                                            <h6 style="font-size:1.1rem;color:#dc3545;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;">
-                                                <i class="bi bi-box-seam" style="font-size:1.3rem;color:#dc3545;opacity:0.7;"></i>
-                                                Contenedores con Faltantes
-                                            </h6>
-                                            <ul id="${idMissingCont}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
-                                                ${createListItems(stats.topContenedoresFaltantes, 'missingContainer', idMissingCont)}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <h6 style="font-size:1.1rem;color:#ffc107;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;">
-                                                <i class="bi bi-boxes" style="font-size:1.3rem;color:#ffc107;opacity:0.7;"></i>
-                                                Contenedores con Excedentes
-                                            </h6>
-                                            <ul id="${idExcessCont}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
-                                                ${createListItems(stats.topContenedoresExcedentes, 'excessContainer', idExcessCont)}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                    <hr style="margin:2rem 0;border-top:2px dashed #e6007e11;width:80%;">
-                                    <div style="width:100%;max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
-                                        <div>
-                                            <h6 style="font-size:1.1rem;color:#dc3545;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;">
-                                                <i class="bi bi-grid-3x3-gap" style="font-size:1.3rem;color:#dc3545;opacity:0.7;"></i>
-                                                Secciones con Faltantes
-                                            </h6>
-                                            <ul id="${idMissingSec}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
-                                                ${createListItems(stats.topSeccionesFaltantes, 'missingSection', idMissingSec)}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <h6 style="font-size:1.1rem;color:#ffc107;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;">
-                                                <i class="bi bi-grid-1x2-fill" style="font-size:1.3rem;color:#ffc107;opacity:0.7;"></i>
-                                                Secciones con Excedentes
-                                            </h6>
-                                            <ul id="${idExcessSec}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">
-                                                ${createListItems(stats.topSeccionesExcedentes, 'excessSection', idExcessSec)}
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </div>
-                                <style>
-                                    .key-insights-panel .insight-list-item {
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 14px;
-                                        padding: 8px 0;
-                                        border-bottom: 1px solid #f1f1f1;
-                                        font-size: 1rem;
-                                        transition: background 0.2s;
-                                        justify-content: flex-start;
-                                    }
-                                    .key-insights-panel .insight-list-item:last-child {
-                                        border-bottom: none;
-                                    }
-                                    .key-insights-panel .insight-icon {
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        width: 34px;
-                                        height: 34px;
-                                        border-radius: 50%;
-                                        background: #f8f9fa;
-                                        box-shadow: 0 2px 8px #e6007e08;
-                                    }
-                                    .key-insights-panel .quantity-badge {
-                                        font-size: 1rem;
-                                        font-weight: 700;
-                                        letter-spacing: 0.5px;
-                                        min-width: 60px;
-                                        text-align: right;
-                                    }
-                                    .key-insights-panel .insight-empty {
-                                        color: #6c757d;
-                                        font-style: italic;
-                                        padding: 10px 0;
-                                        text-align: center;
-                                    }
-                                    .key-insights-panel ul.insight-list {
-                                        margin: 0 auto;
-                                    }
-                                    /* Mostrar todos los elementos extra cuando show-all está activo */
-                                    .key-insights-panel ul.show-all .extra-item {
-                                        display: flex !important;
-                                    }
-                                </style>
-                            `;
-                        };
-
-                        const isComplete = stats.avance >= 100;
-                        const statusClass = isComplete ? 'is-success' : 'is-warning';
-                        const statusMessage = isComplete ? `<i class="material-icons">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉` : `<i class="material-icons">warning</i> Aún falta un ${100 - stats.avance}% por completar. ¡Ánimo!`;
-
-                        const canvasId = `grafico_pro_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                        const dashboardHTML = `
-                            <div class="analisis-dashboard-pro" style="max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);">
-                                <div class="status-message ${statusClass}" style="justify-content:center;text-align:center;font-size:1.25rem;border-radius:12px;margin-bottom:2rem;box-shadow:0 2px 8px #e6007e11;">
-                                    ${statusMessage}
-                                </div>
-                                <div class="stats-grid stats-grid-responsive" style="margin:0 auto;max-width:950px;gap:2rem;">
-                                    ${createProStatCard('SKUs Totales', stats.totalSKUs, 'apps', 'total')}
-                                    ${createProStatCard('Piezas Esperadas (SAP)', stats.totalSAP, 'inventory', 'expected')}
-                                    ${createProStatCard('Piezas Escaneadas', stats.totalSCAN, 'task_alt', 'scanned')}
-                                    ${createProStatCard('Piezas Faltantes', stats.faltantes, 'error', 'missing')}
-                                    ${createProStatCard('Piezas Excedentes', stats.excedentes, 'add_shopping_cart', 'excess')}
-                                </div>
-                                <div class="progress-container" style="margin:2.5rem auto 2.5rem auto;max-width:520px;height:32px;box-shadow:0 2px 8px #e6007e11;">
-                                    <div class="progress-fill ${isComplete ? 'bg-success' : 'bg-primary'}" style="width:${stats.avance}%;font-size:1.25rem;justify-content:center;align-items:center;height:100%;border-radius:32px;">
-                                        <span style="font-weight:700;">${stats.avance}%</span>
-                                    </div>
-                                </div>
-                                <div class="dashboard-main-layout" style="display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.5rem;">
-                                    <div class="chart-container" style="flex:1 1 350px;max-width:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;">
-                                        <canvas id="${canvasId}" style="margin:0 auto;display:block;max-width:340px;max-height:340px;"></canvas>
-                                        <div style="text-align:center;margin-top:1.2rem;font-size:1.05rem;color:#6c757d;">
-                                            <i class="material-icons" style="vertical-align:middle;color:#0d6efd;">pie_chart</i>
-                                            <span>Distribución de piezas</span>
-                                        </div>
-                                    </div>
-                                    <div style="flex:2 1 600px;max-width:700px;">
-                                        ${createKeyInsightsPanel(stats)}
-                                    </div>
-                                </div>
-                            </div>
-                            <style>
-                                .analisis-dashboard-pro {
-                                    background: linear-gradient(135deg,#fff 80%,#e6007e10 100%);
-                                    border-radius: 32px;
-                                    box-shadow: 0 12px 40px rgba(230,0,126,0.10);
-                                    padding: 2.5rem 1.5rem;
-                                }
-                                .stats-grid.stats-grid-responsive {
-                                    display: grid;
-                                    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-                                    gap: 2rem;
-                                    justify-content: center;
-                                    margin-bottom: 2rem;
-                                }
-                                .stat-card {
-                                    min-width: 210px;
-                                    max-width: 260px;
-                                    width: 100%;
-                                    padding: 1.2rem 1rem;
-                                    margin: 0 auto;
-                                    box-sizing: border-box;
-                                }
-                                .stat-card .stat-value {
-                                    font-size: 2.2rem !important;
-                                    font-weight: 800;
-                                    color: #343a40;
-                                    margin-bottom: 4px;
-                                    letter-spacing: 1px;
-                                    text-shadow: 0 2px 8px #e6007e11;
-                                    animation: pulse 1.2s;
-                                }
-                                .stat-card .stat-title {
-                                    font-size: 1rem !important;
-                                    color: inherit;
-                                    font-weight: 700;
-                                    letter-spacing: 0.5px;
-                                }
-                                .stat-card .stat-icon {
-                                    width: 48px !important;
-                                    height: 48px !important;
-                                    font-size: 2rem !important;
-                                }
-                                .progress-container {
-                                    box-shadow: 0 2px 8px #e6007e11;
-                                    height: 32px;
-                                    border-radius: 32px;
-                                    background: #f8f9fa;
-                                    overflow: hidden;
-                                }
-                                .progress-fill {
-                                    height: 100%;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    color: #fff;
-                                    font-weight: 700;
-                                    font-size: 1.25rem;
-                                    transition: width 0.5s cubic-bezier(.4,2,.3,1);
-                                    background: linear-gradient(90deg,#e6007e 0%,#0d6efd 100%);
-                                }
-                                .dashboard-main-layout {
-                                    margin-top:2rem;
-                                    gap:2.5rem;
-                                }
-                                .chart-container {
-                                    background: #fff;
-                                    border-radius: 20px;
-                                    box-shadow: 0 4px 24px #e6007e11;
-                                    padding: 2rem 1rem;
-                                    min-width: 320px;
-                                }
-                                @media (max-width: 900px) {
-                                    .dashboard-main-layout {
-                                        flex-direction: column;
-                                        gap: 1.5rem;
-                                    }
-                                    .chart-container, .key-insights-panel {
-                                        max-width: 100% !important;
-                                    }
-                                    .analisis-dashboard-pro {
-                                        padding: 1.2rem 0.5rem;
-                                    }
-                                    .stats-grid.stats-grid-responsive {
-                                        grid-template-columns: 1fr 1fr;
-                                        gap: 1rem;
-                                    }
-                                    .stat-card {
-                                        min-width: 160px;
-                                        max-width: 100%;
-                                        padding: 1rem 0.5rem;
-                                    }
-                                }
-                                @media (max-width: 600px) {
-                                    .stats-grid.stats-grid-responsive {
-                                        grid-template-columns: 1fr;
-                                        gap: 0.7rem;
-                                    }
-                                    .stat-card {
-                                        min-width: 120px;
-                                        padding: 0.7rem 0.3rem;
-                                    }
-                                }
-                            </style>
-                        `;
-                    
-                        await Swal.fire({
-                            title: `<span style="display: flex; align-items: center; gap: 8px; font-size:1.7rem; font-weight:700; color:#E6007E;"><i class="material-icons text-primary" style="font-size:2.2rem; color:#0d6efd;">analytics</i> Análisis PRO: <span style="color:#0d6efd;">${fileName}</span></span>`,
-                            html: dashboardHTML,
-                            width: '98vw',
-                            maxWidth: '1400px',
-                            padding: '0',
-                            showCloseButton: true,
-                            showConfirmButton: false,
-                            customClass: {
-                                popup: 'dashboard-modal'
-                            },
-                            didOpen: () => {
-                                const chartContainer = document.getElementById(canvasId);
-                                if (chartContainer) {
-                                    chartContainer.height = 340;
-                                    chartContainer.width = 340;
-                                    const ctx = chartContainer.getContext('2d');
-                                    new Chart(ctx, {
-                                        type: 'doughnut',
-                                        data: {
-                                            labels: ['Correcto', 'Faltante', 'Excedente'],
-                                            datasets: [{
-                                                data: [stats.totalSCAN - stats.excedentes, stats.faltantes, stats.excedentes],
-                                                backgroundColor: [
-                                                    'rgba(32,201,151,0.85)', // Correcto
-                                                    'rgba(220,53,69,0.85)',  // Faltante
-                                                    'rgba(255,193,7,0.85)'   // Excedente
-                                                ],
-                                                borderColor: '#fff',
-                                                borderWidth: 6,
-                                                hoverOffset: 16,
-                                                shadowOffsetX: 2,
-                                                shadowOffsetY: 2,
-                                                shadowBlur: 8,
-                                                shadowColor: 'rgba(0,0,0,0.10)'
-                                            }]
-                                        },
-                                        options: {
-                                            responsive: false,
-                                            maintainAspectRatio: false,
-                                            cutout: '72%',
-                                            plugins: {
-                                                legend: {
-                                                    position: 'bottom',
-                                                    labels: {
-                                                        padding: 24,
-                                                        usePointStyle: true,
-                                                        pointStyle: 'rectRounded',
-                                                        font: { size: 15, family: 'Poppins', weight: 'bold' },
-                                                        color: '#343a40'
-                                                    }
-                                                },
-                                                tooltip: {
-                                                    backgroundColor: '#fff',
-                                                    titleColor: '#E6007E',
-                                                    bodyColor: '#343a40',
-                                                    borderColor: '#E6007E',
-                                                    borderWidth: 1,
-                                                    callbacks: {
-                                                        label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas`
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    });
-                                }
-                                // Mejorar accesibilidad y foco visual
-                                setTimeout(() => {
-                                    const popup = document.querySelector('.swal2-popup.dashboard-modal');
-                                    if (popup) {
-                                        popup.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                }, 300);
-                            }
-                            });
-
-                    } catch (e) {
-                        console.error("Error al generar dashboard PRO:", e);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error Inesperado',
-                            text: 'No se pudo generar el dashboard del archivo.'
-                        });
+        const createProStatCard = (title, value, iconKey, className) => {
+            const colorObj = statColors[className] || statColors.total;
+            return `
+                <div class="stat-card ${className} animate__animated animate__fadeInUp" style="
+                    display: flex; align-items: center; justify-content: center;
+                    gap: 1.2rem; box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+                    border-left: 8px solid ${colorObj.color}; background: ${colorObj.bg};
+                    transition: transform 0.3s cubic-bezier(.4,2,.3,1); text-align: center;">
+                    <div class="stat-icon d-flex align-items-center justify-content-center" style="
+                        background: ${colorObj.bg}; border-radius: 50%; width: 56px; height: 56px;
+                        box-shadow: 0 4px 16px ${colorObj.color}22; animation: bounceIn 1s;">
+                        <i class="material-icons" style="font-size: 2.5rem; color: ${colorObj.color}; filter: drop-shadow(0 2px 4px ${colorObj.color}33);">${colorObj.icon}</i>
+                    </div>
+                    <div class="stat-info" style="flex: 1;">
+                        <div class="stat-value" style="font-size: 2.5rem; font-weight: 800; color: #343a40; margin-bottom: 4px; letter-spacing: 1px; text-shadow: 0 2px 8px ${colorObj.color}11; animation: pulse 1.2s;">
+                            ${value.toLocaleString('es-MX')}
+                        </div>
+                        <div class="stat-title" style="font-size: 1.05rem; color: ${colorObj.color}; font-weight: 700; letter-spacing: 0.5px;">
+                            ${title}
+                        </div>
+                    </div>
+                </div>
+                <style>
+                    @keyframes bounceIn {
+                        0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 80% { transform: scale(0.95); } 100% { transform: scale(1); }
                     }
-                };
+                    @keyframes pulse {
+                        0% { text-shadow: 0 0 0 #e6007e11; } 50% { text-shadow: 0 4px 16px #e6007e33; } 100% { text-shadow: 0 2px 8px #e6007e11; }
+                    }
+                </style>`;
+        };
+        
+        const createKeyInsightsPanel = (stats) => {
+            const icons = {
+                missingContainer: { icon: 'bi bi-box-seam', color: '#dc3545', bg: '#fff0f3' },
+                excessContainer: { icon: 'bi bi-boxes', color: '#ffc107', bg: '#fffbe6' },
+                missingSection: { icon: 'bi bi-grid-3x3-gap', color: '#dc3545', bg: '#fff0f3' },
+                excessSection: { icon: 'bi bi-grid-1x2-fill', color: '#ffc107', bg: '#fffbe6' }
+            };
+            const quantityBadge = (qty, color) => `<span class="quantity-badge" style="background: ${color}22; color: ${color}; font-weight:700; border-radius:12px; padding:2px 10px; margin-left:auto; font-size:1rem; min-width:60px; text-align:right;">${qty.toLocaleString('es-MX')} pz</span>`;
+            
+            function createListItems(items, type, listId) {
+                if (items.length === 0) return `<li class="insight-empty"><i class="bi bi-emoji-neutral" style="font-size:1.3rem;color:#adb5bd;"></i> Sin datos relevantes.</li>`;
+                const maxToShow = 5;
+                const showMore = items.length > maxToShow;
+                const visibleItems = items.slice(0, maxToShow);
+                const hiddenItems = items.slice(maxToShow);
+
+                let html = visibleItems.map(([name, quantity], idx) => {
+                    let iconObj = icons[`${type}Container`] || icons[`${type}Section`];
+                    return `
+                        <li class="insight-list-item animate__animated animate__fadeInUp" style="animation-delay:${idx * 0.08}s;">
+                            <span class="insight-icon" style="background:${iconObj.bg};"><i class="${iconObj.icon}" style="color:${iconObj.color};font-size:1.4rem;opacity:0.8;"></i></span>
+                            <span class="item-name fw-bold" style="color:#343a40;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${name}</span>
+                            ${quantityBadge(quantity, iconObj.color)}
+                        </li>`;
+                }).join('');
+
+                if (showMore) {
+                    html += `<li class="insight-list-item show-more-btn" style="justify-content:center;"><button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('${listId}').classList.add('show-all'); this.style.display='none'; document.getElementById('${listId}-ver-menos').style.display='inline-block';">Ver más (${hiddenItems.length})</button><button id="${listId}-ver-menos" type="button" class="btn btn-sm btn-outline-secondary" style="display:none;" onclick="document.getElementById('${listId}').classList.remove('show-all'); this.style.display='none'; document.getElementById('${listId}').querySelector('.show-more-btn button').style.display='inline-block';">Ver menos</button></li>`;
+                    html += hiddenItems.map(([name, quantity]) => {
+                        let iconObj = icons[`${type}Container`] || icons[`${type}Section`];
+                        return `<li class="insight-list-item extra-item" style="display:none;"><span class="insight-icon" style="background:${iconObj.bg};"><i class="${iconObj.icon}" style="color:${iconObj.color};font-size:1.4rem;opacity:0.8;"></i></span><span class="item-name fw-bold" style="color:#343a40;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${name}</span>${quantityBadge(quantity, iconObj.color)}</li>`;
+                    }).join('');
+                }
+                return html;
+            }
+
+            const idMissingCont = "insight-list-missing-container";
+            const idExcessCont = "insight-list-excess-container";
+            const idMissingSec = "insight-list-missing-section";
+            const idExcessSec = "insight-list-excess-section";
+            
+            return `
+                <div class="key-insights-panel" style="background: linear-gradient(135deg,#f8f9fa 80%,#e6007e08 100%); border-radius: 18px; box-shadow: 0 8px 32px rgba(230,0,126,0.07); padding: 2rem 1.5rem; margin-top: 1rem; display: flex; flex-direction: column; align-items: center;">
+                    <h4 style="display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:800;color:#E6007E;margin-bottom:2rem;justify-content:center;"><i class="bi bi-lightbulb" style="font-size:2rem;color:#E6007E;opacity:0.7;"></i> Insights Clave del Manifiesto</h4>
+                    <div style="width:100%;max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+                        <div><h6 style="font-size:1.1rem;color:#dc3545;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;"><i class="bi bi-box-seam" style="font-size:1.3rem;color:#dc3545;opacity:0.7;"></i> Contenedores con Faltantes</h6><ul id="${idMissingCont}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">${createListItems(stats.topContenedoresFaltantes, 'missing', idMissingCont)}</ul></div>
+                        <div><h6 style="font-size:1.1rem;color:#ffc107;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;"><i class="bi bi-boxes" style="font-size:1.3rem;color:#ffc107;opacity:0.7;"></i> Contenedores con Excedentes</h6><ul id="${idExcessCont}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">${createListItems(stats.topContenedoresExcedentes, 'excess', idExcessCont)}</ul></div>
+                    </div>
+                    <hr style="margin:2rem 0;border-top:2px dashed #e6007e11;width:80%;">
+                    <div style="width:100%;max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:2rem;">
+                        <div><h6 style="font-size:1.1rem;color:#dc3545;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;"><i class="bi bi-grid-3x3-gap" style="font-size:1.3rem;color:#dc3545;opacity:0.7;"></i> Secciones con Faltantes</h6><ul id="${idMissingSec}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">${createListItems(stats.topSeccionesFaltantes, 'missing', idMissingSec)}</ul></div>
+                        <div><h6 style="font-size:1.1rem;color:#ffc107;font-weight:700;margin-bottom:0.5rem;display:flex;align-items:center;gap:8px;justify-content:center;"><i class="bi bi-grid-1x2-fill" style="font-size:1.3rem;color:#ffc107;opacity:0.7;"></i> Secciones con Excedentes</h6><ul id="${idExcessSec}" class="insight-list" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">${createListItems(stats.topSeccionesExcedentes, 'excess', idExcessSec)}</ul></div>
+                    </div>
+                </div>
+                <style>
+                    .key-insights-panel .insight-list-item { display: flex; align-items: center; gap: 14px; padding: 8px 0; border-bottom: 1px solid #f1f1f1; font-size: 1rem; transition: background 0.2s; justify-content: flex-start; }
+                    .key-insights-panel .insight-list-item:last-child { border-bottom: none; }
+                    .key-insights-panel .insight-icon { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: #f8f9fa; box-shadow: 0 2px 8px #e6007e08; }
+                    .key-insights-panel .quantity-badge { font-size: 1rem; font-weight: 700; letter-spacing: 0.5px; min-width: 60px; text-align: right; }
+                    .key-insights-panel .insight-empty { color: #6c757d; font-style: italic; padding: 10px 0; text-align: center; }
+                    .key-insights-panel ul.insight-list { margin: 0 auto; }
+                    .key-insights-panel ul.show-all .extra-item { display: flex !important; }
+                </style>`;
+        };
+
+        const isComplete = stats.avance >= 100;
+        const statusClass = isComplete ? 'is-success' : 'is-warning';
+        const statusMessage = isComplete ? `<i class="material-icons">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉` : `<i class="material-icons">warning</i> Aún falta un ${100 - stats.avance}% por completar. ¡Ánimo!`;
+
+        const canvasId = `grafico_pro_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        const dashboardHTML = `
+            <div class="analisis-dashboard-pro" style="max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);">
+                <div class="status-message ${statusClass}" style="justify-content:center;text-align:center;font-size:1.25rem;border-radius:12px;margin-bottom:2rem;box-shadow:0 2px 8px #e6007e11;">${statusMessage}</div>
+                <div class="stats-grid stats-grid-responsive" style="margin:0 auto;max-width:950px;gap:2rem;">
+                    ${createProStatCard('SKUs Totales', stats.totalSKUs, 'apps', 'total')}
+                    ${createProStatCard('Piezas Esperadas (SAP)', stats.totalSAP, 'inventory', 'expected')}
+                    ${createProStatCard('Piezas Escaneadas', stats.totalSCAN, 'task_alt', 'scanned')}
+                    ${createProStatCard('Piezas Faltantes', stats.faltantes, 'error', 'missing')}
+                    ${createProStatCard('Piezas Excedentes', stats.excedentes, 'add_shopping_cart', 'excess')}
+                </div>
+                <div class="progress-container" style="margin:2.5rem auto 2.5rem auto;max-width:520px;height:32px;box-shadow:0 2px 8px #e6007e11;">
+                    <div class="progress-fill ${isComplete ? 'bg-success' : 'bg-primary'}" style="width:${stats.avance}%;font-size:1.25rem;justify-content:center;align-items:center;height:100%;border-radius:32px;"><span style="font-weight:700;">${stats.avance}%</span></div>
+                </div>
+                <div class="dashboard-main-layout" style="display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.5rem;">
+                    <div class="chart-container" style="flex:1 1 350px;max-width:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;">
+                        <canvas id="${canvasId}" style="margin:0 auto;display:block;max-width:340px;max-height:340px;"></canvas>
+                        <div style="text-align:center;margin-top:1.2rem;font-size:1.05rem;color:#6c757d;"><i class="material-icons" style="vertical-align:middle;color:#0d6efd;">pie_chart</i><span>Distribución de piezas</span></div>
+                    </div>
+                    <div style="flex:2 1 600px;max-width:700px;">${createKeyInsightsPanel(stats)}</div>
+                </div>
+            </div>
+            <style>
+                .analisis-dashboard-pro{background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);padding:2.5rem 1.5rem}.stats-grid.stats-grid-responsive{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2rem;justify-content:center;margin-bottom:2rem}.stat-card{min-width:210px;max-width:260px;width:100%;padding:1.2rem 1rem;margin:0 auto;box-sizing:border-box}.stat-card .stat-value{font-size:2.2rem!important;font-weight:800;color:#343a40;margin-bottom:4px;letter-spacing:1px;text-shadow:0 2px 8px #e6007e11;animation:pulse 1.2s}.stat-card .stat-title{font-size:1rem!important;color:inherit;font-weight:700;letter-spacing:.5px}.stat-card .stat-icon{width:48px!important;height:48px!important;font-size:2rem!important}.progress-container{box-shadow:0 2px 8px #e6007e11;height:32px;border-radius:32px;background:#f8f9fa;overflow:hidden}.progress-fill{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.25rem;transition:width .5s cubic-bezier(.4,2,.3,1);background:linear-gradient(90deg,#e6007e 0%,#0d6efd 100%)}.dashboard-main-layout{margin-top:2rem;gap:2.5rem}.chart-container{background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;min-width:320px}@media (max-width:900px){.dashboard-main-layout{flex-direction:column;gap:1.5rem}.chart-container,.key-insights-panel{max-width:100%!important}.analisis-dashboard-pro{padding:1.2rem .5rem}.stats-grid.stats-grid-responsive{grid-template-columns:1fr 1fr;gap:1rem}.stat-card{min-width:160px;max-width:100%;padding:1rem .5rem}}@media (max-width:600px){.stats-grid.stats-grid-responsive{grid-template-columns:1fr;gap:.7rem}.stat-card{min-width:120px;padding:.7rem .3rem}}
+            </style>`;
+
+        Swal.fire({
+            title: `<span style="display: flex; align-items: center; gap: 8px; font-size:1.7rem; font-weight:700; color:#E6007E;"><i class="material-icons text-primary" style="font-size:2.2rem; color:#0d6efd;">analytics</i> Análisis PRO: <span style="color:#0d6efd;">${fileName}</span></span>`,
+            html: dashboardHTML,
+            width: '98vw',
+            maxWidth: '1400px',
+            padding: '0',
+            showCloseButton: true,
+            showConfirmButton: false,
+            customClass: { popup: 'dashboard-modal' },
+            didOpen: () => {
+                const chartContainer = document.getElementById(canvasId);
+                if (chartContainer) {
+                    chartContainer.height = 340;
+                    chartContainer.width = 340;
+                    const ctx = chartContainer.getContext('2d');
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Correcto', 'Faltante', 'Excedente'],
+                            datasets: [{
+                                data: [stats.totalSCAN - stats.excedentes, stats.faltantes, stats.excedentes],
+                                backgroundColor: ['rgba(32,201,151,0.85)', 'rgba(220,53,69,0.85)', 'rgba(255,193,7,0.85)'],
+                                borderColor: '#fff',
+                                borderWidth: 6,
+                                hoverOffset: 16,
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            cutout: '72%',
+                            animation: { duration: 0 }, // ✅ CLAVE: Desactiva la animación
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { padding: 24, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 15, family: 'Poppins', weight: 'bold' }, color: '#343a40' }
+                                },
+                                tooltip: {
+                                    backgroundColor: '#fff', titleColor: '#E6007E', bodyColor: '#343a40', borderColor: '#E6007E', borderWidth: 1,
+                                    callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas` }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
+
+    } catch (e) {
+        console.error("Error al generar dashboard PRO:", e);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error Inesperado',
+            text: 'No se pudo generar el dashboard del archivo.'
+        });
+    }
+};
 window.generatePdfReport = async (folder, name) => {
     Swal.fire({
         title: 'Generando Reporte PDF...',
@@ -3420,1414 +3135,707 @@ window.generatePdfReport = async (folder, name) => {
         });
     }
 };
-                window.downloadFile = async (folder, name) => {
-                    Swal.fire({
-                        title: 'Generando Reporte Excel Analítico Final...',
-                        html: `Creando un dashboard y resúmenes de análisis directamente visibles. ¡Un momento, por favor!<br>
-                               <div class="mt-3 spinner-border text-primary" role="status">
-                                 <span class="visually-hidden">Cargando...</span>
-                               </div>`,
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading()
+/**
+ * ✅ SOLUCIÓN FINAL (V.5) - CORRECCIÓN DE TARJETAS DE ESTADÍSTICAS
+ * Modifica temporalmente los estilos de las tarjetas para una captura perfecta.
+ */
+window.generarReportesYCorreo = async (folder, name) => {
+    Swal.fire({
+        title: 'Generando Reporte de Alta Calidad...',
+        html: 'Este proceso puede tardar un momento. Por favor, espera.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+        await window.downloadFile(folder, name);
+        await window.generatePdfReport(folder, name);
+
+        Swal.close();
+        await window.verDashboardArchivo(folder, name);
+        
+        await new Promise(resolve => setTimeout(resolve, 2000)); 
+        
+        const dashboardModal = document.querySelector('.swal2-popup.dashboard-modal');
+        if (!dashboardModal) throw new Error("No se pudo encontrar el modal del dashboard.");
+
+        const contentToCapture = dashboardModal.querySelector('.analisis-dashboard-pro');
+        if (!contentToCapture) throw new Error("No se pudo encontrar el contenido del dashboard.");
+
+        // --- INICIO DE LA MEJORA FINAL PARA TARJETAS ---
+
+        // 1. Guardamos los estilos originales de las tarjetas
+        const statCards = contentToCapture.querySelectorAll('.stat-card');
+        const originalCardStyles = new Map();
+        
+        // Objeto de referencia para los colores sólidos
+        const solidColors = {
+            total: '#E6007E', expected: '#6f42c1', scanned: '#198754', 
+            missing: '#dc3545', excess: '#ffc107'
+        };
+
+        statCards.forEach(card => {
+            // Guardamos el estilo original de la tarjeta y sus textos internos
+            originalCardStyles.set(card, {
+                card: card.style.cssText,
+                value: card.querySelector('.stat-value')?.style.cssText || '',
+                title: card.querySelector('.stat-title')?.style.cssText || ''
+            });
+
+            // 2. Aplicamos estilos simples y sólidos para la captura
+            const classList = Array.from(card.classList);
+            const colorClass = ['total', 'expected', 'scanned', 'missing', 'excess'].find(c => classList.includes(c));
+            const solidColor = solidColors[colorClass] || '#dddddd';
+
+            // Forzamos un fondo claro y un borde de color sólido
+            card.style.cssText += `
+                background: #fdfdfd !important; 
+                box-shadow: none !important;
+                animation: none !important;
+                transition: none !important;
+            `;
+            // Forzamos que el texto principal sea oscuro y el título tenga el color sólido
+            const valueEl = card.querySelector('.stat-value');
+            if (valueEl) valueEl.style.cssText += `color: #212529 !important;`;
+            
+            const titleEl = card.querySelector('.stat-title');
+            if (titleEl) titleEl.style.cssText += `color: ${solidColor} !important;`;
+        });
+        
+        // 3. Tomamos la captura con los estilos simplificados
+        const canvas = await html2canvas(contentToCapture, {
+            scale: 3,
+            backgroundColor: '#FFFFFF',
+            useCORS: true,
+            logging: false,
+            scrollX: 0,
+            scrollY: -window.scrollY
+        });
+
+        // 4. RESTAURAMOS los estilos originales inmediatamente después de la captura
+        statCards.forEach(card => {
+            const original = originalCardStyles.get(card);
+            if(original) {
+                card.style.cssText = original.card;
+                const valueEl = card.querySelector('.stat-value');
+                if (valueEl) valueEl.style.cssText = original.value;
+                const titleEl = card.querySelector('.stat-title');
+                if (titleEl) titleEl.style.cssText = original.title;
+            }
+        });
+
+        // --- FIN DE LA MEJORA FINAL ---
+
+        const imageURL = canvas.toDataURL('image/jpeg', 0.95);
+        const link = document.createElement('a');
+        link.href = imageURL;
+        link.download = `Dashboard_${name.replace(/\.xlsx$/i, '')}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        Swal.close(); 
+        
+        // --- Preparar y abrir el correo electrónico ---
+        const correos = [
+            'bplopezr@liverpool.com.mx', 'eirojas@liverpool.com.mx', 'babanuelosr@liverpool.com.mx',
+            'amoralesp@liverpool.com.mx', 'agavila@liverpool.com.mx', 'jjmendozaa@liverpool.com.mx',
+            'jfdominguezb@liverpool.com.mx', 'figaspars@liverpool.com.mx', 'yymatasm@liverpool.com.mx',
+            'mireyesb@liverpool.com.mx', 'lcastillor@liverpool.com.mx', 'oamuedanov@liverpool.com.mx',
+            'ecoronadoh@liverpool.com.mx', 'edcastilloj@liverpool.com.mx', 'jgonzalezs14@liverpool.com.mx',
+            'ygtiripitig@liverpool.com.mx'
+        ].join(',');
+        
+        const asunto = `Análisis de Manifiesto: ${name}`;
+        const cuerpo = `Buenas tardes, jefes:\n\nLes comparto el manifiesto para su análisis y acción correspondiente.\nEn el archivo PDF adjunto podrán encontrar el detalle de las secciones y contenedores con faltantes, todo debidamente señalado.\nAsimismo, en el archivo Excel se incluyen todos los datos para su revisión.\n\nQuedo atento a cualquier comentario o indicación.\nSaludos.`;
+        
+        const mailtoLink = `mailto:${correos}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+        
+        setTimeout(() => { window.location.href = mailtoLink; }, 500);
+        
+        Swal.fire({
+             icon: 'success',
+             title: '¡Proceso completado!',
+             html: `Se han descargado los 3 reportes en alta calidad.<br><b>Por favor, adjúntalos manualmente al correo que se acaba de abrir.</b>`,
+             confirmButtonText: '¡Excelente!'
+        });
+
+    } catch (error) {
+        console.error("Error en el proceso de reporte y correo:", error);
+        Swal.fire('¡Error!', 'Ocurrió un problema durante el proceso. Revisa la consola para más detalles.', 'error');
+    }
+};
+/**
+ * ✅ VERSIÓN FINAL (17.0) - ¡SOLUCIÓN FINAL Y ROBUSTA PARA CAMPOS VACÍOS!
+ * Maneja DAÑO_CANTIDAD y DAÑO_FOTO_URL para que queden vacíos si no hay información.
+ * - MANIFIESTO, SKU, EUROPEO, ENTREGADO_A: Numérico entero SIN separador de miles (formato Excel '0').
+ * - CONTENEDOR: Siempre TEXTO (sin conversiones numéricas).
+ * - SAP, SCANNER, DIFERENCIA: Numérico con separador de miles (formato Excel '#,##0').
+ * - DAÑO_CANTIDAD: Numérico sin comas (formato '0'), o vacío si es 0/null/undefined/cadena vacía.
+ * - DAÑO_FOTO_URL: Texto, o vacío si es null/undefined/cadena vacía.
+ */
+window.downloadFile = async function(folder, name) {
+    const manifestoId = name;
+    if (!manifestoId) return Swal.fire('Error', 'No se ha seleccionado manifiesto.', 'error');
+
+    // --- VERIFICACIÓN CRÍTICA: ¿xlsx-js-style está cargado? ---
+    try {
+        const test_wb = XLSX.utils.book_new();
+        const test_ws = XLSX.utils.aoa_to_sheet([["Test"]]);
+        const cell = test_ws['A1'];
+        cell.s = { fill: { fgColor: { rgb: "FF0000" } } };
+    } catch (e) {
+        console.error("Error al verificar xlsx-js-style:", e);
+        return Swal.fire(
+            'Error de Configuración',
+            'Parece que la librería "xlsx-js-style" no está cargada correctamente o en la versión adecuada. ' +
+            'Asegúrate de que `xlsx.full.min.js` se cargue primero y luego `xlsx.bundle.js` de "xlsx-js-style".',
+            'error'
+        );
+    }
+    // --- FIN VERIFICACIÓN CRÍTICA ---
+
+    Swal.fire({
+        title: 'Generando Reporte Profesional...',
+        html: 'Creando dashboard y hojas de análisis. Por favor, espera.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // --- Paso 1: Cargar y procesar el archivo de Jefaturas ---
+        const seccionToJefeMap = new Map();
+        try {
+            const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
+            const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
+            const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+
+            const findSheetName = (workbook) => {
+                const possibleNames = ["jefatura sil", "jefaturaa"];
+                return workbook.SheetNames.find(sheet => possibleNames.includes(sheet.trim().toLowerCase())) || workbook.SheetNames[0];
+            };
+            const sheetName = findSheetName(seccionesWB);
+            if (!sheetName) throw new Error(`No se encontró una hoja de cálculo en Secciones.xlsx.`);
+
+            const worksheet = seccionesWB.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+            if (data.length < 1) throw new Error(`La hoja "${sheetName}" está vacía.`);
+
+            let headerRowIndex = -1, seccionIndex = -1, jefaturaIndex = -1;
+            for (let i = 0; i < Math.min(5, data.length); i++) {
+                const headers = data[i].map(h => String(h || '').trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+                const tempSeccionIndex = headers.indexOf('seccion');
+                const tempJefaturaIndex = headers.indexOf('jefatura');
+                if (tempSeccionIndex !== -1 && tempJefaturaIndex !== -1) {
+                    headerRowIndex = i; seccionIndex = tempSeccionIndex; jefaturaIndex = tempJefaturaIndex;
+                    break;
+                }
+            }
+
+            if (headerRowIndex === -1) throw new Error(`No se encontraron las columnas "Seccion" y "Jefatura".`);
+
+            for (let i = headerRowIndex + 1; i < data.length; i++) {
+                const row = data[i];
+                const seccion = String(row[seccionIndex] || '').trim().toUpperCase();
+                const jefe = String(row[jefaturaIndex] || 'Sin Asignar').trim();
+                if (seccion) seccionToJefeMap.set(seccion, jefe);
+            }
+        } catch (error) {
+            throw new Error("Error al leer Secciones.xlsx: " + error.message);
+        }
+
+        // --- Paso 2: Obtener y procesar datos del manifiesto ---
+        const manifest = await reconstructManifestDataFromFirebase(manifestoId);
+        
+        // --- DEFINICIÓN CLAVE DE CÓMO SE PROCESAN Y CATEGORIZAN LAS COLUMNAS ---
+        // Columnas que deben ser NUMEROS con separador de miles (ej. 1,234)
+        const numericWithCommaFormatKeys = ['SAP', 'SCANNER', 'DIFERENCIA']; // Se añade DIFERENCIA aquí
+        // Columnas que deben ser NUMEROS largos SIN separador de miles (ej. 5007636731).
+        // Se incluyen aquí 'DAÑO_CANTIDAD' para tratarlo como número.
+        const numericNoCommaFormatKeys = ['MANIFIESTO', 'SKU', 'EUROPEO', 'ENTREGADO_A', 'DAÑO_CANTIDAD']; 
+        // Columnas que SIEMPRE deben ser TEXTO (ej. Q0084429, URLs).
+        // Se incluye aquí 'DAÑO_FOTO_URL'.
+        const textFormatKeys = ['CONTENEDOR', 'SECCION', 'JEFATURA', 'DAÑO_FOTO_URL']; 
+
+        const augmentedData = manifest.data.map(row => {
+            const newRow = {};
+
+            // Mapear los nombres de las columnas a sus valores en el row, independientemente del casing
+            const findValueByKey = (obj, keyName) => {
+                const foundKey = Object.keys(obj).find(k => k.trim().toUpperCase() === keyName.toUpperCase());
+                return foundKey ? obj[foundKey] : undefined;
+            };
+
+            for (const originalKey in row) {
+                const upperKey = originalKey.trim().toUpperCase();
+                let value = row[originalKey];
+
+                // === LÓGICA PRINCIPAL PARA DEJAR CAMPOS VACÍOS ===
+                // Si el valor es null, undefined, o un string vacío/solo espacios
+                // O si es DAÑO_CANTIDAD y su valor es 0 (que se convertiría a 00/01/1900)
+                if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '') ||
+                    (upperKey === 'DAÑO_CANTIDAD' && (value === 0 || value === '0'))) { // Condición específica para DAÑO_CANTIDAD
+                    newRow[originalKey] = null; // Establecer a null para que quede vacío en Excel
+                    continue; // Saltar al siguiente campo
+                }
+                // === FIN LÓGICA PRINCIPAL PARA DEJAR CAMPOS VACÍOS ===
+
+
+                if (textFormatKeys.includes(upperKey)) {
+                    newRow[originalKey] = String(value); // Asegurar que es string si tiene algún valor
+                    continue; 
+                }
+                
+                if (typeof value === 'string') {
+                    // Para columnas que deben ser números, limpiar y convertir
+                    const cleanedValue = value.replace(/,/g, ''); // Eliminar todas las comas del string original
+                    const numValue = Number(cleanedValue);
+
+                    if (isNaN(numValue)) {
+                        // Si después de limpiar comas, NO es un número válido, mantenerlo como string
+                        newRow[originalKey] = String(value); 
+                    } else {
+                        // Si es un número válido, convertirlo
+                        newRow[originalKey] = numValue;
+                    }
+                } else {
+                    // Si ya es un número o cualquier otro tipo, mantenerlo
+                    newRow[originalKey] = value;
+                }
+            }
+
+            // Añadir la jefatura como antes
+            const seccionKey = Object.keys(newRow).find(k => k.trim().toUpperCase() === 'SECCION');
+            const seccionValue = seccionKey ? newRow[seccionKey] : '';
+            const seccion = String(seccionValue || '').trim().toUpperCase();
+            const jefe = seccionToJefeMap.get(seccion) || 'Sin Jefe Asignado';
+            newRow.JEFATURA = jefe; 
+
+            // Añadir la columna DIFERENCIA
+            const sapValue = Number(findValueByKey(newRow, 'SAP') || 0);
+            const scannerValue = Number(findValueByKey(newRow, 'SCANNER') || 0);
+            newRow.DIFERENCIA = scannerValue - sapValue;
+            
+            return newRow;
+        });
+
+        // Asegurarse de que JEFATURA esté en la primera posición para la vista en Excel (esto es por el .sort)
+        augmentedData.sort((a, b) => {
+            const jefaturaA = a.JEFATURA || ''; // Manejar si JEFATURA es null
+            const jefaturaB = b.JEFATURA || ''; // Manejar si JEFATURA es null
+            const skuA = String(a.SKU || ''); // Manejar si SKU es null
+            const skuB = String(b.SKU || ''); // Manejar si SKU es null
+            return jefaturaA.localeCompare(jefaturaB) || skuA.localeCompare(skuB);
+        });
+
+
+        // --- Paso 3: Crear el libro de Excel y definir estilos ---
+        const wb = XLSX.utils.book_new();
+        const commonBorderStyle = { style: "thin", color: { rgb: "C0C0C0" } }; // Borde gris claro
+
+        const styles = {
+            mainHeader: {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+                fill: { fgColor: { rgb: "333333" } }, // Fondo gris oscuro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            analysisHeader: {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+                fill: { fgColor: { rgb: "0056b3" } }, // Fondo azul
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dataRowEven: {
+                fill: { fgColor: { rgb: "F0F0F0" } }, // Gris claro para filas pares
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dataRowOdd: {
+                fill: { fgColor: { rgb: "FFFFFF" } }, // Blanco para filas impares
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dashTitle: { font: { sz: 18, bold: true, color: { rgb: "E6007E" } } },
+            dashSubtitle: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } } },
+            dashHeader: { font: { sz: 14, bold: true, color: { rgb: "000000" } } },
+            metricLabel: { font: { bold: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "right" } },
+            metricValue: { font: { sz: 12, bold: true }, alignment: { horizontal: "left" } },
+            metricPositive: { font: { sz: 12, bold: true, color: { rgb: "28a745" } }, alignment: { horizontal: "left" } },
+            metricNegative: { font: { sz: 12, bold: true, color: { rgb: "dc3545" } }, alignment: { horizontal: "left" } },
+            
+            // Nuevos estilos para la columna DIFERENCIA en "Reporte por Jefatura"
+            diffOk: { // Verde para 0
+                font: { bold: true, color: { rgb: "28a745" } }, // Color verde
+                fill: { fgColor: { rgb: "D4EDDA" } }, // Fondo verde claro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            diffNegative: { // Rojo para faltantes
+                font: { bold: true, color: { rgb: "DC3545" } }, // Color rojo
+                fill: { fgColor: { rgb: "F8D7DA" } }, // Fondo rojo claro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            diffPositive: { // Amarillo para excedentes
+                font: { bold: true, color: { rgb: "856404" } }, // Color amarillo oscuro (para contraste)
+                fill: { fgColor: { rgb: "FFF3CD" } }, // Fondo amarillo claro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dashDate: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } } // Style for the date
+        };
+
+        // --- Función de ayuda para aplicar estilos a una hoja ---
+        const applyTableStyles = (ws, headerStyle, dataEvenStyle, dataOddStyle, numHeaderRows = 1) => {
+            if (!ws['!ref']) return;
+
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const numCols = range.e.c - range.s.c + 1;
+
+            // Aplicar estilos de encabezado
+            for (let r = 0; r < numHeaderRows; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                    if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+                    ws[cellRef].s = headerStyle;
+                }
+            }
+
+            // Aplicar estilos de fila de datos (colores alternos y bordes)
+            for (let r = numHeaderRows; r <= range.e.r; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                    // No crear celda si el valor es null para dejarla vacía
+                    if (ws[cellRef] === undefined || ws[cellRef].v === null) {
+                        continue; // Si el valor es null/undefined, la celda ya está vacía, no aplicar estilos
+                    }
+
+                    // Solo aplicar estilo de fila si no es una celda de diferencia con estilo especial
+                    // We check if the cell already has one of our custom styles (diffOk, diffNegative, diffPositive)
+                    const hasCustomDiffStyle = ws[cellRef].s && (ws[cellRef].s === styles.diffOk || ws[cellRef].s === styles.diffNegative || ws[cellRef].s === styles.diffPositive);
+
+                    if (!ws[cellRef].s || (ws[cellRef].s !== headerStyle && !hasCustomDiffStyle)) {
+                       ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
+                    } else if (!ws[cellRef].s && !hasCustomDiffStyle) { // Fallback if for some reason no style is present
+                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
+                    }
+                }
+            }
+
+            // Autoajustar ancho de columnas
+            ws['!cols'] = [];
+            for (let C = 0; C < numCols; ++C) {
+                let max_width = 0;
+                for (let R = 0; R <= range.e.r; ++R) {
+                    const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
+                    if (cell && cell.v != null) {
+                        const cell_text = String(cell.v);
+                        const lines = cell_text.split(/\r\n|\r|\n/);
+                        const longest_line = lines.reduce((max, line) => Math.max(max, line.length), 0);
+                        max_width = Math.max(max_width, longest_line);
+                    }
+                }
+                ws['!cols'][C] = { wch: Math.min(60, Math.max(8, max_width + 2)) };
+            }
+
+            // Inmovilizar paneles (primera fila)
+            ws['!freeze'] = {
+                xSplit: "0",
+                ySplit: "1",
+                topLeftCell: "A2",
+                activePane: "bottomLeft",
+                state: "frozen"
+            };
+        };
+
+        // --- Hoja 4: Dashboard (moved to be processed first) ---
+        const stats = calculateProStatistics(augmentedData);
+
+        // Accessing manifest.createdAt for the upload date
+        // Format: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
+        const uploadDateString = manifest.createdAt;
+        let formattedUploadDate = 'Fecha no disponible';
+
+        if (uploadDateString) {
+            try {
+                // Parse the string and format it.
+                // The provided string format is quite specific.
+                // It's safer to attempt parsing and then formatting.
+                // Example: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
+                // Let's try a robust way to parse it, handling potential variations.
+                // For a specific "DD de MMMM de YYYY, HH:mm:ss a.m./p.m. UTC-X" format, direct parsing might be tricky.
+                // A more universal approach is to extract components or rely on robust Date parsing.
+                // Given the format "16 de julio de 2025, 4:48:32 p.m. UTC-6",
+                // we'll try to create a Date object and then format it to a readable string.
+                
+                // For simplicity, if the string format is always consistent and recognized by Date.parse,
+                // we can do this:
+                const dateParts = uploadDateString.match(/(\d+) de (.+) de (\d{4}), (\d+):(\d+):(\d+) (a\.m\.|p\.m\.) UTC([+-]\d+)/i);
+                if (dateParts) {
+                    const day = parseInt(dateParts[1]);
+                    const monthName = dateParts[2].toLowerCase();
+                    const year = parseInt(dateParts[3]);
+                    let hour = parseInt(dateParts[4]);
+                    const minute = parseInt(dateParts[5]);
+                    const second = parseInt(dateParts[6]);
+                    const ampm = dateParts[7];
+                    const utcOffset = dateParts[8]; // e.g., -6
+
+                    const monthNames = {
+                        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+                        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+                    };
+                    const month = monthNames[monthName];
+
+                    if (ampm === 'p.m.' && hour !== 12) {
+                        hour += 12;
+                    } else if (ampm === 'a.m.' && hour === 12) {
+                        hour = 0; // 12 AM is 00:00
+                    }
+                    
+                    // Construct a date string that `new Date()` can parse reliably, e.g., "YYYY-MM-DDTHH:mm:ss"
+                    // Adjust hour for UTC offset if needed, but for display, local time is fine.
+                    // For reliable UTC conversion, you might need a library or more complex logic.
+                    // For now, let's form a date string that new Date() can mostly handle.
+                    const dateObj = new Date(year, month, day, hour, minute, second);
+                    // Add the UTC offset (e.g. for UTC-6, add 6 hours to get to UTC)
+                    // This is if you want to store/display in UTC. If you want the local time, Date object handles it.
+                    // dateObj.setHours(dateObj.getHours() - parseInt(utcOffset)); // If you want to convert to UTC from given local time
+                    
+                    formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true // To show AM/PM
                     });
 
-                    try {
-                        const dataObjReconstructed = await reconstructManifestDataFromFirebase(name);
-                        const data = dataObjReconstructed.data;
-
-                        const stats = calculateProStatistics(data);
-
-                        const formattedExportData = data.map(r => {
-                            const sap = Number(r.SAP) || 0;
-                            const sc = Number(r.SCANNER) || 0;
-                            let diffValue = sc - sap;
-                            let diffStatus = "";
-                            if (sc === sap) diffStatus = "OK";
-                            else if (sc < sap) diffStatus = "FALTANTE";
-                            else diffStatus = "EXCEDENTE";
-
-                            return {
-                                FECHA: r.FECHA instanceof Date && !isNaN(r.FECHA) ? formatFecha(r.FECHA) : (r.FECHA || ''),
-                                SECCION: r.SECCION || "SIN_SECCION",
-                                MANIFIESTO: r.MANIFIESTO || "N/A",
-                                CONTENEDOR: r.CONTENEDOR || "SIN_CONTENEDOR",
-                                SKU: r.SKU || "",
-                                EUROPEO: r.EUROPEO || "",
-                                DESCRIPCION: r.DESCRIPCION || "",
-                                SAP: sap,
-                                SCANNER: sc,
-                                LAST_SCANNED_BY: r.LAST_SCANNED_BY || "SIN_USUARIO",
-                                ENTREGADO_A: r.ENTREGADO_A || "SIN_EMPLEADO",
-                                DIFERENCIA_VALOR: diffValue,
-                                DIFERENCIA_ESTADO: diffStatus,
-                                FechaEscaneo: r.FECHA_ESCANEO instanceof Date && !isNaN(r.FECHA_ESCANEO) ? formatFecha(r.FECHA_ESCANEO) : (r.FECHA_ESCANEO || ''),
-                                CONDICIONES_MCIA: r.DANIO_CANTIDAD || 0,
-                                FOTO_CONDICIONES: r.DANIO_FOTO_URL || ""
-                            };
-                        });
-
-                        const containerAnalysis = {};
-                        const sectionAnalysis = {};
-
-                        formattedExportData.forEach(row => {
-                            const cont = row.CONTENEDOR;
-                            const sect = row.SECCION;
-                            const sap = row.SAP;
-                            const scanner = row.SCANNER;
-                            const diffStatus = row.DIFERENCIA_ESTADO;
-
-                            if (!containerAnalysis[cont]) containerAnalysis[cont] = {
-                                SAP: 0,
-                                SCANNER: 0,
-                                FALTANTE: 0,
-                                EXCEDENTE: 0,
-                                OK: 0
-                            };
-                            if (!sectionAnalysis[sect]) sectionAnalysis[sect] = {
-                                SAP: 0,
-                                SCANNER: 0,
-                                FALTANTE: 0,
-                                EXCEDENTE: 0,
-                                OK: 0
-                            };
-
-                            containerAnalysis[cont].SAP += sap;
-                            containerAnalysis[cont].SCANNER += scanner;
-                            sectionAnalysis[sect].SAP += sap;
-                            sectionAnalysis[sect].SCANNER += scanner;
-
-                            if (diffStatus === "FALTANTE") {
-                                containerAnalysis[cont].FALTANTE += (sap - scanner);
-                                sectionAnalysis[sect].FALTANTE += (sap - scanner);
-                            } else if (diffStatus === "EXCEDENTE") {
-                                containerAnalysis[cont].EXCEDENTE += (scanner - sap);
-                                sectionAnalysis[sect].EXCEDENTE += (scanner - sap);
-                            } else if (diffStatus === "OK") {
-                                containerAnalysis[cont].OK += scanner;
-                                sectionAnalysis[sect].OK += scanner;
-                            }
-                        });
-
-                        const containerAnalysisData = Object.entries(containerAnalysis).map(([key, value]) => ([
-                            key, value.SAP, value.SCANNER, value.FALTANTE, value.EXCEDENTE, value.OK, (value.SCANNER - value.SAP)
-                        ])).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-
-                        const sectionAnalysisData = Object.entries(sectionAnalysis).map(([key, value]) => ([
-                            key, value.SAP, value.SCANNER, value.FALTANTE, value.EXCEDENTE, value.OK, (value.SCANNER - value.SAP)
-                        ])).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-
-
-                        const wb = XLSX.utils.book_new();
-
-                        const createStyledCell = (value, style = {}) => {
-                            return {
-                                v: value,
-                                s: { ...style
-                                }
-                            };
-                        };
-                        const createMergedCellPlaceholder = () => undefined;
-                        const createEmptyCell = () => ({
-                            v: "",
-                            s: {}
-                        });
-
-                        const dashboardTitleStyle = {
-                            font: {
-                                sz: 18,
-                                bold: true,
-                                color: {
-                                    rgb: "E6007E"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const dashboardSubtitleStyle = {
-                            font: {
-                                sz: 12,
-                                bold: true
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const metricLabelStyle = {
-                            font: {
-                                bold: true,
-                                color: {
-                                    rgb: "6C757D"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const metricValueMainStyle = {
-                            font: {
-                                sz: 24,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const metricValueSuccessStyle = {
-                            font: {
-                                sz: 24,
-                                bold: true,
-                                color: {
-                                    rgb: "4CAF50"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const metricValueDangerStyle = {
-                            font: {
-                                sz: 24,
-                                bold: true,
-                                color: {
-                                    rgb: "DC3545"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const metricValueWarningStyle = {
-                            font: {
-                                sz: 24,
-                                bold: true,
-                                color: {
-                                    rgb: "FFC107"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const metricValueAccentStyle = {
-                            font: {
-                                sz: 24,
-                                bold: true,
-                                color: {
-                                    rgb: "E6007E"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-                        const dashboardTableHeaderStyle = {
-                            font: {
-                                bold: true,
-                                color: {
-                                    rgb: "FFFFFF"
-                                }
-                            },
-                            fill: {
-                                fgColor: {
-                                    rgb: "343A40"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center"
-                            }
-                        };
-
-
-                        let wsGuideData = [];
-                        let guideRow = 0;
-
-                        wsGuideData.push([createStyledCell("Guía de Análisis", {
-                            font: {
-                                sz: 16,
-                                bold: true,
-                                color: {
-                                    rgb: "E6007E"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("Empodera tus decisiones con análisis de datos avanzado.", {
-                            font: {
-                                sz: 10,
-                                italic: true,
-                                color: {
-                                    rgb: "6C757D"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("¿Por qué usar Tablas Dinámicas?", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("Las Tablas Dinámicas (PivotTables) son herramientas poderosas en Excel para resumir, analizar, explorar y presentar datos de forma interactiva y flexible. Te permiten ver patrones, tendencias y hacer comparaciones rápidamente sin cambiar el origen de los datos.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("Paso 1: Preparar los Datos Fuente", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("Todos los datos detallados de este manifiesto se encuentran en la hoja 'Detalles Completos'. Asegúrate de que todas las columnas tengan encabezados claros.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("Paso 2: Crear una Tabla Dinámica", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("1. Ve a la hoja 'Detalles Completos'.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("2. Selecciona cualquier celda dentro de tus datos.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("3. En el menú superior de Excel, ve a la pestaña 'Insertar' y haz clic en 'Tabla dinámica' (o 'PivotTable').", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("4. En la ventana 'Crear tabla dinámica', asegúrate de que el 'Rango de la tabla/rango' sea el correcto (normalmente Excel lo detecta automáticamente).", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("5. En 'Elige dónde quieres colocar la tabla dinámica', selecciona 'Nueva hoja de cálculo' para un análisis limpio y haz clic en 'Aceptar'.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("Paso 3: Configurar tu Análisis Específico", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("Se abrirá una nueva hoja con un panel a la derecha ('Campos de tabla dinámica'). Arrastra los campos a las áreas correspondientes:", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("A. Análisis por CONTENEDOR (Ejemplo)", {
-                            font: {
-                                sz: 11,
-                                bold: true,
-                                color: {
-                                    rgb: "4CAF50"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Arrastra 'CONTENEDOR' a FILAS.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Arrastra 'DIFERENCIA_ESTADO' a COLUMNAS.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Arrastra 'SAP', 'SCANNER', 'DIFERENCIA_VALOR' a VALORES (asegúrate de que sea 'Suma de').", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("B. Análisis por SECCIÓN (Ejemplo)", {
-                            font: {
-                                sz: 11,
-                                bold: true,
-                                color: {
-                                    rgb: "4CAF50"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Arrastra 'SECCION' a FILAS.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Arrastra 'DIFERENCIA_ESTADO' a COLUMNAS.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Arrastra 'SAP', 'SCANNER', 'DIFERENCIA_VALOR' a VALORES (asegúrate de que sea 'Suma de').", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("Paso 4: Mejorar tu Dashboard Interactivo", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("Una vez creada tu Tabla Dinámica, haz clic en ella y ve a la pestaña 'Analizar tabla dinámica' (o 'Opciones' en versiones antiguas):", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • 'Gráfico dinámico' (PivotChart): Crea gráficos interactivos a partir de tu tabla.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • 'Insertar segmentación de datos' (Slicer): Añade filtros interactivos para campos como 'CONTENEDOR', 'SECCION', 'DIFERENCIA_ESTADO'.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-                        wsGuideData.push([createStyledCell("Consejos Adicionales:", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Actualizar datos: Si el manifiesto original cambia, haz clic derecho en la Tabla Dinámica y selecciona 'Actualizar' (Refresh).", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createStyledCell("  • Guardar tu vista: Puedes guardar la hoja con tu Tabla Dinámica configurada para futuras referencias.", {}), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        guideRow++;
-                        wsGuideData.push([createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        guideRow++;
-
-
-                        const wsGuide = XLSX.utils.aoa_to_sheet(wsGuideData);
-                        wsGuide['!cols'] = [{
-                            wch: 70
-                        }, {
-                            wch: 10
-                        }, {
-                            wch: 10
-                        }];
-
-                        let mergesGuide = [];
-                        let currentGuideMergeRow = 0;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        currentGuideMergeRow++;
-
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-                        mergesGuide.push({
-                            s: {
-                                r: currentGuideMergeRow,
-                                c: 0
-                            },
-                            e: {
-                                r: currentGuideMergeRow,
-                                c: 2
-                            }
-                        });
-                        currentGuideMergeRow++;
-
-                        wsGuide['!merges'] = mergesGuide;
-                        XLSX.utils.book_append_sheet(wb, wsGuide, "Guía de Análisis");
-
-                        let wsDashboardData = [];
-
-                        wsDashboardData.push([createStyledCell("Dashboard del Manifiesto", dashboardTitleStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell(`Manifiesto: ${stats.totalSKUs > 0 ? formattedExportData[0].MANIFIESTO : "N/A"}`, dashboardSubtitleStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell(`Archivo: ${name}`, dashboardSubtitleStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell(`Generado: ${formatFecha(new Date())}`, dashboardSubtitleStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-
-                        wsDashboardData.push([createStyledCell("PIEZAS ESPERADAS", metricLabelStyle), createMergedCellPlaceholder(), createStyledCell("PIEZAS ESCANEADAS", metricLabelStyle), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell(stats.totalSAP, metricValueMainStyle), createMergedCellPlaceholder(), createStyledCell(stats.totalSCAN, metricValueSuccessStyle), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-
-                        wsDashboardData.push([createStyledCell("PIEZAS FALTANTES", metricLabelStyle), createMergedCellPlaceholder(), createStyledCell("PIEZAS EXCEDENTES", metricLabelStyle), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell(stats.faltantes, metricValueDangerStyle), createMergedCellPlaceholder(), createStyledCell(stats.excedentes, metricValueWarningStyle), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-
-                        wsDashboardData.push([createStyledCell("PROGRESO GENERAL", metricLabelStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell(`${stats.avance}%`, metricValueAccentStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-
-                        wsDashboardData.push([createStyledCell("Contenedores con Faltantes/Excedentes", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell("Contenedor", dashboardTableHeaderStyle), createStyledCell("Diferencia (pz)", dashboardTableHeaderStyle), createEmptyCell(), createEmptyCell()]);
-
-                        const allContainerDiffs = [...stats.topContenedoresFaltantes, ...stats.topContenedoresExcedentes]
-                            .filter(item => item[1] !== 0)
-                            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-
-                        allContainerDiffs.forEach(item => {
-                            wsDashboardData.push([
-                                createStyledCell(item[0], {}),
-                                createStyledCell(item[1], {
-                                    font: {
-                                        color: {
-                                            rgb: item[1] < 0 ? "DC3545" : (item[1] > 0 ? "FFC107" : "000000")
-                                        }
-                                    }
-                                }),
-                                createEmptyCell(), createEmptyCell()
-                            ]);
-                        });
-                        wsDashboardData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-
-                        wsDashboardData.push([createStyledCell("Secciones con Faltantes/Excedentes", {
-                            font: {
-                                sz: 12,
-                                bold: true,
-                                color: {
-                                    rgb: "0D6EFD"
-                                }
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        wsDashboardData.push([createStyledCell("Sección", dashboardTableHeaderStyle), createStyledCell("Diferencia (pz)", dashboardTableHeaderStyle), createEmptyCell(), createEmptyCell()]);
-
-                        const allSectionDiffs = [...stats.topSeccionesFaltantes, ...stats.topSeccionesExcedentes]
-                            .filter(item => item[1] !== 0)
-                            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
-
-                        allSectionDiffs.forEach(item => {
-                            wsDashboardData.push([
-                                createStyledCell(item[0], {}),
-                                createStyledCell(item[1], {
-                                    font: {
-                                        color: {
-                                            rgb: item[1] < 0 ? "DC3545" : (item[1] > 0 ? "FFC107" : "000000")
-                                        }
-                                    }
-                                }),
-                                createEmptyCell(), createEmptyCell()
-                            ]);
-                        });
-
-                        const wsDashboard = XLSX.utils.aoa_to_sheet(wsDashboardData);
-
-                        let mergesDashboard = [];
-                        let rowDash = 0;
-
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        rowDash++;
-
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 1
-                            }
-                        });
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 2
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 1
-                            }
-                        });
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 2
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        rowDash++;
-
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 1
-                            }
-                        });
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 2
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 1
-                            }
-                        });
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 2
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        rowDash++;
-
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        rowDash++;
-
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        rowDash++;
-                        rowDash += allContainerDiffs.length;
-                        rowDash++;
-
-                        mergesDashboard.push({
-                            s: {
-                                r: rowDash,
-                                c: 0
-                            },
-                            e: {
-                                r: rowDash,
-                                c: 3
-                            }
-                        });
-                        rowDash++;
-                        rowDash++;
-                        rowDash += allSectionDiffs.length;
-
-                        wsDashboard['!merges'] = mergesDashboard;
-                        wsDashboard['!cols'] = [{
-                            wch: 25
-                        }, {
-                            wch: 15
-                        }, {
-                            wch: 25
-                        }, {
-                            wch: 15
-                        }];
-
-                        XLSX.utils.book_append_sheet(wb, wsDashboard, "Dashboard");
-
-
-                        const wsDetalles = XLSX.utils.json_to_sheet(formattedExportData, {
-                            header: [
-                                "FECHA", "SECCION", "MANIFIESTO", "CONTENEDOR", "SKU", "EUROPEO",
-                                "DESCRIPCION", "SAP", "SCANNER", "LAST_SCANNED_BY", "ENTREGADO_A",
-                                "DIFERENCIA_VALOR", "DIFERENCIA_ESTADO", "FechaEscaneo", "CONDICIONES_MCIA", "FOTO_CONDICIONES"
-                            ]
-                        });
-
-                        const detailsHeaderStyle = {
-                            font: {
-                                bold: true,
-                                color: {
-                                    rgb: "FFFFFF"
-                                }
-                            },
-                            fill: {
-                                fgColor: {
-                                    rgb: "343A40"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center",
-                                vertical: "center"
-                            },
-                            border: {
-                                top: {
-                                    style: "thin",
-                                    color: {
-                                        rgb: "CCCCCC"
-                                    }
-                                },
-                                bottom: {
-                                    style: "thin",
-                                    color: {
-                                        rgb: "CCCCCC"
-                                    }
-                                },
-                                left: {
-                                    style: "thin",
-                                    color: {
-                                        rgb: "CCCCCC"
-                                    }
-                                },
-                                right: {
-                                    style: "thin",
-                                    color: {
-                                        rgb: "CCCCCC"
-                                    }
-                                }
-                            }
-                        };
-                        const detailsColumnWidths = [{
-                            wch: 12
-                        }, {
-                            wch: 18
-                        }, {
-                            wch: 18
-                        }, {
-                            wch: 22
-                        }, {
-                            wch: 15
-                        }, {
-                            wch: 25
-                        }, {
-                            wch: 45
-                        }, {
-                            wch: 8
-                        }, {
-                            wch: 8
-                        }, {
-                            wch: 25
-                        }, {
-                            wch: 25
-                        }, {
-                            wch: 15
-                        }, {
-                            wch: 18
-                        }, {
-                            wch: 15
-                        }, {
-                            wch: 15
-                        }, {
-                            wch: 50
-                        }, ];
-                        wsDetalles['!cols'] = detailsColumnWidths;
-
-                        for (let C = 0; C < detailsColumnWidths.length; ++C) {
-                            const cellRef = XLSX.utils.encode_cell({
-                                r: 0,
-                                c: C
-                            });
-                            if (!wsDetalles[cellRef]) {
-                                wsDetalles[cellRef] = {
-                                    t: 's',
-                                    v: ''
-                                };
-                            }
-                            if (!wsDetalles[cellRef].s) {
-                                wsDetalles[cellRef].s = {};
-                            }
-                            Object.assign(wsDetalles[cellRef].s, detailsHeaderStyle);
-                        }
-
-                        for (let R = 1; R <= formattedExportData.length; ++R) {
-                            const rowData = formattedExportData[R - 1];
-                            const diffStatus = rowData.DIFERENCIA_ESTADO;
-
-                            let rowFillColor = {};
-                            let textColor = {
-                                rgb: "343A40"
-                            };
-
-                            if (diffStatus === "FALTANTE") {
-                                rowFillColor = {
-                                    fgColor: {
-                                        rgb: "FFDDDD"
-                                    }
-                                };
-                                textColor = {
-                                    rgb: "DC3545"
-                                };
-                            } else if (diffStatus === "EXCEDENTE") {
-                                rowFillColor = {
-                                    fgColor: {
-                                        rgb: "FFF2CC"
-                                    }
-                                };
-                                textColor = {
-                                    rgb: "FFC107"
-                                };
-                            } else {}
-
-                            for (let C = 0; C < detailsColumnWidths.length; ++C) {
-                                const cellRef = XLSX.utils.encode_cell({
-                                    r: R,
-                                    c: C
-                                });
-                                if (!wsDetalles[cellRef]) {
-                                    wsDetalles[cellRef] = {
-                                        t: 's',
-                                        v: ''
-                                    };
-                                }
-                                if (!wsDetalles[cellRef].s) {
-                                    wsDetalles[cellRef].s = {};
-                                }
-                                Object.assign(wsDetalles[cellRef].s, {
-                                    border: {
-                                        top: {
-                                            style: "thin",
-                                            color: {
-                                                rgb: "E0E0E0"
-                                            }
-                                        },
-                                        bottom: {
-                                            style: "thin",
-                                            color: {
-                                                rgb: "E0E0E0"
-                                            }
-                                        },
-                                        left: {
-                                            style: "thin",
-                                            color: {
-                                                rgb: "E0E0E0"
-                                            }
-                                        },
-                                        right: {
-                                            style: "thin",
-                                            color: {
-                                                rgb: "E0E0E0"
-                                            }
-                                        }
-                                    },
-                                    fill: rowFillColor,
-                                    font: {
-                                        color: textColor
-                                    }
-                                });
-                            }
-                        }
-
-                        wsDetalles['!autofilter'] = {
-                            ref: `A1:P${formattedExportData.length + 1}`
-                        };
-                        XLSX.utils.book_append_sheet(wb, wsDetalles, "Detalles Completos");
-
-                        let wsAnalisisContenedorData = [];
-                        let analisisContenedorRow = 0;
-                        const analisisTableHeaders = [
-                            "Elemento", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "OK", "Diferencia Total"
-                        ];
-
-                        wsAnalisisContenedorData.push([createStyledCell("Análisis por Contenedor", dashboardTitleStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        analisisContenedorRow++;
-                        wsAnalisisContenedorData.push([createStyledCell("Resumen de piezas por contenedor.", {
-                            font: {
-                                sz: 10,
-                                italic: true
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        analisisContenedorRow++;
-                        wsAnalisisContenedorData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        analisisContenedorRow++;
-
-                        wsAnalisisContenedorData.push(analisisTableHeaders.map(header => createStyledCell(header, dashboardTableHeaderStyle)));
-                        analisisContenedorRow++;
-
-                        containerAnalysisData.forEach(item => {
-                            wsAnalisisContenedorData.push([
-                                createStyledCell(item[0], {}),
-                                createStyledCell(item[1], {}),
-                                createStyledCell(item[2], {}),
-                                createStyledCell(item[3], {
-                                    font: {
-                                        color: {
-                                            rgb: "DC3545"
-                                        }
-                                    }
-                                }),
-                                createStyledCell(item[4], {
-                                    font: {
-                                        color: {
-                                            rgb: "FFC107"
-                                        }
-                                    }
-                                }),
-                                createStyledCell(item[5], {
-                                    font: {
-                                        color: {
-                                            rgb: "4CAF50"
-                                        }
-                                    }
-                                }),
-                                createStyledCell(item[6], {
-                                    font: {
-                                        color: {
-                                            rgb: item[6] < 0 ? "DC3545" : (item[6] > 0 ? "008000" : "000000")
-                                        }
-                                    }
-                                })
-                            ]);
-                            analisisContenedorRow++;
-                        });
-                        const wsAnalisisContenedor = XLSX.utils.aoa_to_sheet(wsAnalisisContenedorData);
-                        wsAnalisisContenedor['!cols'] = [{
-                            wch: 25
-                        }, {
-                            wch: 12
-                        }, {
-                            wch: 12
-                        }, {
-                            wch: 10
-                        }, {
-                            wch: 10
-                        }, {
-                            wch: 8
-                        }, {
-                            wch: 15
-                        }];
-                        wsAnalisisContenedor['!autofilter'] = {
-                            ref: `A4:G${analisisContenedorRow}`
-                        };
-
-                        const mergesAnalisisContenedor = [{
-                            s: {
-                                r: 0,
-                                c: 0
-                            },
-                            e: {
-                                r: 0,
-                                c: 6
-                            }
-                        }, {
-                            s: {
-                                r: 1,
-                                c: 0
-                            },
-                            e: {
-                                r: 1,
-                                c: 6
-                            }
-                        }];
-                        wsAnalisisContenedor['!merges'] = mergesAnalisisContenedor;
-                        XLSX.utils.book_append_sheet(wb, wsAnalisisContenedor, "Análisis por Cont.");
-
-                        let wsAnalisisSeccionData = [];
-                        let analisisSeccionRow = 0;
-
-                        wsAnalisisSeccionData.push([createStyledCell("Análisis por Sección", dashboardTitleStyle), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        analisisSeccionRow++;
-                        wsAnalisisSeccionData.push([createStyledCell("Resumen de piezas por sección.", {
-                            font: {
-                                sz: 10,
-                                italic: true
-                            }
-                        }), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder(), createMergedCellPlaceholder()]);
-                        analisisSeccionRow++;
-                        wsAnalisisSeccionData.push([createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell(), createEmptyCell()]);
-                        analisisSeccionRow++;
-
-                        wsAnalisisSeccionData.push(analisisTableHeaders.map(header => createStyledCell(header, dashboardTableHeaderStyle)));
-                        analisisSeccionRow++;
-
-                        sectionAnalysisData.forEach(item => {
-                            wsAnalisisSeccionData.push([
-                                createStyledCell(item[0], {}),
-                                createStyledCell(item[1], {}),
-                                createStyledCell(item[2], {}),
-                                createStyledCell(item[3], {
-                                    font: {
-                                        color: {
-                                            rgb: "DC3545"
-                                        }
-                                    }
-                                }),
-                                createStyledCell(item[4], {
-                                    font: {
-                                        color: {
-                                            rgb: "FFC107"
-                                        }
-                                    }
-                                }),
-                                createStyledCell(item[5], {
-                                    font: {
-                                        color: {
-                                            rgb: "4CAF50"
-                                        }
-                                    }
-                                }),
-                                createStyledCell(item[6], {
-                                    font: {
-                                        color: {
-                                            rgb: item[6] < 0 ? "DC3545" : (item[6] > 0 ? "008000" : "000000")
-                                        }
-                                    }
-                                })
-                            ]);
-                            analisisSeccionRow++;
-                        });
-                        const wsAnalisisSeccion = XLSX.utils.aoa_to_sheet(wsAnalisisSeccionData);
-                        wsAnalisisSeccion['!cols'] = [{
-                            wch: 25
-                        }, {
-                            wch: 12
-                        }, {
-                            wch: 12
-                        }, {
-                            wch: 10
-                        }, {
-                            wch: 10
-                        }, {
-                            wch: 8
-                        }, {
-                            wch: 15
-                        }];
-                        wsAnalisisSeccion['!autofilter'] = {
-                            ref: `A4:G${analisisSeccionRow}`
-                        };
-
-                        const mergesAnalisisSeccion = [{
-                            s: {
-                                r: 0,
-                                c: 0
-                            },
-                            e: {
-                                r: 0,
-                                c: 6
-                            }
-                        }, {
-                            s: {
-                                r: 1,
-                                c: 0
-                            },
-                            e: {
-                                r: 1,
-                                c: 6
-                            }
-                        }];
-                        wsAnalisisSeccion['!merges'] = mergesAnalisisSeccion;
-                        XLSX.utils.book_append_sheet(wb, wsAnalisisSeccion, "Análisis por Secc.");
-
-
-                        const out = XLSX.write(wb, {
-                            bookType: "xlsx",
-                            type: "array"
-                        });
-                        const blob = new Blob([out], {
-                            type: "application/octet-stream"
-                        });
-                        const a = document.createElement("a");
-                        a.href = URL.createObjectURL(blob);
-                        a.download = `Manifiesto_Dashboard_Analitico_${name.replace(/\.xlsx$/i, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        URL.revokeObjectURL(a.href);
-
-                        Swal.fire({
-                            icon: "success",
-                            title: "Excel Generado",
-                            text: "El Dashboard analítico ha sido descargado. ¡Todas las hojas de análisis contienen datos visibles de inmediato!",
-                            toast: true,
-                            position: "center",
-                            timer: 5000
-                        });
-
-                    } catch (e) {
-                        console.error("Error al generar Excel:", e);
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "No se pudo generar el Excel. Asegúrate de que los datos de tu manifiesto estén completos y bien formateados. Revisa la consola."
+                } else {
+                    // Fallback if the specific regex doesn't match, try direct Date parsing
+                    const dateObj = new Date(uploadDateString);
+                    if (!isNaN(dateObj)) { // Check if date is valid
+                        formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true // To show AM/PM
                         });
                     }
-                };
+                }
+            } catch (error) {
+                console.warn("Could not parse upload date string:", uploadDateString, error);
+                formattedUploadDate = 'Fecha no disponible (Error al procesar)';
+            }
+        }
 
+
+        let dashboardData = [
+            [{ v: "⭐️ Dashboard de Manifiesto", s: styles.dashTitle }],
+            [{ v: `Archivo: ${manifestoId}`, s: styles.dashSubtitle }],
+            [{ v: `Fecha de Carga: ${formattedUploadDate}`, s: styles.dashDate }], // Added upload date
+            [], // Empty row for spacing
+            [{ v: "📊 MÉTRICAS GENERALES", s: styles.dashHeader }],
+            [{ v: "📥 Total Piezas (SAP):", s: styles.metricLabel }, { v: stats.totalSAP, s: styles.metricValue, z: '#,##0' }],
+            [{ v: "✅ Total Piezas Escaneadas:", s: styles.metricLabel }, { v: stats.totalSCAN, s: styles.metricValue, z: '#,##0' }],
+            [{ v: "⚠️ Diferencia Total:", s: styles.metricLabel }, { v: stats.totalSCAN - stats.totalSAP, s: (stats.totalSCAN - stats.totalSAP < 0 ? styles.metricNegative : styles.metricPositive), z: '#,##0' }],
+            [{ v: "🎯 Progreso General:", s: styles.metricLabel }, { v: stats.avance / 100, s: styles.metricPositive, z: '0.00%' }],
+            [], // Empty row for spacing
+            [{ v: "🚨 PUNTOS CRÍTICOS (FALTANTES)", s: styles.dashHeader }],
+            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topContenedoresFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
+            [], // Empty row for spacing
+            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topSeccionesFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
+            [], // Empty row for spacing
+            [{ v: "📈 PUNTOS DE OPORTUNIDAD (EXCEDENTES)", s: styles.dashHeader }],
+            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topContenedoresExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
+            [], // Empty row for spacing
+            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topSeccionesExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
+        ];
+        const wsDash = XLSX.utils.aoa_to_sheet(dashboardData);
+        wsDash['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }];
+        // Update merges to account for the new date row and shifted content
+        const baseRowShift = 1; // Due to adding one extra line (Fecha de Carga)
+        wsDash['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }, 
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } }, // Merge for the date row
+            { s: { r: 3 + baseRowShift, c: 0 }, e: { r: 3 + baseRowShift, c: 2 } }, // Shifted 'MÉTRICAS GENERALES'
+            { s: { r: 9 + baseRowShift, c: 0 }, e: { r: 9 + baseRowShift, c: 2 } }, // Shifted 'PUNTOS CRÍTICOS'
+            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 2 } }, // Shifted 'Secciones:' header
+            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 2 } } // Shifted 'PUNTOS DE OPORTUNIDAD'
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard"); // Add dashboard first
+
+        // --- Hoja 1: Reporte por Jefatura ---
+        const wsMain = XLSX.utils.json_to_sheet(augmentedData);
+        if (augmentedData.length > 0) {
+            // Asegúrate de que los encabezados se generen correctamente incluyendo 'DIFERENCIA'
+            const headers = Object.keys(augmentedData[0]);
+            XLSX.utils.sheet_add_aoa(wsMain, [headers], { origin: "A1" });
+            
+            const headerKeysMain = headers; // Ya tenemos los encabezados en el orden correcto
+            const headerKeysUpper = headerKeysMain.map(key => key.toUpperCase());
+
+            const diffColIndex = headerKeysUpper.indexOf('DIFERENCIA'); // Obtener el índice de la columna DIFERENCIA
+
+            for (let r = 1; r <= augmentedData.length; r++) { // Empezar desde la fila 1 (después del encabezado)
+                // Aplicar formato para números con comas (SAP, SCANNER)
+                numericWithCommaFormatKeys.forEach(colName => {
+                    if (colName === 'DIFERENCIA') return; // Se manejará aparte
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') { 
+                            wsMain[cellRef].z = '#,##0'; // Formato con separador de miles
+                        }
+                    }
+                });
+
+                // Aplicar formato para números sin comas (MANIFIESTO, SKU, EUROPEO, ENTREGADO_A, DAÑO_CANTIDAD)
+                numericNoCommaFormatKeys.forEach(colName => {
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') { // Asegurarse de que es tipo número
+                            wsMain[cellRef].z = '0'; // Formato entero sin separador de miles
+                        }
+                    }
+                });
+
+                // Asegurar que las columnas de texto permanezcan como tal y sin formato numérico
+                textFormatKeys.forEach(colName => {
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef]) { // Solo si la celda existe (no es null/undefined)
+                            wsMain[cellRef].t = 's'; // Forzar tipo string
+                            delete wsMain[cellRef].z; // Eliminar cualquier formato numérico
+                        }
+                    }
+                });
+
+                // Lógica de color y texto para la columna DIFERENCIA
+                if (diffColIndex !== -1) {
+                    const cellRef = XLSX.utils.encode_cell({ c: diffColIndex, r: r });
+                    const cell = wsMain[cellRef];
+
+                    if (cell && cell.t === 'n') { // Si es una celda numérica
+                        const diffValue = cell.v;
+                        if (diffValue === 0) {
+                            cell.s = styles.diffOk;
+                            cell.v = "OK"; // Cambiar valor a "OK"
+                            cell.t = 's'; // Cambiar tipo a string
+                            delete cell.z; // Eliminar formato numérico
+                        } else if (diffValue < 0) {
+                            cell.s = styles.diffNegative;
+                            cell.v = `FALTANTE: ${Math.abs(diffValue)}`; // Cambiar valor a "FALTANTE: X"
+                            cell.t = 's'; // Cambiar tipo a string
+                            delete cell.z; // Eliminar formato numérico
+                        } else { // diffValue > 0
+                            cell.s = styles.diffPositive;
+                            cell.v = `EXCEDENTE: ${diffValue}`; // Cambiar valor a "EXCEDENTE: X"
+                            cell.t = 's'; // Cambiar tipo a string
+                            delete cell.z; // Eliminar formato numérico
+                        }
+                    } else if (cell && (cell.v === null || cell.v === undefined || cell.v === '')) {
+                         // If cell is empty or null, keep it without value and without specific diff style
+                         // applyTableStyles will handle borders and alternating row color
+                         continue;
+                    }
+                }
+            }
+
+            applyTableStyles(wsMain, styles.mainHeader, styles.dataRowEven, styles.dataRowOdd);
+            wsMain['!autofilter'] = { ref: wsMain['!ref'] };
+        }
+        XLSX.utils.book_append_sheet(wb, wsMain, "Reporte por Jefatura");
+
+        // --- Análisis por Contenedor y Sección ---
+        const analysisHeadersCont = ["Contenedor", "Jefatura(s)", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
+        const analysisHeadersSect = ["Sección", "Jefatura", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
+        const containerAnalysis = {}, sectionAnalysis = {};
+        augmentedData.forEach(row => {
+            const findKey = (obj, key) => Object.keys(obj).find(k => k.toUpperCase() === key.toUpperCase());
+            const cont = row[findKey(row, 'CONTENEDOR')]; 
+            const sect = row[findKey(row, 'SECCION')] || "N/A";
+            const sap = Number(row[findKey(row, 'SAP')] || 0); 
+            const scanner = Number(row[findKey(row, 'SCANNER')] || 0); 
+            const jefe = row.JEFATURA;
+            if (!containerAnalysis[cont]) containerAnalysis[cont] = { SAP: 0, SCANNER: 0, Jefes: new Set() };
+            containerAnalysis[cont].SAP += sap;
+            containerAnalysis[cont].SCANNER += scanner;
+            if (jefe !== 'Sin Jefe Asignado') containerAnalysis[cont].Jefes.add(jefe);
+            if (!sectionAnalysis[sect]) sectionAnalysis[sect] = { SAP: 0, SCANNER: 0 };
+            sectionAnalysis[sect].SAP += sap;
+            sectionAnalysis[sect].SCANNER += scanner;
+        });
+
+        // --- Hoja 2: Análisis por Contenedor ---
+        const wsContData = Object.entries(containerAnalysis).map(([key, val]) => ({ "Contenedor": key, "Jefatura(s)": [...val.Jefes].join(', '), "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
+        const wsCont = XLSX.utils.json_to_sheet(wsContData, { header: analysisHeadersCont });
+        const numColsCont = analysisHeadersCont.length;
+        for (let r = 1; r <= wsContData.length; r++) {
+            // Formatear columnas numéricas con comas (Piezas SAP, Piezas Escaneadas, Diferencia)
+            const numericColsWithCommas_analysis = [2, 3, 4]; // Columnas Piezas SAP, Escaneadas, Diferencia
+            numericColsWithCommas_analysis.forEach(colIndex => {
+                if (numColsCont > colIndex) {
+                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                    if (wsCont[cellRef] && wsCont[cellRef].t === 'n') {
+                        wsCont[cellRef].z = '#,##0';
+                    }
+                }
+            });
+            // Asegurar que 'Contenedor' sea texto
+            const contColIndex = analysisHeadersCont.indexOf('Contenedor');
+            if (contColIndex !== -1) {
+                const cellRef = XLSX.utils.encode_cell({ c: contColIndex, r: r });
+                if (wsCont[cellRef]) {
+                    wsCont[cellRef].t = 's'; // Asegurar que sea texto
+                    delete wsCont[cellRef].z; // Eliminar cualquier formato numérico
+                }
+            }
+        }
+        applyTableStyles(wsCont, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
+        wsCont['!autofilter'] = { ref: wsCont['!ref'] };
+        XLSX.utils.book_append_sheet(wb, wsCont, "Análisis por Cont.");
+
+        // --- Hoja 3: Análisis por Sección ---
+        const wsSectData = Object.entries(sectionAnalysis).map(([key, val]) => ({ "Sección": key, "Jefatura": seccionToJefeMap.get(key.toUpperCase()) || "Sin Jefe Asignado", "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
+        const wsSect = XLSX.utils.json_to_sheet(wsSectData, { header: analysisHeadersSect });
+        const numColsSect = analysisHeadersSect.length;
+        for (let r = 1; r <= wsSectData.length; r++) {
+            // Formatear columnas numéricas con comas
+            const numericColsWithCommas_analysis = [2, 3, 4]; // Piezas SAP, Piezas Escaneadas, Diferencia
+            numericColsWithCommas_analysis.forEach(colIndex => {
+                if (numColsSect > colIndex) {
+                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                    if (wsSect[cellRef] && wsSect[cellRef].t === 'n') {
+                        wsSect[cellRef].z = '#,##0';
+                    }
+                }
+            });
+        }
+        applyTableStyles(wsSect, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
+        wsSect['!autofilter'] = { ref: wsSect['!ref'] };
+        XLSX.utils.book_append_sheet(wb, wsSect, "Análisis por Secc.");
+        
+        // --- Descargar el libro ---
+        XLSX.writeFile(wb, `Reporte_Completo_${manifestoId}.xlsx`);
+        Swal.close();
+
+    } catch (error) {
+        console.error("Error al generar reporte:", error);
+        Swal.fire('Error Inesperado', error.message, 'error');
+    }
+}
                 function formatFecha(d) {
                     const dd = String(d.getDate()).padStart(2, "0");
                     const mm = String(d.getMonth() + 1).padStart(2, "0");
