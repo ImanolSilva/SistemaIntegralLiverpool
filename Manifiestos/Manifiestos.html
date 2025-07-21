@@ -2715,7 +2715,8 @@ preConfirm: () => {
 
     if (permissions.canGenerateReport) {
         // ✅ Este es el botón que ejecuta toda la nueva lógica
-actionButtons.push(`<button class="btn btn-sm btn-success text-white" onclick="window.generarReportesYCorreo('${file.folder}','${file.name}')" title="Generar reportes (Excel, PDF, Captura) y enviar por correo" aria-label="Generar reportes y correo para ${file.name}">            <i class="bi bi-file-earmarked-excel-fill fs-5"></i>
+        actionButtons.push(`<button class="btn btn-sm btn-success text-white" onclick="window.generarReportesYCorreo('${file.folder}','${file.name}')" title="Generar reportes (Excel, PDF, Captura) y enviar por correo" aria-label="Generar reportes y correo para ${file.name}">
+            <i class="bi bi-envelope-paper-heart-fill fs-5"></i>
         </button>`);
         
         actionButtons.push(`<button class="btn btn-sm btn-danger" onclick="window.generatePdfReport('${file.folder}','${file.name}')" title="Generar reporte PDF" aria-label="Generar PDF para ${file.name}">
@@ -5247,70 +5248,74 @@ async function handleScanCode(code) {
         containerDetailsEl.eventHandler = eventHandler;
         containerDetailsEl.addEventListener('click', containerDetailsEl.eventHandler);
     }
+/***********************************************************
+ * MODAL DE CONDICIONES DE LA MCIA
+ ***********************************************************/
+btnGuardarDanio.addEventListener("click", async () => {
+    let cant = parseInt(danioCantidadInput.value) || 0;
+    if (!cant || cant < 1) {
+        return Swal.fire({
+            icon: "info",
+            title: "Cantidad inválida",
+            html: `<i class="material-icons" style="color:#2196F3;">info</i> Ingrese una cantidad válida.`
+        });
+    }
+    if (!currentDanioSKU) {
+        return Swal.fire({
+            icon: "info",
+            title: "Error interno",
+            html: `<i class="material-icons" style="color:#2196F3;">info</i> No se puede guardar condiciones sin SKU.`
+        });
+    }
+    let fn = currentFileName;
+    let rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === currentDanioSKU);
+    
+    if (!rowObj) {
+        return Swal.fire({ icon: "info", title: "No encontrado", text: "No se encontró el SKU en el contenedor." });
+    }
 
-    /***********************************************************
-     * MODAL DE CONDICIONES DE LA MCIA
-     ***********************************************************/
-    btnGuardarDanio.addEventListener("click", async () => {
-        let cant = parseInt(danioCantidadInput.value) || 0;
-        if (!cant || cant < 1) {
-            return Swal.fire({
-                icon: "info",
-                title: "Cantidad inválida",
-                html: `<i class="material-icons" style="color:#2196F3;">info</i> Ingrese una cantidad válida.`
-            });
-        }
-        if (!currentDanioSKU) {
-            return Swal.fire({
-                icon: "info",
-                title: "Error interno",
-                html: `<i class="material-icons" style="color:#2196F3;">info</i> No se puede guardar condiciones sin SKU.`
-            });
-        }
-        let fn = currentFileName;
-        let rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === currentDanioSKU);
+    Swal.fire({ title: "Procesando...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    let fotoUrl = rowObj.DANIO_FOTO_URL || "";
+    const file = danioFotoInput.files[0];
+    if (file) {
+        const safeSKU = currentDanioSKU.replace(/[^a-zA-Z0-9]/g, '_');
+        const ts = Date.now();
+        const filePath = `Evidencias/${fn}/${currentContenedor}/${safeSKU}_${ts}.jpg`;
+        const ref = storage.ref(filePath);
+        const snap = await ref.put(file);
+        fotoUrl = await snap.ref.getDownloadURL();
+    }
+
+    rowObj.DANIO_CANTIDAD = (rowObj.DANIO_CANTIDAD || 0) + cant;
+    rowObj.DANIO_FOTO_URL = fotoUrl;
+
+    try {
+        await db.collection('manifiestos').doc(fn).collection('scans').add({
+            sku: currentDanioSKU,
+            type: 'damage',
+            quantity: cant,
+            photoURL: fotoUrl,
+            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            user: currentUser.email,
+            container: currentContenedor
+        });
         
-        if (!rowObj) {
-            return Swal.fire({ icon: "info", title: "No encontrado", text: "No se encontró el SKU en el contenedor." });
-        }
+        // --- INICIO DE LA CORRECCIÓN ---
+        // Obtiene el estado actual del contenedor desde el objeto global.
+        const isContainerClosed = excelDataGlobal[fn]?.closedContainers?.[currentContenedor] || false;
+        // Pasa el estado correcto a la función.
+        mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+        // --- FIN DE LA CORRECCIÓN ---
 
-        Swal.fire({ title: "Procesando...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-        let fotoUrl = rowObj.DANIO_FOTO_URL || "";
-        const file = danioFotoInput.files[0];
-        if (file) {
-            const safeSKU = currentDanioSKU.replace(/[^a-zA-Z0-9]/g, '_');
-            const ts = Date.now();
-            const filePath = `Evidencias/${fn}/${currentContenedor}/${safeSKU}_${ts}.jpg`;
-            const ref = storage.ref(filePath);
-            const snap = await ref.put(file);
-            fotoUrl = await snap.ref.getDownloadURL();
-        }
-
-        rowObj.DANIO_CANTIDAD = (rowObj.DANIO_CANTIDAD || 0) + cant;
-        rowObj.DANIO_FOTO_URL = fotoUrl;
-
-        try {
-            await db.collection('manifiestos').doc(fn).collection('scans').add({
-                sku: currentDanioSKU,
-                type: 'damage',
-                quantity: cant,
-                photoURL: fotoUrl,
-                scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                user: currentUser.email,
-                container: currentContenedor
-            });
-
-            mostrarDetallesContenedor(currentContainerRecords, isClosed);
-            Swal.fire({ icon: "success", title: "Condiciones registradas", text: "Se guardó la información." });
-            modalDanios.hide();
-        } catch (e) {
-            console.error(e);
-            rowObj.DANIO_CANTIDAD -= cant; // Revertir si falla
-            Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la información de condiciones." });
-        }
-    });
-
+        Swal.fire({ icon: "success", title: "Condiciones registradas", text: "Se guardó la información." });
+        modalDanios.hide();
+    } catch (e) {
+        console.error(e);
+        rowObj.DANIO_CANTIDAD -= cant; // Revertir si falla
+        Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la información de condiciones." });
+    }
+});
                 /***********************************************************
                  * DESCARGAR ARCHIVO
                  ***********************************************************/
