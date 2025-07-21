@@ -1854,22 +1854,28 @@ window.generarResumenSemanal = async function() {
         },
         didOpen: () => {
             flatpickr.localize(flatpickr.l10ns.es);
-            const fp = flatpickr("#date-range-picker", {
-                mode: "range",
-                dateFormat: "Y-m-d",
-                locale: 'es',
-                maxDate: "today"
-            });
+ const fp = flatpickr("#date-range-picker", {
+    mode: "range",
+    dateFormat: "Y-m-d",
+    locale: { // Usa un objeto para la localización
+        ...flatpickr.l10ns.es, // hereda todo del español
+        rangeSeparator: ' a ' // pero sobreescribe el separador
+    },
+    maxDate: "today"
+});
             setTimeout(() => fp.open(), 100);
         },
-        preConfirm: () => {
-            const range = document.getElementById('date-range-picker').value;
-            if (!range || !range.includes(' a ')) {
-                Swal.showValidationMessage('Debes seleccionar un rango de fechas válido.');
-                return false;
-            }
-            return range.split(' a ');
-        }
+preConfirm: () => {
+    const range = document.getElementById('date-range-picker').value;
+    // Buscamos un separador que puede ser " a " o "a"
+    const separator = range.includes(' a ') ? ' a ' : 'a';
+
+    if (!range || (range.split(separator).length < 2)) {
+        Swal.showValidationMessage('Debes seleccionar un rango de fechas válido.');
+        return false;
+    }
+    return range.split(separator);
+}
     });
 
     if (!dateRange || dateRange.length < 2) return;
