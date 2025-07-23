@@ -429,7 +429,7 @@ function renderRechazoItem(rechazo, i) {
             <button class="accordion-button collapsed px-2 py-2 d-flex flex-row align-items-center gap-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${_rowIndex}" aria-expanded="false" aria-controls="collapse-${_rowIndex}">
                 <span class="badge bg-dark rounded-pill me-2" style="min-width:60px;">${Remisión}</span>
                 <div class="report-summary flex-grow-1 d-flex flex-column flex-md-row align-items-md-center gap-2">
-                    <span class="sku-title fw-semibold text-truncate" title="${descripcionSku}" style="max-width:180px;">${descripcionSku}</span>
+                    <span class="sku-title fw-semibold" title="${descripcionSku}">${descripcionSku}</span>
                     <span class="user-info text-muted small"><i class="bi bi-person"></i> ${usuarioName}</span>
                 </div>
                 <span class="ms-2">
@@ -483,7 +483,6 @@ function renderRechazoItem(rechazo, i) {
     <style>
         @media (max-width: 767px) {
             .accordion-button { font-size: 1rem; padding: 0.5rem 0.75rem; }
-            .sku-title { max-width: 120px !important; }
             .details-list-container { font-size: 0.95rem; }
             .evidence-section img, .evidence-placeholder-gif img { max-width: 100%; height: auto; }
             .evidence-section { margin-top: 1rem; }

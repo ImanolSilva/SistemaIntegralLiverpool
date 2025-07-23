@@ -36,6 +36,7 @@
             background-attachment: fixed;
         }
 
+        
         /* --- Estructura Principal y Menú --- */
         .app-header {
             display: flex;
@@ -879,32 +880,61 @@
             font-weight: 600;
             font-size: 0.8rem;
         }
+        /* === MENÚ HAMBURGUESA Y OVERLAY ESTANDARIZADO === */
+.app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.8rem 1.5rem;position:sticky;top:0;z-index:1040;border-bottom:1px solid rgba(255,255,255,.1)}
+.header-title{color:var(--blanco);font-weight:700;margin:0}
+#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}
+#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}
+#hamburger-btn { background: transparent; border: none; cursor: pointer; padding: 10px; z-index: 1051; position: relative; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+.hamburger-icon { width: 24px; height: 2px; background: var(--blanco); display: block; position: relative; transition: background 0.3s 0s ease; }
+.hamburger-icon::before,
+.hamburger-icon::after { content: ''; width: 24px; height: 2px; background: var(--blanco); display: block; position: absolute; left: 0; transition: all 0.3s ease-in-out; }
+.hamburger-icon::before { top: -8px; }
+.hamburger-icon::after { top: 8px; }
+#hamburger-btn.open .hamburger-icon { background: transparent; }
+#hamburger-btn.open .hamburger-icon::before { transform: translateY(8px) rotate(45deg); }
+#hamburger-btn.open .hamburger-icon::after { transform: translateY(-8px) rotate(-45deg); }
+.offcanvas.offcanvas-start { width: 320px; background-color: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-right: 1px solid rgba(255, 255, 255, 0.1); }
+.offcanvas-header { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--blanco); }
+.offcanvas-body { padding: 1rem 0; }
+.offcanvas .nav-link { display: flex; align-items: center; color: rgba(255, 255, 255, 0.8); font-size: 1.1rem; font-weight: 500; padding: 1rem 1.5rem; transition: all 0.3s ease; border-left: 4px solid transparent; margin: 0.25rem 0; }
+.offcanvas .nav-link .bi { font-size: 1.5rem; margin-right: 1.25rem; width: 2rem; text-align: center; color: var(--rosa-principal); transition: all 0.3s ease; }
+.offcanvas .nav-link:hover { background-color: rgba(230, 0, 126, 0.15); color: var(--blanco); border-left-color: var(--rosa-gradiente-luz); }
+.offcanvas .nav-link.active { color: var(--blanco); font-weight: 600; border-left-color: var(--rosa-principal); background-color: rgba(230, 0, 126, 0.25); }
+
+/* --- Estructura Principal --- */
+.main-container{max-width:1400px;margin:2rem auto;padding:clamp(1.5rem,5vw,2.5rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    
     </style>
 </head>
 <body>
-    <header class="app-header">
-        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-label="Abrir menú de navegación"><i class="bi bi-list"></i></button>
-        <h1 class="header-title">Manifestar Mercancía</h1>
-        <button id="logout-btn" class="btn-menu" aria-label="Cerrar sesión" title="Cerrar Sesión"><i class="bi bi-power"></i></button>
-    </header>
+<header class="app-header">
+    <button id="hamburger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menú">
+        <span class="hamburger-icon"></span>
+    </button>
+    <h1 class="header-title">Manifestar Mercancía</h1>
+    <button id="logout-btn"><i class="bi bi-power"></i></button>
+</header>
 
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
-        <div class="offcanvas-header">
-            <h5 class="offcanvas-title text-white fw-bold" id="menuLateralLabel"><i class="bi bi-box-seam-fill me-2"></i> Menú</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
-        </div>
-        <div class="offcanvas-body p-0">
-            <nav class="nav flex-column">
-                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
-                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
-                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
-                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
-                <a class="nav-link" href="../Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
-                <a class="nav-link active" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
-                <li class="nav-item" id="admin-nav-link" style="display: none;"><a class="nav-link" href="../Admin/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
-            </nav>
-        </div>
+<div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="menuLateralLabel">Menú Principal</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
     </div>
+<div class="offcanvas-body p-0">
+    <nav class="nav flex-column">
+        <a class="nav-link" href="../index.html"><i class="bi bi-house-heart-fill me-2"></i>Inicio</a>
+        <a class="nav-link" href="../Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan me-2"></i>Escanear Tarimas</a>
+        <a class="nav-link active" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-text-fill me-2"></i>Manifiestos</a>
+        <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-2"></i>Checar Precios</a>
+        <a class="nav-link" href="../Bodegas/index.html"><i class="bi bi-inboxes-fill me-2"></i>Bodegas</a>
+        <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-shield-fill-x me-2"></i>Rechazos</a>
+        <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-box2-heart-fill me-2"></i>Inventarios</a>
+  
+        </li>
+    </nav>
+</div>
+</div>
     <main class="container main-container">
         <div id="userInfo"></div>
 
@@ -1099,6 +1129,18 @@
             document.addEventListener('DOMContentLoaded', () => {
                 document.querySelector('.main-container').removeAttribute('aria-hidden');
                 AOS.init();
+                const hamburgerBtn = document.getElementById('hamburger-btn');
+const menuLateral = document.getElementById('menuLateral');
+
+if (hamburgerBtn && menuLateral) {
+    menuLateral.addEventListener('show.bs.offcanvas', () => {
+        hamburgerBtn.classList.add('open');
+    });
+    
+    menuLateral.addEventListener('hide.bs.offcanvas', () => {
+        hamburgerBtn.classList.remove('open');
+    });
+}
 
                 /***************************************************
                  * CONFIGURACIÓN DE FIREBASE
@@ -1650,29 +1692,18 @@ const storageRef = storage.ref(`Manifiestos/${folder}/${file.name}`);
                 const SUPER_ADMINS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2"];
 
                 btnVerArchivos.addEventListener("click", listarArchivos);
-
-         async function listarArchivos() {
+async function listarArchivos() {
     Swal.fire({
         title: '<i class="bi bi-stars" style="color: var(--rosa-principal);"></i> Desplegando Centro de Comando...',
         html: `
             <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1rem 0;">
                 <div class="epic-loader"></div>
-                <p class="text-muted fw-bold mt-2">Sincronizando con la flota de manifiestos...</p>
+                <p class="text-muted fw-bold mt-2">Sincronizando con la flota de manifiestos de la tienda 0042...</p>
                 <p class="text-muted small">Calculando vectores de progreso. ¡Prepárate!</p>
             </div>
             <style>
-                .epic-loader {
-                    width: 60px;
-                    height: 60px;
-                    border-radius: 50%;
-                    background: conic-gradient(from 180deg at 50% 50%, #E6007E, #0d6efd, #ffc107, #E6007E);
-                    animation: spin 1.2s linear infinite;
-                    -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0);
-                    mask: radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0);
-                }
-                @keyframes spin {
-                    to { transform: rotate(1turn); }
-                }
+                .epic-loader { width: 60px; height: 60px; border-radius: 50%; background: conic-gradient(from 180deg at 50% 50%, #E6007E, #0d6efd, #ffc107, #E6007E); animation: spin 1.2s linear infinite; -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0); mask: radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0); }
+                @keyframes spin { to { transform: rotate(1turn); } }
             </style>
         `,
         allowOutsideClick: false,
@@ -1683,18 +1714,19 @@ const storageRef = storage.ref(`Manifiestos/${folder}/${file.name}`);
     });
 
     try {
-// --- CÓDIGO CORREGIDO ---
-let query = db.collection('manifiestos');
-// Permite que 'jefe' y 'admin' vean todos los archivos, los demás solo los de su tienda.
-if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
-    query = query.where('store', '==', currentUserStore);
-}
+        // --- INICIO DE LA MODIFICACIÓN ---
+        // Se fuerza la consulta para que SIEMPRE apunte a la tienda '0042'
+        let query = db.collection('manifiestos').where('store', '==', '0042');
+        // --- FIN DE LA MODIFICACIÓN ---
 
         const manifestosSnapshot = await query.orderBy('createdAt', 'desc').get();
 
         if (manifestosSnapshot.empty) {
-            return Swal.fire("Sin Manifiestos", "No se encontraron archivos para tu tienda.", "info");
+            return Swal.fire("Sin Manifiestos", "No se encontraron archivos para la tienda 0042.", "info");
         }
+
+        let totalContenedoresCerrados = 0;
+        let totalPiezasEscaneadas = 0;
 
         const archivosConDetalles = await Promise.all(
             manifestosSnapshot.docs.map(async (doc) => {
@@ -1702,6 +1734,11 @@ if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
                     const metadata = doc.data();
                     const reconstructedData = await reconstructManifestDataFromFirebase(doc.id);
                     const stats = calculateProStatistics(reconstructedData.data);
+
+                    totalPiezasEscaneadas += stats.totalSCAN;
+                    if (reconstructedData.closedContainers) {
+                       totalContenedoresCerrados += Object.values(reconstructedData.closedContainers).filter(isClosed => isClosed === true).length;
+                    }
 
                     return {
                         id: doc.id,
@@ -1724,6 +1761,8 @@ if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
         );
 
         const archivosValidos = archivosConDetalles.filter(a => a !== null);
+        const totalManifiestos = archivosValidos.length;
+
         const topArchivos = [...archivosValidos].sort((a, b) => b.progreso.totalSCAN - a.progreso.totalSCAN).slice(0, 2);
         const topArchivosSet = new Set(topArchivos.map(f => f.name));
 
@@ -1734,7 +1773,7 @@ if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
                 <header class="dashboard-header" style="padding-bottom:1.5rem;border-bottom:2px solid #e6007e22;">
                     <h2 class="title" style="font-size:2rem;font-weight:800;color:#E6007E;display:flex;align-items:center;gap:0.7rem;">
                         <i class="material-icons" style="font-size:2.5rem;color:#0d6efd;">view_quilt</i>
-                        Centro de Manifiestos
+                        Centro de Manifiestos (Tienda 0042)
                     </h2>
                     <div class="search-filter-controls" style="gap:1.2rem; align-items: center;">
                         <input type="text" id="dashboardSearchInput" class="form-control form-control-sm" placeholder="Buscar por nombre..." aria-label="Buscar manifiesto por nombre" style="max-width:260px;border-radius:12px;border:2px solid #e6007e22;font-size:1.1rem;">
@@ -1752,53 +1791,72 @@ if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
                         </button>
                     </div>
                 </header>
-                <div id="manifestCardsContainer" class="manifest-cards-container" style="padding-top:2rem;"></div>
+                
+                <div class="global-stats-container">
+                     <div class="global-stat-card">
+                         <i class="bi bi-shop-window stat-icon" style="color: #6f42c1;"></i>
+                         <div class="stat-content">
+                             <div class="stat-value">${totalManifiestos}</div>
+                             <div class="stat-label">Manifiestos en Tienda</div>
+                         </div>
+                     </div>
+                     <div class="global-stat-card">
+                         <i class="bi bi-lock-fill stat-icon" style="color: #dc3545;"></i>
+                         <div class="stat-content">
+                             <div class="stat-value">${totalContenedoresCerrados}</div>
+                             <div class="stat-label">Contenedores Cerrados</div>
+                         </div>
+                     </div>
+                     <div class="global-stat-card">
+                         <i class="bi bi-qr-code-scan stat-icon" style="color: #198754;"></i>
+                         <div class="stat-content">
+                             <div class="stat-value">${totalPiezasEscaneadas.toLocaleString('es-MX')}</div>
+                             <div class="stat-label">Piezas Escaneadas (Total)</div>
+                         </div>
+                     </div>
+                </div>
+
+                <div id="manifestCardsContainer" class="manifest-cards-container" style="padding-top:1rem;"></div>
             </div>
             <style>
-             .dashboard-pro-container{padding:2.5rem 1.5rem}.dashboard-header{background:0 0;border-radius:18px;box-shadow:none}.search-filter-controls input,.search-filter-controls select{box-shadow:0 2px 8px #e6007e11;transition:box-shadow .2s}.search-filter-controls input:focus,.search-filter-controls select:focus{box-shadow:0 4px 16px #e6007e22;border-color:#e6007e}.manifest-cards-container{gap:2rem}.manifest-card-pro{border-radius:18px;box-shadow:0 8px 32px #e6007e11;border:1px solid #e6007e22;transition:transform .18s,box-shadow .18s;margin-bottom:0;position:relative}.manifest-card-pro:hover{transform:translateY(-4px) scale(1.03);box-shadow:0 16px 48px #e6007e22;border-color:#0d6efd}.manifest-card-pro .card-header{background:linear-gradient(90deg,#f8f9fa 80%,#e6007e08 100%);border-bottom:1px solid #e6007e11;font-size:1.1rem;font-weight:600;color:#e6007e;padding:1.2rem 1.5rem}.manifest-card-pro .file-name{font-size:1.15rem;font-weight:700;color:#343a40;letter-spacing:.5px}.manifest-card-pro .file-store{font-size:.95rem;color:#6c757d;margin-top:2px}.manifest-card-pro .card-body{padding:1.5rem;background:#fff}.manifest-card-pro .progress-preview{margin-bottom:1.2rem}.manifest-card-pro .progress-title{font-size:1rem;font-weight:700;color:#6c757d;margin-bottom:.3rem;display:flex;justify-content:space-between}.manifest-card-pro .progress-bar-container{background:#e9ecef;border-radius:50px;height:14px;overflow:hidden}.manifest-card-pro .progress-bar-fill{height:100%;border-radius:50px;background:linear-gradient(90deg,#e6007e 0,#0d6efd 100%);transition:width .5s cubic-bezier(.4,2,.3,1)}.manifest-card-pro .card-stats{display:flex;justify-content:space-around;text-align:center;padding:1rem 0;border-top:1px solid #e6007e11;margin-top:1rem}.manifest-card-pro .stat-value{font-size:1.3rem;font-weight:800;color:#212529}.manifest-card-pro .stat-label{font-size:.8rem;color:#6c757d;text-transform:uppercase}.manifest-card-pro .card-footer{background:linear-gradient(90deg,#f8f9fa 80%,#e6007e08 100%);border-top:1px solid #e6007e11;padding:.7rem 1.2rem;display:flex;gap:.4rem;justify-content:flex-end}.manifest-card-pro .badge-destacado{position:absolute;top:-10px;right:15px;background:linear-gradient(45deg,#ffc107,#f7971e);color:#fff;padding:.4rem .8rem;border-radius:5px;font-weight:700;font-size:.8rem;transform:rotate(10deg);box-shadow:0 4px 10px #e6007e22;z-index:2}.manifest-card-pro .archivable-notice{padding:.4rem;background-color:#dc3545;color:#fff;text-align:center;font-weight:700;font-size:.85rem;border-radius:0 0 8px 8px}.manifest-card-pro .status-tag{padding:3px 10px;border-radius:14px;font-size:.85rem;font-weight:700;color:#fff;background:#6c757d;margin-top:4px;display:inline-block}.manifest-card-pro .status-tag.sin-iniciar{background:#6c757d}.manifest-card-pro .status-tag.en-progreso{background:#0d6efd}.manifest-card-pro .status-tag.avanzado{background:#fd7e14}.manifest-card-pro .status-tag.completo{background:#198754}.manifest-card-pro .status-tag.con-sobrantes{background:#6f42c1}.manifest-card-pro .btn{border-radius:16px;font-weight:600;font-size:.92rem;padding:.35rem .8rem;box-shadow:0 2px 8px #e6007e11;transition:transform .18s,box-shadow .18s;border:none;display:inline-flex;align-items:center;gap:.35rem;min-width:0;height:auto;line-height:1.2}.manifest-card-pro .btn .material-icons{font-size:1.1rem}.manifest-card-pro .btn:hover{transform:scale(1.05);box-shadow:0 8px 24px #e6007e22;border-color:#0d6efd}.manifest-card-pro .btn-primary{background:linear-gradient(90deg,#0d6efd 80%,#1fddff 100%);color:#fff}.manifest-card-pro .btn-warning{background:linear-gradient(90deg,#ffc107 80%,#ffe082 100%);color:#212529}.manifest-card-pro .btn-info{background:linear-gradient(90deg,#17a2b8 80%,#6dd5ed 100%);color:#fff}.manifest-card-pro .btn-danger{background:linear-gradient(90deg,#dc3545 80%,#ffb3b3 100%);color:#fff}@media (max-width:900px){.dashboard-pro-container{padding:1.2rem .5rem}.dashboard-header{flex-direction:column;gap:1rem}.manifest-cards-container{grid-template-columns:1fr;gap:1rem}}@media (max-width:600px){.manifest-card-pro .btn{font-size:.85rem;padding:.25rem .5rem;border-radius:12px}.manifest-card-pro .card-footer{padding:.5rem .6rem;gap:.25rem}}
+                .global-stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; padding: 2rem 0; }
+                .global-stat-card { display: flex; align-items: center; gap: 1rem; background: #fff; padding: 1.5rem; border-radius: 16px; border: 1px solid #e9ecef; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: all 0.2s ease-in-out; }
+                .global-stat-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+                .global-stat-card .stat-icon { font-size: 2.5rem; }
+                .global-stat-card .stat-value { font-size: 2.2rem; font-weight: 700; color: #343a40; line-height: 1; }
+                .global-stat-card .stat-label { font-size: 0.9rem; color: #6c757d; }
             </style>
         `;
 
         await Swal.fire({
             html: dashboardHTML,
             width: '95%',
-            customClass: {
-                popup: 'dashboard-modal'
-            },
+            customClass: { popup: 'dashboard-modal' },
             showConfirmButton: false,
             showCloseButton: true,
             didOpen: () => {
                 const searchInput = document.getElementById('dashboardSearchInput');
                 const statusFilter = document.getElementById('statusFilter');
-                
-                // ===== ACTIVACIÓN DEL NUEVO BOTÓN =====
                 const btnResumenSemanal = document.getElementById('btnResumenSemanal');
                 if (btnResumenSemanal) {
                     btnResumenSemanal.addEventListener('click', generarResumenSemanal);
                 }
-                // ===================================
-
                 const renderizar = () => {
                     const searchTerm = searchInput.value.toLowerCase();
                     const statusFiltro = statusFilter.value;
                     const fiveDaysInMillis = 5 * 24 * 60 * 60 * 1000;
-
                     const archivosFiltrados = archivosValidos.filter(file => {
                         const isOld = (new Date() - file.createdAt) > fiveDaysInMillis;
                         let searchMatch = file.name.toLowerCase().includes(searchTerm);
-
                         let estadoArchivo = "Sin Iniciar";
                         if (file.progreso.avance >= 100) estadoArchivo = (file.progreso.totalSCAN > file.progreso.totalSAP) ? "Con Sobrantes" : "Completo";
                         else if (file.progreso.avance >= 50) estadoArchivo = "Avanzado";
                         else if (file.progreso.avance > 0) estadoArchivo = "En Progreso";
-
                         let statusMatch = true;
                         if (statusFiltro === 'Accion Requerida') statusMatch = isOld;
                         else if (statusFiltro !== 'Todos') statusMatch = estadoArchivo === statusFiltro;
-
                         return searchMatch && statusMatch;
                     });
-
                     const container = document.getElementById('manifestCardsContainer');
                     if (archivosFiltrados.length === 0) {
                         container.innerHTML = `<div class="text-center p-5 text-muted w-100"><h4><i class="material-icons">search_off</i> Sin resultados</h4>No se encontraron manifiestos que coincidan con tu búsqueda.</div>`;
@@ -1806,7 +1864,6 @@ if (currentUserRole !== 'jefe' && currentUserRole !== 'admin') {
                         container.innerHTML = archivosFiltrados.map(file => renderItems(file, topArchivosSet.has(file.name))).join('');
                     }
                 };
-
                 searchInput.addEventListener('keyup', renderizar);
                 statusFilter.addEventListener('change', renderizar);
                 renderizar();

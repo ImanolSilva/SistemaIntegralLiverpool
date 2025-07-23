@@ -14,6 +14,7 @@
     <style>
         :root {
             --rosa-principal: #E6007E;
+            --rosa-gradiente-luz: #ff4081;
             --negro-fondo: #1a1a1a;
             --blanco: #ffffff;
             --gris-claro: #f8f9fa;
@@ -24,72 +25,72 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #E6007E 0%, var(--negro-fondo) 100%);
+            background: linear-gradient(-45deg, #E6007E, #a3005a, #1a1a1a);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             color: var(--texto-principal);
         }
 
-        /* --- Estructura Principal y Menú --- */
-        .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.2);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}
-        .header-title{color:var(--blanco);font-weight:700;margin:0}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}.offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:var(--blanco);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:background-color .3s ease,padding-left .3s ease;border-radius:0 50px 50px 0}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem}.offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* === MENÚ HAMBURGUESA Y OVERLAY ESTANDARIZADO === */
+        .app-header{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.8rem 1.5rem;position:sticky;top:0;z-index:1040;border-bottom:1px solid rgba(255,255,255,.1)}
+        .header-title{color:var(--blanco);font-weight:700;margin:0}
+        #logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}
+        #logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg)}
+        #hamburger-btn { background: transparent; border: none; cursor: pointer; padding: 10px; z-index: 1051; position: relative; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .hamburger-icon { width: 24px; height: 2px; background: var(--blanco); display: block; position: relative; transition: background 0.3s 0s ease; }
+        .hamburger-icon::before,
+        .hamburger-icon::after { content: ''; width: 24px; height: 2px; background: var(--blanco); display: block; position: absolute; left: 0; transition: all 0.3s ease-in-out; }
+        .hamburger-icon::before { top: -8px; }
+        .hamburger-icon::after { top: 8px; }
+        #hamburger-btn.open .hamburger-icon { background: transparent; }
+        #hamburger-btn.open .hamburger-icon::before { transform: translateY(8px) rotate(45deg); }
+        #hamburger-btn.open .hamburger-icon::after { transform: translateY(-8px) rotate(-45deg); }
+        .offcanvas.offcanvas-start { width: 320px; background-color: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-right: 1px solid rgba(255, 255, 255, 0.1); }
+        .offcanvas-header { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--blanco); }
+        .offcanvas-body { padding: 1rem 0; }
+        .offcanvas .nav-link { display: flex; align-items: center; color: rgba(255, 255, 255, 0.8); font-size: 1.1rem; font-weight: 500; padding: 1rem 1.5rem; transition: all 0.3s ease; border-left: 4px solid transparent; margin: 0.25rem 0; }
+        .offcanvas .nav-link .bi { font-size: 1.5rem; margin-right: 1.25rem; width: 2rem; text-align: center; color: var(--rosa-principal); transition: all 0.3s ease; }
+        .offcanvas .nav-link:hover { background-color: rgba(230, 0, 126, 0.15); color: var(--blanco); border-left-color: var(--rosa-gradiente-luz); }
+        .offcanvas .nav-link.active { color: var(--blanco); font-weight: 600; border-left-color: var(--rosa-principal); background-color: rgba(230, 0, 126, 0.25); }
+        
         .main-container{max-width:900px;margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
         
         /* --- Estilos de la Página de Configuración --- */
-        .config-title {
-            font-weight: 700;
-            color: var(--rosa-principal);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        /* Cuadros de información del usuario (reutilizados de index.html) */
-        .user-info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-        .info-card {
-            background: var(--gris-claro);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid var(--gris-medio);
-        }
-        .info-card i {
-            font-size: 2rem;
-            color: var(--rosa-principal);
-            margin-bottom: 0.5rem;
-        }
-        .info-card .info-label {
-            font-size: 0.85rem;
-            color: var(--gris-oscuro);
-            display: block;
-        }
-        .info-card .info-value {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--texto-principal);
-            word-wrap: break-word; /* Para que el UID o email no se desborde */
-        }
+        .config-title { font-weight: 700; color: var(--rosa-principal); display: flex; align-items: center; gap: 0.75rem; }
+        .user-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .info-card { background: var(--gris-claro); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--gris-medio); }
+        .info-card i { font-size: 2rem; color: var(--rosa-principal); margin-bottom: 0.5rem; }
+        .info-card .info-label { font-size: 0.85rem; color: var(--gris-oscuro); display: block; }
+        .info-card .info-value { font-size: 1rem; font-weight: 600; color: var(--texto-principal); word-wrap: break-word; }
     </style>
 </head>
 <body>
     <header class="app-header">
-        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral"><i class="bi bi-list"></i></button>
+        <button id="hamburger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menú">
+            <span class="hamburger-icon"></span>
+        </button>
         <h1 class="header-title">Configuración</h1>
-        <button id="logout-btn" class="btn-menu"><i class="bi bi-power"></i></button>
+        <button id="logout-btn"><i class="bi bi-power"></i></button>
     </header>
 
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
-        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-box-seam-fill me-2"></i> Menú</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button></div>
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral" aria-labelledby="menuLateralLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title fw-bold" id="menuLateralLabel">Menú Principal</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+        </div>
         <div class="offcanvas-body p-0">
             <nav class="nav flex-column">
-                <a class="nav-link" href="../index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
-                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
-                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
-                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
-                <a class="nav-link active" href="Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
-                <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
+                <a class="nav-link" href="../index.html"><i class="bi bi-house-heart-fill"></i>Inicio</a>
+                <a class="nav-link" href="../Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan"></i>Escanear Tarimas</a>
+                <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-text-fill"></i>Manifiestos</a>
+                <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill"></i>Checar Precios</a>
+                <a class="nav-link" href="../Bodegas/Bodegas.html"><i class="bi bi-inboxes-fill"></i>Bodegas</a>
+                <a class="nav-link" href="../Rechazos/reportes.html"><i class="bi bi-shield-fill-x"></i>Rechazos</a>
+                <a class="nav-link" href="../Inventarios/Inventarios.html"><i class="bi bi-box2-heart-fill"></i>Inventarios</a>
+                <a class="nav-link active" href="Configuracion.html"><i class="bi bi-toggles"></i>Configuración</a>
+
             </nav>
         </div>
     </div>
@@ -127,7 +128,7 @@
             
             <div id="extra-info">
                 <h2 class="config-title fs-3"><i class="bi bi-info-circle-fill"></i> Acerca del Sistema</h2>
-                <p><strong>Versión:</strong> 2.0.0</p>
+                <p><strong>Versión:</strong> 5.0.0</p>
                 <p>Esta aplicación ha sido desarrollada para facilitar los procesos de logística y control de mercancía. Si tienes alguna duda o sugerencia, por favor contacta al administrador del sistema.</p>
             </div>
         </div>
@@ -139,5 +140,22 @@
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-auth-compat.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="configuracion.js" defer></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            const menuLateral = document.getElementById('menuLateral');
+            
+            if (hamburgerBtn && menuLateral) {
+                menuLateral.addEventListener('show.bs.offcanvas', () => {
+                    hamburgerBtn.classList.add('open');
+                });
+                
+                menuLateral.addEventListener('hide.bs.offcanvas', () => {
+                    hamburgerBtn.classList.remove('open');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

@@ -47,12 +47,32 @@
             100% { background-position: 0% 50%; }
         }
         
-        /* === Estructura Principal y Menú === */
         .preloader{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--negro-fondo);display:flex;justify-content:center;align-items:center;z-index:9999;transition:opacity .7s ease,visibility .7s ease}.preloader .spinner{width:50px;height:50px;border:5px solid #444;border-top-color:var(--rosa-principal);border-radius:50%;animation:spin 1s linear infinite}.preloader.hidden{opacity:0;visibility:hidden}@keyframes spin{to{transform:rotate(360deg)}}
-        .app-header{background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:1rem 1.5rem;position:sticky;top:0;z-index:1030;border-bottom:1px solid rgba(255,255,255,.1)}.header-title{color:var(--blanco);font-weight:700}.btn-menu,#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}.btn-menu:hover,#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg); box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);}
-        .offcanvas{background-color:var(--rosa-principal)}.offcanvas .nav-link{color:rgba(255,255,255,0.8);font-size:1.1rem;font-weight:600;padding:1rem 1.5rem;transition:all .3s ease;border-radius:0 50px 50px 0; border-left: 4px solid transparent;}.offcanvas .nav-link.active,.offcanvas .nav-link:hover{background-color:var(--blanco);color:var(--rosa-principal);padding-left:2rem; border-left: 4px solid var(--rosa-gradiente-luz); color: var(--rosa-principal);}
-        .offcanvas-header{border-bottom:1px solid rgba(255,255,255,.2)}
-        .main-container{margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out; color: var(--texto-principal);}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .app-header{background:rgba(0,0,0,.3);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:0.8rem 1.5rem;position:sticky;top:0;z-index:1040;border-bottom:1px solid rgba(255,255,255,.1)}.header-title{color:var(--blanco);font-weight:700}#logout-btn{background:transparent;border:2px solid var(--blanco);color:var(--blanco);border-radius:50px;width:45px;height:45px;display:inline-flex;justify-content:center;align-items:center;font-size:1.2rem;transition:all .3s ease}#logout-btn:hover{background:var(--blanco);color:var(--rosa-principal);transform:scale(1.1) rotate(10deg); box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);}
+        .main-container{margin:2rem auto;padding:clamp(2rem, 5vw, 3rem);background:var(--blanco);border-radius:20px;box-shadow:0 15px 40px rgba(0,0,0,.2);animation:fadeIn .8s ease-out; color: var(--texto-principal); margin-bottom: 2rem;}@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        
+        /* === ESTILOS NUEVO MENÚ HAMBURGUESA Y OVERLAY === */
+        #hamburger-btn { background: transparent; border: none; cursor: pointer; padding: 10px; z-index: 1051; position: relative; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .hamburger-icon { width: 24px; height: 2px; background: var(--blanco); display: block; position: relative; transition: background 0.3s 0s ease; }
+        .hamburger-icon::before,
+        .hamburger-icon::after { content: ''; width: 24px; height: 2px; background: var(--blanco); display: block; position: absolute; left: 0; transition: all 0.3s ease-in-out; }
+        .hamburger-icon::before { top: -8px; }
+        .hamburger-icon::after { top: 8px; }
+        #hamburger-btn.open .hamburger-icon { background: transparent; }
+        #hamburger-btn.open .hamburger-icon::before { transform: translateY(8px) rotate(45deg); }
+        #hamburger-btn.open .hamburger-icon::after { transform: translateY(-8px) rotate(-45deg); }
+        .offcanvas.offcanvas-start { width: 320px; background-color: rgba(20, 20, 20, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border-right: 1px solid rgba(255, 255, 255, 0.1); transform: translateX(-100%); transition: transform 0.4s cubic-bezier(0.7, 0, 0.3, 1); visibility: hidden; display: flex; flex-direction: column; }
+        .offcanvas.offcanvas-start.show { transform: translateX(0); visibility: visible; }
+        .offcanvas-header { padding: 1.5rem 1.5rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: var(--blanco); }
+        .btn-close-white { opacity: 0.8; transition: all 0.2s ease; }
+        .btn-close-white:hover { opacity: 1; transform: scale(1.1); }
+        .offcanvas-body { padding: 1rem 0; flex-grow: 1; overflow-y: auto; }
+        .offcanvas .nav-link { display: flex; align-items: center; color: rgba(255, 255, 255, 0.8); font-size: 1.1rem; font-weight: 500; padding: 1rem 1.5rem; transition: all 0.3s ease; border-left: 4px solid transparent; margin: 0.25rem 0; }
+        .offcanvas .nav-link .bi { font-size: 1.5rem; margin-right: 1.25rem; width: 2rem; text-align: center; color: var(--rosa-principal); transition: all 0.3s ease; }
+        .offcanvas .nav-link:hover { background-color: rgba(230, 0, 126, 0.15); color: var(--blanco); border-left-color: var(--rosa-gradiente-luz); }
+        .offcanvas .nav-link:hover .bi { transform: scale(1.1); color: var(--rosa-gradiente-luz); }
+        .offcanvas .nav-link.active { color: var(--blanco); font-weight: 600; border-left-color: var(--rosa-principal); background-color: rgba(230, 0, 126, 0.25); }
+        .offcanvas .nav-link.active .bi { color: var(--blanco); }
 
         /* === Estilos del Hero Section === */
         .hero-content h1 { font-size: clamp(2.2rem, 5vw, 3rem); font-weight: 700; }
@@ -71,7 +91,7 @@
         .kpi-card .kpi-value { font-size: 2rem; font-weight: 700; color: var(--texto-principal); margin: 0.5rem 0; }
         .kpi-card .kpi-label { font-size: 0.85rem; color: var(--gris-oscuro); }
         
-        /* === Paneles de Leaderboard === */
+        /* === Paneles de Leaderboard (ESTILO ORIGINAL RESTAURADO) === */
         .leaderboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2.5rem; margin-top: 2.5rem; }
         .leaderboard-panel { background: #fff; border-radius: 16px; padding: 1.5rem; border: 1px solid var(--gris-medio); }
         .leaderboard-panel .panel-title { font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--texto-principal); font-size: 1.25rem; }
@@ -110,7 +130,7 @@
         .leaderboard-list .rank { font-weight: 700; font-size: 1.2rem; width: 30px; color: var(--texto-principal); }
         .leaderboard-list .user-name { font-weight: 600; color: #333; display: flex; align-items: center; }
         .leaderboard-list .scan-count { margin-left: auto; font-weight: 700; background-color: var(--gris-claro); padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.9rem; color: var(--texto-principal); }
-        .rank-1 .scan-count { color: var(--blanco) !important; background-color: rgba(255, 255, 255, 0.15); text-shadow: 0 0 3px black; } /* CORRECCIÓN DE VISIBILIDAD */
+        .rank-1 .scan-count { color: var(--blanco) !important; background-color: rgba(255, 255, 255, 0.15); text-shadow: 0 0 3px black; }
         .leaderboard-list .trophy-icon { font-size: 1.8rem; margin-right: 0.75rem; }
         .trophy-gold { color: var(--oro); }
         .trophy-silver { color: var(--plata); }
@@ -135,26 +155,29 @@
     <div class="preloader"><div class="spinner"></div></div>
 
     <header class="app-header d-flex justify-content-between align-items-center">
-        <button class="btn-menu" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-label="Abrir menú"><i class="bi bi-list"></i></button>
+        <button id="hamburger-btn" aria-label="Abrir menú" style="display: none;"><span class="hamburger-icon"></span></button>
         <h1 class="header-title m-0">Sistema Liverpool</h1>
-        <button id="logout-btn" style="display: none;" aria-label="Cerrar sesión" title="Cerrar Sesión">
-            <i class="bi bi-power"></i>
-        </button>
+        <button id="logout-btn" style="display: none;" aria-label="Cerrar sesión" title="Cerrar Sesión"><i class="bi bi-power"></i></button>
     </header>
 
     <div class="offcanvas offcanvas-start" tabindex="-1" id="menuLateral">
-        <div class="offcanvas-header"><h5 class="offcanvas-title text-white fw-bold"><i class="bi bi-list"></i> Menú Principal</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button></div>
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title fw-bold">Menú Principal</h5>
+            <button type="button" class="btn-close btn-close-white" id="close-menu-btn" aria-label="Cerrar"></button>
+        </div>
         <div class="offcanvas-body p-0">
             <nav class="nav flex-column">
-                <a class="nav-link" href="index.html"><i class="bi bi-house-door-fill me-3"></i>Inicio</a>
-                <a class="nav-link" href="Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan me-3"></i>Escanear Tarimas</a>
-                <a class="nav-link" href="Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-check-fill me-3"></i>Manifiestos</a>
-                <a class="nav-link" href="ChecarPrecios/index.html"><i class="bi bi-tags-fill me-3"></i>Checar Precios</a>
-                <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-x-octagon-fill me-3"></i>Rechazos</a>
-                <a class="nav-link" href="Inventarios/Inventarios.html"><i class="bi bi-archive-fill me-3"></i>Inventarios</a>
-                <a class="nav-link" href="Configuraciones/Configuracion.html"><i class="bi bi-sliders me-3"></i>Configuración</a>
-                <li class="nav-item" id="adminTab" style="display: none;"><a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-gear-fill me-3"></i>Administrar</a></li>
-                <li class="nav-item" id="seguimientoArticulosTab" style="display: none;"><a class="nav-link" href="Seguimiento/Seguimiento.html"><i class="bi bi-graph-up-arrow me-3"></i>Seguimiento</a></li>
+                <a class="nav-link active" href="index.html"><i class="bi bi-house-heart-fill"></i>Inicio</a>
+                <a class="nav-link" href="Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan"></i>Escanear Tarimas</a>
+                <a class="nav-link" href="Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-text-fill"></i>Manifiestos</a>
+                <a class="nav-link" href="ChecarPrecios/index.html"><i class="bi bi-tags-fill"></i>Checar Precios</a>
+                <a class="nav-link" href="Bodegas/index.html"><i class="bi bi-inboxes-fill"></i>Bodegas</a>
+                <a class="nav-link" href="Rechazos/reportes.html"><i class="bi bi-shield-fill-x"></i>Rechazos</a>
+                <a class="nav-link" href="Inventarios/Inventarios.html"><i class="bi bi-box2-heart-fill"></i>Inventarios</a>
+                <a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-person-fill-gear"></i>Administrar Roles</a>
+                <a class="nav-link" href="Configuraciones/Configuracion.html"><i class="bi bi-toggles"></i>Configuración</a>
+                <li class="nav-item" id="adminTab" style="display: none;"><a class="nav-link" href="Adminroles/admin.html"><i class="bi bi-person-fill-gear"></i>Administrar</a></li>
+                <li class="nav-item" id="seguimientoArticulosTab" style="display: none;"><a class="nav-link" href="Seguimiento/Seguimiento.html"><i class="bi bi-graph-up-arrow"></i>Seguimiento</a></li>
             </nav>
         </div>
     </div>
@@ -171,6 +194,7 @@
         </div>
 
         <div id="dashboard-kpis" style="display: none;"></div>
+        
         <div id="leaderboard-container" class="leaderboard-grid"></div>
 
         <hr class="my-5">
@@ -178,50 +202,18 @@
         <div class="quick-access-section" style="display: none;">
             <h2 class="text-center mb-5" data-aos="fade-up">Acceso Rápido</h2>
             <div class="quick-access-grid">
-                <a href="Escaneo/Contenedor.html" class="action-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="card-content">
-                        <div class="card-icon"><i class="bi bi-qr-code-scan"></i></div>
-                        <h3>Escanear Tarimas</h3>
-                        <p>Registra y verifica el contenido de las tarimas de mercancía.</p>
-                    </div>
-                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
-                </a>
-                <a href="Manifiestos/Manifiestos.html" class="action-card" data-aos="fade-up" data-aos-delay="200">
-                     <div class="card-content">
-                        <div class="card-icon"><i class="bi bi-file-earmark-check-fill"></i></div>
-                        <h3>Manifiestos</h3>
-                        <p>Genera y consulta manifiestos de mercancía de forma digital.</p>
-                    </div>
-                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
-                </a>
-                <a href="ChecarPrecios/index.html" class="action-card" data-aos="fade-up" data-aos-delay="300">
-                     <div class="card-content">
-                        <div class="card-icon"><i class="bi bi-tags-fill"></i></div>
-                        <h3>Checar Precios</h3>
-                        <p>Verifica precios de artículos escaneando códigos de barras.</p>
-                    </div>
-                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
-                </a>
-                <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;" data-aos="fade-up" data-aos-delay="400">
-                     <div class="card-content">
-                        <div class="card-icon"><i class="bi bi-gear-fill"></i></div>
-                        <h3>Administrar</h3>
-                        <p>Gestiona roles, permisos y usuarios del sistema.</p>
-                    </div>
-                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
-                </a>
-                <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;" data-aos="fade-up" data-aos-delay="500">
-                     <div class="card-content">
-                        <div class="card-icon"><i class="bi bi-graph-up-arrow"></i></div>
-                        <h3>Seguimiento</h3>
-                        <p>Analiza el historial y movimiento de artículos específicos.</p>
-                    </div>
-                    <div class="go-corner" href="#"><div class="go-arrow"></div></div>
-                </a>
+                <a href="Escaneo/Contenedor.html" class="action-card" data-aos="fade-up" data-aos-delay="100"><div class="card-content"><div class="card-icon"><i class="bi bi-qr-code-scan"></i></div><h3>Escanear Tarimas</h3><p>Inicia el proceso de registro y verificación de mercancía en tarimas.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="Manifiestos/Manifiestos.html" class="action-card" data-aos="fade-up" data-aos-delay="200"><div class="card-content"><div class="card-icon"><i class="bi bi-file-earmark-check-fill"></i></div><h3>Manifiestos</h3><p>Genera, consulta y administra los manifiestos de mercancía.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="ChecarPrecios/index.html" class="action-card" data-aos="fade-up" data-aos-delay="300"><div class="card-content"><div class="card-icon"><i class="bi bi-tags-fill"></i></div><h3>Checar Precios</h3><p>Verifica rápidamente los precios de artículos escaneando su código.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="Bodegas/index.html" class="action-card" data-aos="fade-up" data-aos-delay="400"><div class="card-content"><div class="card-icon"><i class="bi bi-inboxes-fill"></i></div><h3>Bodegas</h3><p>Gestiona el almacenamiento y la ubicación de la mercancía recibida.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="Rechazos/reportes.html" class="action-card" data-aos="fade-up" data-aos-delay="500"><div class="card-content"><div class="card-icon"><i class="bi bi-x-octagon-fill"></i></div><h3>Rechazos</h3><p>Consulta y gestiona los reportes de mercancía rechazada.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="Inventarios/Inventarios.html" class="action-card" data-aos="fade-up" data-aos-delay="600"><div class="card-content"><div class="card-icon"><i class="bi bi-archive-fill"></i></div><h3>Inventarios</h3><p>Accede a los inventarios y realiza ajustes o consultas.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="Adminroles/admin.html" class="action-card" id="adminCard" style="display: none;" data-aos="fade-up" data-aos-delay="700"><div class="card-content"><div class="card-icon"><i class="bi bi-gear-fill"></i></div><h3>Administrar</h3><p>Gestiona roles, permisos y usuarios del sistema.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
+                <a href="Seguimiento/Seguimiento.html" class="action-card" id="seguimientoArticulosCard" style="display: none;" data-aos="fade-up" data-aos-delay="800"><div class="card-content"><div class="card-icon"><i class="bi bi-graph-up-arrow"></i></div><h3>Seguimiento</h3><p>Analiza el historial y movimiento de artículos específicos.</p></div><div class="go-corner"><div class="go-arrow"></div></div></a>
             </div>
         </div>
     </main>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -230,311 +222,225 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
-   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        AOS.init({ once: true, duration: 800 });
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    AOS.init({ once: true, duration: 800 });
 
-        const firebaseConfig = {
-         apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
-         authDomain: "loginliverpool.firebaseapp.com",
-         projectId: "loginliverpool",
-         storageBucket: "loginliverpool.appspot.com",
-         messagingSenderId: "704223815941",
-         appId: "1:704223815941:web:c871525230fb61caf96f6c",
-         measurementId: "G-QFEPQ4TSPY"
-        };
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
+    const firebaseConfig = {
+        apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+        authDomain: "loginliverpool.firebaseapp.com",
+        projectId: "loginliverpool",
+        storageBucket: "loginliverpool.appspot.com",
+        messagingSenderId: "704223815941",
+        appId: "1:704223815941:web:c871525230fb61caf96f6c",
+        measurementId: "G-QFEPQ4TSPY"
+    };
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+    const ADMIN_UIDS = ["OaieQ6cGi7TnWnbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"];
+    
+    const ui = {
+        authButton: document.getElementById("authButton"),
+        logoutButton: document.getElementById("logout-btn"),
+        adminTab: document.getElementById("adminTab"),
+        segArtTab: document.getElementById("seguimientoArticulosTab"),
+        welcomeMessage: document.getElementById("welcomeMessage"),
+        kpisContainer: document.getElementById("dashboard-kpis"),
+        leaderboardContainer: document.getElementById("leaderboard-container"),
+        adminCard: document.getElementById("adminCard"),
+        seguimientoCard: document.getElementById("seguimientoArticulosCard"),
+        preloader: document.querySelector('.preloader'),
+        typewriterText: document.querySelector(".typewriter-text"),
+        typewriterContainer: document.querySelector(".lead"),
+        quickAccessSection: document.querySelector(".quick-access-section"),
+        hamburgerBtn: document.getElementById('hamburger-btn'),
+        menuLateral: document.getElementById('menuLateral'),
+        closeMenuBtn: document.getElementById('close-menu-btn')
+    };
+
+    const toggleMenu = () => {
+        ui.hamburgerBtn.classList.toggle('open');
+        ui.menuLateral.classList.toggle('show');
+    };
+
+    if (ui.hamburgerBtn && ui.menuLateral && ui.closeMenuBtn) {
+        ui.hamburgerBtn.addEventListener('click', toggleMenu);
+        ui.closeMenuBtn.addEventListener('click', toggleMenu);
+    }
+
+    function getGreeting() {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Buenos días";
+        if (hour < 19) return "Buenas tardes";
+        return "Buenas noches";
+    }
+
+    const typewriter = {
+        texts: [ "optimizar tu flujo de trabajo.", "gestionar tarimas con eficiencia.", "digitalizar tus manifiestos.", "simplificar el control de inventario.", "agilizar el escaneo de contenedores.", "mejorar la precisión de tus registros."],
+        speed: 80, textIndex: 0, charIndex: 0, isDeleting: false,
+        type() {
+            if (!ui.typewriterText) return;
+            const currentText = this.texts[this.textIndex];
+            let displayedText;
+            if (this.isDeleting) { displayedText = currentText.substring(0, this.charIndex - 1); this.charIndex--; } 
+            else { displayedText = currentText.substring(0, this.charIndex + 1); this.charIndex++; }
+            ui.typewriterText.innerHTML = displayedText;
+            let typeSpeed = this.isDeleting ? this.speed / 2 : this.speed;
+            if (!this.isDeleting && this.charIndex === currentText.length) { typeSpeed = 2000; this.isDeleting = true; } 
+            else if (this.isDeleting && this.charIndex === 0) { this.isDeleting = false; this.textIndex = (this.textIndex + 1) % this.texts.length; typeSpeed = 500; }
+            setTimeout(() => this.type(), typeSpeed);
         }
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
-        const ADMIN_UIDS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "tKJZpQ3Ke4M9sCvrSHc3qKvPrf12"];
-        
-        const ui = {
-            authButton: document.getElementById("authButton"),
-            logoutButton: document.getElementById("logout-btn"),
-            adminTab: document.getElementById("adminTab"),
-            segArtTab: document.getElementById("seguimientoArticulosTab"),
-            welcomeMessage: document.getElementById("welcomeMessage"),
-            kpisContainer: document.getElementById("dashboard-kpis"),
-            leaderboardContainer: document.getElementById("leaderboard-container"),
-            adminCard: document.getElementById("adminCard"),
-            seguimientoCard: document.getElementById("seguimientoArticulosCard"),
-            preloader: document.querySelector('.preloader'),
-            typewriterText: document.querySelector(".typewriter-text"),
-            typewriterContainer: document.querySelector(".lead"),
-            quickAccessSection: document.querySelector(".quick-access-section")
-        };
+    };
 
-        function getGreeting() {
-            const hour = new Date().getHours();
-            if (hour < 12) return "Buenos días";
-            if (hour < 19) return "Buenas tardes";
-            return "Buenas noches";
-        }
+    const updateUIForLoggedOutUser = () => {
+        if (ui.logoutButton) ui.logoutButton.style.display = 'none';
+        if (ui.hamburgerBtn) ui.hamburgerBtn.style.display = 'none';
+        if (ui.authButton) ui.authButton.style.display = 'block';
+        if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `Bienvenido al <span>Sistema Liverpool</span>`;
+        if (ui.typewriterContainer) ui.typewriterContainer.style.display = 'block';
+        if (ui.kpisContainer) ui.kpisContainer.style.display = 'none';
+        if (ui.leaderboardContainer) ui.leaderboardContainer.innerHTML = '';
+        if (ui.quickAccessSection) ui.quickAccessSection.style.display = 'none';
+        [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard].forEach(el => { if(el) el.style.display = "none"; });
+    };
 
-        const typewriter = {
-            texts: [ "optimizar tu flujo de trabajo.", "gestionar tarimas con eficiencia.", "digitalizar tus manifiestos.", "simplificar el control de inventario.", "agilizar el escaneo de contenedores.", "mejorar la precisión de tus registros."],
-            speed: 80, textIndex: 0, charIndex: 0, isDeleting: false,
-            type() {
-                if (!ui.typewriterText) return;
-                const currentText = this.texts[this.textIndex];
-                let displayedText;
-                if (this.isDeleting) {
-                    displayedText = currentText.substring(0, this.charIndex - 1);
-                    this.charIndex--;
-                } else {
-                    displayedText = currentText.substring(0, this.charIndex + 1);
-                    this.charIndex++;
-                }
-                ui.typewriterText.innerHTML = displayedText;
-                let typeSpeed = this.isDeleting ? this.speed / 2 : this.speed;
-                if (!this.isDeleting && this.charIndex === currentText.length) {
-                    typeSpeed = 2000;
-                    this.isDeleting = true;
-                } else if (this.isDeleting && this.charIndex === 0) {
-                    this.isDeleting = false;
-                    this.textIndex = (this.textIndex + 1) % this.texts.length;
-                    typeSpeed = 500;
-                }
-                setTimeout(() => this.type(), typeSpeed);
-            }
-        };
-
-        const updateUIForLoggedOutUser = () => {
-            if (ui.logoutButton) ui.logoutButton.style.display = 'none';
-            if (ui.authButton) ui.authButton.style.display = 'block';
-            if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()} y bienvenido al <span>Sistema Liverpool</span>`;
-            if (ui.kpisContainer) ui.kpisContainer.style.display = 'none';
-            if (ui.leaderboardContainer) ui.leaderboardContainer.style.display = 'none';
-            if (ui.quickAccessSection) ui.quickAccessSection.style.display = 'none';
-            if (ui.typewriterContainer) ui.typewriterContainer.style.display = 'block';
-            
-            [ui.adminTab, ui.segArtTab, ui.adminCard, ui.seguimientoCard].forEach(el => {
-                if(el) el.style.display = "none";
-            });
-        };
-
-        const updateUIForLoggedInUser = async (user) => {
-            if (ui.logoutButton) ui.logoutButton.style.display = 'inline-flex';
-            if (ui.authButton) ui.authButton.style.display = 'none';
-            
-            const name = user.displayName || user.email.split('@')[0];
-            if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()}, <span class="welcome-user-name">${name}</span>`;
-            if (ui.typewriterContainer) ui.typewriterContainer.style.display = 'none';
-
-            try {
-                const userDoc = await db.collection("usuarios").doc(user.uid).get();
-                if (!userDoc.exists || userDoc.data().status !== "aprobado") {
-                    throw new Error("Tu cuenta no existe o no está aprobada.");
-                }
-                const data = userDoc.data();
-                const isAdmin = ADMIN_UIDS.includes(user.uid);
-                
-                const kpiData = await fetchDashboardData(data.store);
-                
-                if (ui.kpisContainer) {
-                    ui.kpisContainer.innerHTML = `
-                        <div class="kpi-card" data-aos="fade-up" data-aos-delay="100">
-                            <div class="kpi-icon"><i class="bi bi-journal-album"></i></div>
-                            <div class="kpi-value">${kpiData.manifestsCount}</div>
-                            <div class="kpi-label">Manifiestos en Tienda</div>
-                        </div>
-                        <div class="kpi-card" data-aos="fade-up" data-aos-delay="200">
-                            <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
-                            <div class="kpi-value">${kpiData.closedContainersCount.toLocaleString()}</div>
-                            <div class="kpi-label">Contenedores Cerrados</div>
-                        </div>
-                        <div class="kpi-card" data-aos="fade-up" data-aos-delay="300">
-                            <div class="kpi-icon"><i class="bi bi-check-all"></i></div>
-                            <div class="kpi-value">${kpiData.totalScanned.toLocaleString()}</div>
-                            <div class="kpi-label">Piezas Escaneadas (Total)</div>
-                        </div>
-                    `;
-                    ui.kpisContainer.style.display = 'grid';
-                }
-
-                if (ui.leaderboardContainer) {
-                    const nombreMesActual = new Date().toLocaleString('es-MX', { month: 'long' });
-                    const tituloMensual = `Top 3 de ${nombreMesActual.charAt(0).toUpperCase() + nombreMesActual.slice(1)}`;
-
-                    ui.leaderboardContainer.innerHTML = `
-                        ${kpiData.topScannersMensual.length > 0 ? createLeaderboardHTML(tituloMensual, kpiData.topScannersMensual, 'bi-calendar-month') : ''}
-                        ${kpiData.topScannersHistorico.length > 0 ? createLeaderboardHTML('Top 3 Histórico (MVP)', kpiData.topScannersHistorico, 'bi-trophy-fill') : ''}
-                    `;
-                }
-
-                if(ui.quickAccessSection) ui.quickAccessSection.style.display = 'block';
-                
-                const isAdminDisplay = isAdmin ? "flex" : "none";
-                if(ui.adminTab) ui.adminTab.style.display = isAdmin ? "list-item" : "none";
-                if(ui.segArtTab) ui.segArtTab.style.display = isAdmin ? "list-item" : "none";
-                if(ui.adminCard) ui.adminCard.style.display = isAdminDisplay;
-                if(ui.seguimientoCard) ui.seguimientoCard.style.display = isAdminDisplay;
-
-            } catch (error) {
-                console.error("Error al actualizar UI de usuario:", error);
-                Swal.fire({ icon: 'warning', title: 'Acceso Denegado', text: error.message, confirmButtonText: 'Entendido'
-                }).then(() => auth.signOut());
-            }
-        };
-
-        function createLeaderboardHTML(title, scanners, titleIcon) {
-            const trophies = [
-                { icon: 'bi-trophy-fill', color: 'trophy-gold' },
-                { icon: 'bi-award-fill', color: 'trophy-silver' },
-                { icon: 'bi-star-fill', color: 'trophy-bronze' }
-            ];
-            
-            const rankOneAnimation = `
-                <div class="crown-container">👑</div>
-                <div class="fire-animation-container">
-                    <div class="fire">
-                        ${Array.from({length: 7}).map(() => `<div class="particle"></div>`).join('')}
-                    </div>
-                </div>
-            `;
-            
-            return `
-                <div class="leaderboard-panel" data-aos="fade-up">
-                    <h3 class="panel-title"><i class="bi ${titleIcon}"></i> ${title}</h3>
-                    <ul class="leaderboard-list">
-                        ${scanners.length > 0 ? scanners.map((scanner, index) => {
-                            const rankClasses = ['rank-1', 'rank-2', 'rank-3'];
-                            const detailIcons = {
-                                1: '<span class="detail-icon">⚡️</span>', // Icono para el Top 2
-                                2: '<span class="detail-icon">✨</span>'  // Icono para el Top 3
-                            };
-
-                            const rankClass = rankClasses[index] || '';
-                            const detailIcon = detailIcons[index] || '';
-
-                            return `
-                                <li class="${rankClass}">
-                                    ${index === 0 ? rankOneAnimation : ''}
-                                    <span class="rank">${index + 1}.</span>
-                                    <i class="bi ${trophies[index]?.icon || 'person-fill'} trophy-icon ${trophies[index]?.color || ''}"></i>
-                                    <span class="user-name">${scanner.email}${detailIcon}</span>
-                                    <span class="scan-count">${scanner.count.toLocaleString()} pz.</span>
-                                </li>
-                            `;
-                        }).join('') : '<li class="text-muted">Aún no hay datos para este período.</li>'}
-                    </ul>
-                </div>`;
-        }
-
-
-        async function fetchDashboardData(userStore) {
+    const updateUIForLoggedInUser = async (user) => {
+        if (!sessionStorage.getItem('manifestWarningShown')) {
             Swal.fire({
-                title: 'Calculando Estadísticas Reales...',
-                html: 'Este proceso puede tardar, estamos leyendo todos los archivos para darte la información más precisa.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading(),
-                timer: 4000,
-                timerProgressBar: true
+                icon: 'warning', title: 'Aviso Importante sobre Manifiestos',
+                html: `<div style="text-align: left; padding: 1rem;"><p><i class="bi bi-clock-history" style="color: var(--fuego-naranja);"></i> Los manifiestos se archivan y eliminan automáticamente después de <strong>3 días</strong>.</p><p><i class="bi bi-envelope-exclamation" style="color: var(--fuego-rojo);"></i> Al 4º día, se enviará un reporte por correo a las jefaturas correspondientes.</p><p class="mt-3">Por favor, mantente al pendiente del estado de tus manifiestos o consúltalo con tu jefe de recibos para no verte afectado.</p></div>`,
+                confirmButtonText: 'Entendido', confirmButtonColor: 'var(--rosa-principal)'
             });
+            sessionStorage.setItem('manifestWarningShown', 'true');
+        }
 
-            try {
-                let manifestsQuery = db.collection('manifiestos');
-                if (userStore && userStore !== "ALL") {
-                    manifestsQuery = manifestsQuery.where('store', '==', userStore);
+        if (ui.logoutButton) ui.logoutButton.style.display = 'inline-flex';
+        if (ui.hamburgerBtn) ui.hamburgerBtn.style.display = 'flex';
+        if (ui.authButton) ui.authButton.style.display = 'none';
+        const name = user.displayName || user.email.split('@')[0];
+        if (ui.welcomeMessage) ui.welcomeMessage.innerHTML = `${getGreeting()}, <span class="welcome-user-name">${name}</span>`;
+        if (ui.typewriterContainer) ui.typewriterContainer.style.display = 'none';
+
+        try {
+            const userDoc = await db.collection("usuarios").doc(user.uid).get();
+            if (!userDoc.exists || userDoc.data().status !== "aprobado") { throw new Error("Tu cuenta no existe o no está aprobada."); }
+            const data = userDoc.data();
+            const isAdmin = ADMIN_UIDS.includes(user.uid);
+            const kpiData = await fetchDashboardData();
+            
+            if (ui.kpisContainer) {
+                let kpisHTML = `<div class="kpi-card" data-aos="fade-up" data-aos-delay="100"><div class="kpi-icon"><i class="bi bi-journal-album"></i></div><div class="kpi-value">${kpiData.manifestsCount}</div><div class="kpi-label">Manifiestos en Tienda</div></div><div class="kpi-card" data-aos="fade-up" data-aos-delay="200"><div class="kpi-icon"><i class="bi bi-lock-fill"></i></div><div class="kpi-value">${kpiData.closedContainersCount.toLocaleString()}</div><div class="kpi-label">Contenedores Cerrados</div></div><div class="kpi-card" data-aos="fade-up" data-aos-delay="300"><div class="kpi-icon"><i class="bi bi-check-all"></i></div><div class="kpi-value">${kpiData.totalScanned.toLocaleString()}</div><div class="kpi-label">Piezas Escaneadas (Total)</div></div>`;
+                if (kpiData.expiringManifests.length > 0) {
+                    kpisHTML += `<div id="expiring-manifests-trigger" class="kpi-card" data-aos="fade-up" data-aos-delay="400" style="cursor: pointer; border-color: var(--fuego-rojo);"><div class="kpi-icon" style="color: var(--fuego-rojo);"><i class="bi bi-alarm-fill"></i></div><div class="kpi-value" style="color: var(--fuego-rojo);">${kpiData.expiringManifests.length}</div><div class="kpi-label">Manifiestos por Vencer</div></div>`;
                 }
-                const manifestSnapshot = await manifestsQuery.get();
-                const manifests = manifestSnapshot.docs.map(doc => doc.data());
-
-                const allTimeScanCounts = {};
-                const monthlyScanCounts = {};
-                const now = new Date();
-                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                let closedContainersCount = 0;
-                let totalScanned = 0;
-
-                const fileDataPromises = manifests.map(manifest => {
-                    if (!manifest.fileName || !manifest.store) return Promise.resolve([]);
-                    return storage.ref(`Manifiestos/${manifest.store}/${manifest.fileName}`).getDownloadURL()
-                        .then(url => fetch(url))
-                        .then(res => res.arrayBuffer())
-                        .then(buf => XLSX.read(buf, { type: "array" }))
-                        .then(wb => XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]))
-                        .catch(err => {
-                            console.warn(`No se pudo procesar el archivo ${manifest.fileName}:`, err);
-                            return [];
-                        })
-                });
-
-                const allFilesData = await Promise.all(fileDataPromises);
-                
-                manifests.forEach((manifest, index) => {
-                    if (manifest.closedContainers) {
-                        closedContainersCount += Object.keys(manifest.closedContainers).length;
-                    }
-                    if (manifest.progreso?.totalSCAN) {
-                        totalScanned += manifest.progreso.totalSCAN;
-                    }
-
-                    const fileRows = allFilesData[index];
-                    fileRows.forEach(row => {
-                        const userEmail = row.LAST_SCANNED_BY;
-                        const scanCount = Number(row.SCANNER) || 0;
-
-                        if (userEmail && scanCount > 0) {
-                            allTimeScanCounts[userEmail] = (allTimeScanCounts[userEmail] || 0) + scanCount;
-                            
-                            let scanDate;
-                            if (row.FechaEscaneo) {
-                                if (typeof row.FechaEscaneo === 'number' && row.FechaEscaneo > 40000) {
-                                    scanDate = new Date(Math.round((row.FechaEscaneo - 25569) * 864e5));
-                                } else {
-                                    scanDate = new Date(row.FechaEscaneo);
-                                }
-                            } else if (manifest.updatedAt) {
-                                scanDate = manifest.updatedAt.toDate();
-                            }
-
-                            if (scanDate instanceof Date && !isNaN(scanDate.getTime()) && scanDate >= startOfMonth) {
-                                monthlyScanCounts[userEmail] = (monthlyScanCounts[userEmail] || 0) + scanCount;
-                            }
-                        }
-                    });
-                });
-                
-                const topScannersMensual = Object.entries(monthlyScanCounts)
-                    .map(([email, count]) => ({ email: email.split('@')[0], count }))
-                    .sort((a, b) => b.count - a.count)
-                    .slice(0, 3);
-                    
-                const topScannersHistorico = Object.entries(allTimeScanCounts)
-                    .map(([email, count]) => ({ email: email.split('@')[0], count }))
-                    .sort((a, b) => b.count - a.count)
-                    .slice(0, 3);
-
-                Swal.close();
-                return { manifestsCount: manifests.length, closedContainersCount, totalScanned, topScannersMensual, topScannersHistorico };
-
-            } catch (error) {
-                console.error("Error al calcular datos del dashboard:", error);
-                Swal.fire('Error', 'No se pudieron calcular las estadísticas. Revisa la consola.', 'error');
-                return { manifestsCount: 0, closedContainersCount: 0, totalScanned: 0, topScannersMensual: [], topScannersHistorico: [] };
+                ui.kpisContainer.innerHTML = kpisHTML;
+                ui.kpisContainer.style.display = 'grid';
+                const expiringCardTrigger = document.getElementById('expiring-manifests-trigger');
+                if (expiringCardTrigger) {
+                    expiringCardTrigger.addEventListener('click', () => { Swal.fire({ title: 'Manifiestos Próximos a Eliminar', html: createExpiringManifestsHTML(kpiData.expiringManifests), icon: 'warning', confirmButtonText: 'Entendido', confirmButtonColor: 'var(--rosa-principal)' }); });
+                }
             }
-        }
-        
-        if (ui.authButton) ui.authButton.addEventListener('click', () => window.location.href = "Login/login.html");
-        if (ui.logoutButton) ui.logoutButton.addEventListener('click', () => auth.signOut());
 
-        auth.onAuthStateChanged(async user => {
-            if (user) {
-                await updateUIForLoggedInUser(user);
-            } else {
-                updateUIForLoggedOutUser();
+            if (ui.leaderboardContainer) {
+                const nombreMesActual = new Date().toLocaleString('es-MX', { month: 'long' });
+                const tituloMensual = `Top 3 de ${nombreMesActual.charAt(0).toUpperCase() + nombreMesActual.slice(1)}`;
+                ui.leaderboardContainer.innerHTML = `
+                    ${kpiData.topScannersMensual.length > 0 ? createLeaderboardHTML(tituloMensual, kpiData.topScannersMensual, 'bi-calendar-month') : ''}
+                    ${kpiData.topScannersHistorico.length > 0 ? createLeaderboardHTML('Top 3 Histórico (MVP)', kpiData.topScannersHistorico, 'bi-trophy-fill') : ''}
+                `;
             }
-            if(ui.preloader) ui.preloader.classList.add('hidden');
-        });
 
-        if (ui.typewriterText) {
-             typewriter.type();
+            if(ui.quickAccessSection) ui.quickAccessSection.style.display = 'block';
+            const isAdminDisplay = isAdmin ? "block" : "none";
+            if(ui.adminTab) ui.adminTab.style.display = isAdmin ? "list-item" : "none";
+            if(ui.segArtTab) ui.segArtTab.style.display = isAdmin ? "list-item" : "none";
+            if(ui.adminCard) ui.adminCard.style.display = isAdminDisplay;
+            if(ui.seguimientoCard) ui.seguimientoCard.style.display = isAdminDisplay;
+        } catch (error) {
+            console.error("Error al actualizar UI de usuario:", error);
+            Swal.fire({ icon: 'warning', title: 'Acceso Denegado', text: error.message, confirmButtonText: 'Entendido' }).then(() => auth.signOut());
         }
+    };
+
+    function createLeaderboardHTML(title, scanners, titleIcon) {
+        const trophies = [
+            { icon: 'bi-trophy-fill', color: 'trophy-gold' },
+            { icon: 'bi-award-fill', color: 'trophy-silver' },
+            { icon: 'bi-star-fill', color: 'trophy-bronze' }
+        ];
+        const rankOneAnimation = `<div class="crown-container">👑</div><div class="fire-animation-container"><div class="fire">${Array.from({length: 7}).map(() => `<div class="particle"></div>`).join('')}</div></div>`;
+        return `<div class="leaderboard-panel" data-aos="fade-up"><h3 class="panel-title"><i class="bi ${titleIcon}"></i> ${title}</h3><ul class="leaderboard-list">${scanners.length > 0 ? scanners.map((scanner, index) => { const rankClasses = ['rank-1', 'rank-2', 'rank-3']; const detailIcons = { 1: '<span class="detail-icon">⚡️</span>', 2: '<span class="detail-icon">✨</span>' }; const rankClass = rankClasses[index] || ''; const detailIcon = detailIcons[index] || ''; return `<li class="${rankClass}">${index === 0 ? rankOneAnimation : ''}<span class="rank">${index + 1}.</span><i class="bi ${trophies[index]?.icon || 'person-fill'} trophy-icon ${trophies[index]?.color || ''}"></i><span class="user-name">${scanner.email}${detailIcon}</span><span class="scan-count">${scanner.count.toLocaleString()} pz.</span></li>`; }).join('') : '<li class="text-muted">Aún no hay datos para este período.</li>'}</ul></div>`;
+    }
+
+    function createExpiringManifestsHTML(manifests) {
+        return `<p class="text-start text-muted px-3 small">Estos manifiestos tienen 3 o más días de antigüedad y serán archivados y notificados pronto.</p><ul class="leaderboard-list text-start" style="max-height: 400px; overflow-y: auto; padding: 0.5rem;">${manifests.map(manifest => `<li style="border-left: 4px solid var(--fuego-naranja); background: #fffaf5; border-radius: 8px; margin-bottom: 0.5rem; padding-left: 1rem;"><i class="bi bi-file-earmark-excel-fill trophy-icon" style="color: var(--fuego-naranja);"></i><span class="user-name">${manifest.fileName}</span><span class="scan-count" style="background-color: #ffe8d6; color: #c25a33;">${manifest.daysOld} días</span></li>`).join('')}</ul>`;
+    }
+
+    async function fetchDashboardData() {
+        Swal.fire({ title: 'Calculando Estadísticas...', html: 'Consultando los registros para darte la información más precisa.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        try {
+            const manifestsQuery = db.collection('manifiestos').where('store', '==', '0042');
+            const manifestSnapshot = await manifestsQuery.get();
+            const manifests = manifestSnapshot.docs;
+            const manifestsCount = manifests.length;
+            let closedContainersCount = 0;
+            let expiringManifests = [];
+            const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+            const nowForCalc = new Date();
+            manifests.forEach(doc => {
+                const data = doc.data();
+                if (data.closedContainers) { closedContainersCount += Object.values(data.closedContainers).filter(Boolean).length; }
+                const createdAt = data.createdAt?.toDate();
+                if (createdAt && (nowForCalc - createdAt > threeDaysInMs)) { const diffTime = Math.abs(nowForCalc - createdAt); const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); expiringManifests.push({ fileName: data.fileName, daysOld: diffDays }); }
+            });
+            expiringManifests.sort((a, b) => b.daysOld - a.daysOld);
+            let totalScanned = 0;
+            const allTimeScanCounts = {};
+            const monthlyScanCounts = {};
+            const startOfMonth = new Date(nowForCalc.getFullYear(), nowForCalc.getMonth(), 1);
+            const scanPromises = manifests.map(doc => db.collection('manifiestos').doc(doc.id).collection('scans').get());
+            const allScanSnapshots = await Promise.all(scanPromises);
+            allScanSnapshots.forEach(scanSnapshot => {
+                scanSnapshot.forEach(doc => {
+                    const scan = doc.data();
+                    const userEmail = scan.user;
+                    const scanCount = (scan.type !== 'subtract' && scan.type !== 'delete') ? (Number(scan.quantity) || 1) : 0;
+                    const scanDate = scan.scannedAt?.toDate();
+                    if (userEmail && scanCount > 0) {
+                        totalScanned += scanCount;
+                        allTimeScanCounts[userEmail] = (allTimeScanCounts[userEmail] || 0) + scanCount;
+                        if (scanDate && scanDate >= startOfMonth) { monthlyScanCounts[userEmail] = (monthlyScanCounts[userEmail] || 0) + scanCount; }
+                    }
+                });
+            });
+            const topScannersMensual = Object.entries(monthlyScanCounts).map(([email, count]) => ({ email: email.split('@')[0], count })).sort((a, b) => b.count - a.count).slice(0, 3);
+            const topScannersHistorico = Object.entries(allTimeScanCounts).map(([email, count]) => ({ email: email.split('@')[0], count })).sort((a, b) => b.count - a.count).slice(0, 3);
+            Swal.close();
+            return { manifestsCount, closedContainersCount, totalScanned, topScannersMensual, topScannersHistorico, expiringManifests };
+        } catch (error) {
+            console.error("Error al calcular datos del dashboard:", error);
+            Swal.fire('Error', 'No se pudieron calcular las estadísticas. Revisa la consola.', 'error');
+            return { manifestsCount: 0, closedContainersCount: 0, totalScanned: 0, topScannersMensual: [], topScannersHistorico: [], expiringManifests: [] };
+        }
+    }
+    
+    if (ui.authButton) ui.authButton.addEventListener('click', () => window.location.href = "Login/login.html");
+    if (ui.logoutButton) ui.logoutButton.addEventListener('click', () => { auth.signOut(); });
+
+    auth.onAuthStateChanged(async user => {
+        if (user) { await updateUIForLoggedInUser(user); } 
+        else { updateUIForLoggedOutUser(); }
+        if(ui.preloader) ui.preloader.classList.add('hidden');
     });
-   </script>
+
+    if (ui.typewriterContainer && ui.typewriterContainer.style.display !== 'none') {
+         typewriter.type();
+    }
+});
+</script>
+
 </body>
 </html>

@@ -14,19 +14,22 @@
     <style>
         :root {
             --rosa-principal: #E6007E;
-            --rosa-claro: #ff69b4;
-            --rosa-fondo-claro: #fff0f6;
-            --texto-oscuro: #1a1a2e;
-            --texto-secundario: #5c5c7b;
-            --sombra-rosa: rgba(230, 0, 126, 0.25);
-            --blanco: #ffffff;
+            --rosa-glow: #ff00a9;
+            --fondo-oscuro: #1a021d;
+            --fondo-gradiente: #4c004d;
+            --texto-blanco: #ffffff;
+            --texto-secundario: #c0c0e0;
+            --blanco-transparente: rgba(255, 255, 255, 0.1);
+            --sombra-rosa-intensa: 0 0 15px rgba(230, 0, 126, 0.7), 0 0 30px rgba(230, 0, 126, 0.5);
         }
 
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--rosa-fondo-claro);
-            background-image: linear-gradient(135deg, var(--rosa-claro) 0%, var(--rosa-principal) 100%);
-            color: var(--texto-oscuro);
+            background-color: var(--fondo-oscuro);
+            background: linear-gradient(320deg, var(--fondo-oscuro), var(--rosa-principal), var(--fondo-gradiente));
+            background-size: 400% 400%;
+            animation: gradient-flow 15s ease infinite;
+            color: var(--texto-blanco);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -35,183 +38,132 @@
             position: relative;
         }
 
-        .background-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url('https://www.transparenttextures.com/patterns/az-subtle.png');
-            opacity: 0.03;
-            z-index: 0;
-        }
-        
-        .background-shapes {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 0;
-            overflow: hidden;
+        @keyframes gradient-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
-        .shape {
-            position: absolute;
-            list-style: none;
-            display: block;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.15);
-            animation: rise-fade 25s infinite linear;
-            bottom: -200px;
-            opacity: 0;
+        .background-icons {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden;
         }
-        .shape:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
-        .shape:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
-        .shape:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
-        .shape:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
-        .shape:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 1s; }
-        .shape:nth-child(6) { left: 85%; width: 120px; height: 120px; animation-delay: 3s; }
-        .shape:nth-child(7) { left: 50%; width: 40px; height: 40px; animation-delay: 7s; animation-duration: 15s; }
+
+        .floating-icon {
+            position: absolute; list-style: none; display: block;
+            color: var(--blanco-transparente);
+            animation: rise-fade 25s infinite linear;
+            bottom: -200px; opacity: 0;
+            text-shadow: 0 0 10px var(--blanco-transparente), 0 0 20px var(--blanco-transparente), 0 0 30px var(--rosa-glow);
+        }
+        .floating-icon:nth-child(1) { left: 25%; font-size: 80px; animation-delay: 0s; }
+        .floating-icon:nth-child(2) { left: 10%; font-size: 20px; animation-delay: 2s; animation-duration: 12s; }
+        .floating-icon:nth-child(3) { left: 70%; font-size: 25px; animation-delay: 4s; }
+        .floating-icon:nth-child(4) { left: 40%; font-size: 60px; animation-delay: 0s; animation-duration: 18s; }
+        .floating-icon:nth-child(5) { left: 65%; font-size: 20px; animation-delay: 1s; }
+        .floating-icon:nth-child(6) { left: 85%; font-size: 120px; animation-delay: 3s; }
+        .floating-icon:nth-child(7) { left: 50%; font-size: 40px; animation-delay: 7s; animation-duration: 15s; }
+        .floating-icon:nth-child(8) { left: 15%; font-size: 35px; animation-delay: 9s; animation-duration: 20s; }
+        .floating-icon:nth-child(9) { left: 90%; font-size: 50px; animation-delay: 5s; animation-duration: 16s; }
+        .floating-icon:nth-child(10) { left: 5%; font-size: 70px; animation-delay: 12s; }
+
 
         @keyframes rise-fade {
-            0% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
-            100% { transform: translateY(-120vh) rotate(720deg); opacity: 0; }
+            0% { transform: translateY(0) rotate(0deg) scale(0.8); opacity: 0.5; }
+            100% { transform: translateY(-120vh) rotate(720deg) scale(1.2); opacity: 0; }
         }
 
         .login-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            width: 100%;
-            max-width: 450px;
-            padding: 1rem;
-            z-index: 1;
+            display: grid; grid-template-columns: 1fr; width: 100%; max-width: 450px; padding: 1rem; z-index: 1;
         }
-        @media (min-width: 992px) {
-            .login-layout { grid-template-columns: 1.1fr 1fr; max-width: 1000px; gap: 4rem; }
-        }
+        @media (min-width: 992px) { .login-layout { grid-template-columns: 1.1fr 1fr; max-width: 1000px; gap: 4rem; } }
 
         .welcome-section { display: none; }
-        @media (min-width: 992px) {
-            .welcome-section { display: flex; flex-direction: column; justify-content: center; }
-        }
+        @media (min-width: 992px) { .welcome-section { display: flex; flex-direction: column; justify-content: center; } }
+        
         .welcome-section h1 {
-            font-weight: 700;
-            font-size: clamp(2.8rem, 5vw, 3.8rem);
-            line-height: 1.2;
-            color: var(--blanco);
-            text-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+            font-weight: 700; font-size: clamp(3rem, 5vw, 4.5rem); line-height: 1.1; color: var(--texto-blanco);
+            text-shadow: 0 0 10px var(--rosa-glow), 0 0 25px var(--rosa-glow), 0 0 50px var(--rosa-principal), 0 4px 10px rgba(0,0,0,0.5);
+            animation: glow-pulse 4s ease-in-out infinite;
         }
-        .welcome-section .lead {
-            font-size: 1.15rem;
-            color: rgba(255, 255, 255, 0.95);
-            margin-top: 1.5rem;
-            max-width: 450px;
-            border-left: 4px solid var(--blanco);
-            padding-left: 1.5rem;
+        
+        @keyframes glow-pulse {
+            0%, 100% { text-shadow: 0 0 10px var(--rosa-glow), 0 0 25px var(--rosa-glow), 0 0 50px var(--rosa-principal), 0 4px 10px rgba(0,0,0,0.5); }
+            50% { text-shadow: 0 0 15px var(--rosa-glow), 0 0 35px var(--rosa-glow), 0 0 65px var(--rosa-principal), 0 4px 15px rgba(0,0,0,0.6); }
         }
 
-        .orbit-container {
-            margin-top: 4rem;
-            position: relative;
-            width: 250px; height: 250px;
+        .welcome-section .lead {
+            font-size: 1.2rem; color: var(--texto-secundario); margin-top: 2rem;
+            border-left: 4px solid var(--rosa-principal); padding-left: 1.5rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
-        .orbit-center {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100px; height: 100px;
-            background: var(--blanco);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 0 35px rgba(255, 255, 255, 0.7), inset 0 0 15px rgba(0,0,0,0.1);
-        }
-        .orbit-center i { font-size: 3rem; color: var(--rosa-principal); }
-        .orbit { position: absolute; width: 100%; height: 100%; animation: spin 20s linear infinite; }
-        .orbit:nth-child(2) { animation-duration: 15s; }
-        .orbit:nth-child(3) { animation-duration: 25s; }
-        .orbit-icon {
-            position: absolute; top: 50%; left: 0; transform: translateY(-50%);
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, #ffffff, #f0f0f0);
-            color: var(--texto-oscuro);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.8rem;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
-        .orbit:nth-child(2) .orbit-icon { top: 0; left: 50%; transform: translateX(-50%); }
-        .orbit:nth-child(3) .orbit-icon { top: 30%; left: -15%; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         .login-card {
-            background: var(--blanco);
-            border-radius: 24px;
-            padding: 2.5rem;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: 1px solid white;
-            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px; padding: 2.5rem; text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s ease-in-out;
         }
         .login-card:hover {
-            box-shadow: 0 25px 60px rgba(0,0,0,0.2), 0 0 40px var(--sombra-rosa);
+            transform: translateY(-10px) scale(1.03);
+            box-shadow: 0 0 50px rgba(230, 0, 126, 0.6), 0 25px 60px rgba(0,0,0,0.6);
+            border-color: var(--rosa-glow);
         }
-        .login-card h2 { font-weight: 700; margin-bottom: 1rem; color: var(--texto-oscuro); }
+        .login-card h2 { font-weight: 700; margin-bottom: 1rem; color: var(--texto-blanco); text-shadow: var(--sombra-rosa-intensa); }
         .login-card .subtitle { color: var(--texto-secundario); margin-bottom: 2.5rem; }
 
         .btn-google {
-            background: #f8f9fa;
-            color: #444;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 0.8rem 1rem;
-            font-weight: 600;
-            width: 100%;
-            transition: all 0.3s ease;
+            background: var(--blanco-transparente); color: var(--texto-blanco); border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px; padding: 0.8rem 1rem; font-weight: 600; width: 100%;
+            transition: all 0.3s ease; backdrop-filter: blur(5px); text-shadow: 0 1px 5px rgba(0,0,0,0.3);
         }
         .btn-google:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px var(--sombra-rosa);
-            border-color: var(--rosa-principal);
-            color: var(--rosa-principal);
+            transform: translateY(-5px) scale(1.05); background: var(--rosa-principal);
+            box-shadow: 0 10px 30px rgba(230, 0, 126, 0.6); border-color: var(--rosa-glow); color: var(--texto-blanco);
         }
         
-        .modal-content { border-radius: 1rem; }
-        .modal-header, .modal-footer { background-color: #f8f9fa; border: none; }
-        .modal-title .text-primary { color: var(--rosa-principal) !important; }
-        .btn-primary { background-color: var(--rosa-principal); border-color: var(--rosa-principal); }
-        .btn-primary:hover { background-color: #c5006c; border-color: #c5006c; }
-
-        .modal-loading {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; align-items: center; justify-content: center;
-            background-color: rgba(255,255,255,0.7);
-            backdrop-filter: blur(5px);
-            z-index: 9999;
+        .modal-content { 
+            background: rgba(30, 30, 46, 0.85); backdrop-filter: blur(10px);
+            border: 1px solid var(--rosa-glow); border-radius: 1rem; color: var(--texto-blanco);
+            box-shadow: 0 0 40px rgba(230, 0, 126, 0.5);
         }
-        .loader {
-            width: 50px; height: 50px;
-            border: 5px solid #ddd;
-            border-top-color: var(--rosa-principal);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .modal-header, .modal-footer { background-color: transparent; border-color: rgba(255, 255, 255, 0.1); }
+        .modal-title .text-primary { color: var(--rosa-glow) !important; text-shadow: 0 0 10px var(--rosa-glow); }
+        .btn-primary { background-color: var(--rosa-principal); border-color: var(--rosa-principal); transition: all 0.3s ease; }
+        .btn-primary:hover { background-color: var(--rosa-glow); border-color: var(--rosa-glow); box-shadow: 0 0 20px var(--rosa-glow); transform: scale(1.05); }
+        .form-control, .form-select {
+            background-color: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); color: var(--texto-blanco);
         }
-
+        .form-control:focus, .form-select:focus {
+            background-color: rgba(0,0,0,0.4); color: var(--texto-blanco); border-color: var(--rosa-glow);
+            box-shadow: 0 0 15px rgba(230, 0, 126, 0.7);
+        }
+        .form-control::placeholder { color: var(--texto-secundario); }
+        option { background-color: var(--fondo-oscuro); }
     </style>
 </head>
 <body>
-    <div class="background-overlay"></div>
-    <div class="background-shapes">
-        <li class="shape"></li> <li class="shape"></li> <li class="shape"></li>
-        <li class="shape"></li> <li class="shape"></li> <li class="shape"></li> <li class="shape"></li>
-    </div>
+    <ul class="background-icons">
+        <li class="floating-icon"><i class="fas fa-box"></i></li>
+        <li class="floating-icon"><i class="fas fa-tags"></i></li>
+        <li class="floating-icon"><i class="fas fa-chart-line"></i></li>
+        <li class="floating-icon"><i class="fas fa-cogs"></i></li>
+        <li class="floating-icon"><i class="fas fa-database"></i></li>
+        <li class="floating-icon"><i class="fas fa-barcode"></i></li>
+        <li class="floating-icon"><i class="fas fa-shield-alt"></i></li>
+        <li class="floating-icon"><i class="fas fa-rocket"></i></li>
+        <li class="floating-icon"><i class="fas fa-atom"></i></li>
+        <li class="floating-icon"><i class="fas fa-star"></i></li>
+    </ul>
 
     <main class="login-layout">
-        <section class="welcome-section animate__animated animate__fadeInLeft">
+        <section class="welcome-section animate__animated animate__fadeInLeft animate__slow">
             <h1>Sistema <br>Integral de Gestión</h1>
             <p class="lead">La plataforma inteligente para el control de manifiestos, inventarios y precios.</p>
-            <div class="orbit-container">
-                <div class="orbit-center"><i class="fas fa-boxes-stacked"></i></div>
-                <div class="orbit"><div class="orbit-icon" title="Manifiestos"><i class="fas fa-file-invoice-dollar" style="color: #FB8C00;"></i></div></div>
-                <div class="orbit"><div class="orbit-icon" title="Inventarios"><i class="fas fa-warehouse" style="color: #43A047;"></i></div></div>
-            </div>
         </section>
 
         <section class="form-section">
-            <div class="login-card animate__animated animate__zoomIn animate__delay-1s">
+            <div class="login-card animate__animated animate__fadeInUp animate__delay-1s">
                 <h2>Bienvenido</h2>
                 <p class="subtitle">Accede con tu cuenta de Google.</p>
                 <button id="googleSignInBtn" class="btn btn-google">
@@ -224,12 +176,13 @@
         </section>
     </main>
 
+    <!-- Modals -->
     <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-unlock-alt me-2 text-primary"></i> Restablecer Contraseña</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <p>Ingresa tu correo para recibir un enlace de restablecimiento.</p>
@@ -248,7 +201,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fa-solid fa-user-plus me-2 text-primary"></i> Completa tu registro</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3" id="departmentContainer">
@@ -257,7 +210,7 @@
                             <option value="">-- Selecciona --</option>
                             <option value="000">000 - AUXILIAR DE OPERACIONES</option>
                             <option value="101">101 - MUEBLES</option>
-                            </select>
+                        </select>
                     </div>
                     <div class="mb-3" id="roleContainer">
                         <label for="roleSelect" class="form-label fw-bold">Rol Deseado</label>
@@ -279,7 +232,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" id="saveRegistrationBtn" class="btn btn-primary">
+                    <button type="button" id="saveRegistrationBtn" class="btn btn-primary w-100">
                         <i class="fas fa-save me-2"></i> Guardar Registro
                     </button>
                 </div>
