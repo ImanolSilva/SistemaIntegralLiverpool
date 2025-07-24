@@ -3,22 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entregas Épicas - Sistema Liverpool</title>
+    <title>Entregas Contenendores - Sistema Liverpool</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
-    
-    <style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/> <style>
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes bounceIn {
+            0%, 20%, 40%, 60%, 80%, 100% {
+                -webkit-transform: translateY(0);
+                transform: translateY(0);
+            }
+            50% {
+                -webkit-transform: translateY(-5px);
+                transform: translateY(-5px);
+            }
+        }
+
         :root {
-            --rosa-principal: #E6007E;
-            --rosa-gradiente-luz: #ff4081;
+            --rosa-principal: #E6007E; /* El rosa vibrante de Liverpool */
+            --rosa-gradiente-luz: #ff4081; /* Un tono más claro para gradientes */
             --negro-fondo: #1a1a1a;
             --blanco: #ffffff;
             --gris-claro: #f8f9fa;
@@ -28,25 +38,40 @@
             --radio-borde: 16px;
             --sombra-suave: 0 8px 25px rgba(0,0,0,0.07);
 
-            /* Custom colors for dashboard */
-            --verde-completo: #28a745;
-            --naranja-aviso: #ffc107;
-            --texto-secundario: #6c757d;
+            /* Colores personalizados para el dashboard */
+            --verde-completo: #28a745; /* Éxito */
+            --naranja-aviso: #ffc107; /* Advertencia/Progreso avanzado */
+            --texto-secundario: #6c757d; /* Gris para textos secundarios */
+            
+            /* Nuevos colores para tarjetas de progreso dinámicas (ajustados para mejor contraste visual) */
+            --violeta-exito: #6f42c1; /* Completado: Violeta */
+            --rosa-fuerte: #e83e8c; /* Recta Final: Rosa fuerte */
+            --rosa-medio: #fd7e14; /* Buen Ritmo: Naranja vibrante */
+            --rosa-suave: #ffc107; /* En Progreso: Amarillo */
 
-            /* Added for better modal contrast */
+
+            /* Propiedades de modal */
             --modal-backdrop: rgba(0, 0, 0, 0.7);
             --modal-bg: #fff;
             --modal-border: #ddd;
             --modal-shadow: 0 5px 15px rgba(0,0,0,0.3);
+
+            /* Colores para botones modernos */
+            --btn-primary-gradient-start: #E6007E; /* Rosa principal */
+            --btn-primary-gradient-end: #ac005c; /* Rosa más oscuro */
+            --btn-success-gradient-start: #28a745;
+            --btn-success-gradient-end: #1e7e34;
+            --btn-outline-secondary-color: #6c757d;
+            --btn-outline-secondary-hover-bg: #e9ecef;
         }
 
         body {
             font-family: 'Poppins', sans-serif;
             color: var(--texto-principal);
-            background: linear-gradient(-45deg, #E6007E, #a3005a, #1a1a1a);
+            background: linear-gradient(-45deg, var(--rosa-principal), #a3005a, var(--negro-fondo));
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
-            min-height: 100vh; /* Ensure body takes full viewport height */
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -74,7 +99,7 @@
         .offcanvas .nav-link .bi { font-size: 1.5rem; margin-right: 1.25rem; width: 2rem; text-align: center; color: var(--rosa-principal); transition: all 0.3s ease; }
         .offcanvas .nav-link:hover { background-color: rgba(230, 0, 126, 0.15); color: var(--blanco); border-left-color: var(--rosa-gradiente-luz); }
         .offcanvas .nav-link.active { color: var(--blanco); font-weight: 600; border-left-color: var(--rosa-principal); background-color: rgba(230, 0, 126, 0.25); }
-        .offcanvas-footer { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,0.7); font-size: 0.9em; margin-top: auto; } /* Added for user email */
+        .offcanvas-footer { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,0.7); font-size: 0.9em; margin-top: auto; }
 
 
         /* --- Estructura Principal --- */
@@ -219,36 +244,94 @@
         }
 
         /* Specific styles for summary dashboard */
-        .dashboard-card-epic {
-            border: 2px solid;
+        .dashboard-card-professional {
+            border: 1px solid var(--gris-borde);
             border-radius: var(--radio-borde);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            background-color: var(--blanco);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: var(--sombra-suave);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-left 0.3s ease;
+            overflow: hidden; /* Asegura que la sombra interna no se desborde */
         }
-
-        .dashboard-card-epic:hover {
+        .dashboard-card-professional:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
 
+        /* Estilos específicos para el borde izquierdo de la tarjeta */
+        .card-pending { border-left: 5px solid #adb5bd !important; } /* Gris */
+        .card-in-progress { border-left: 5px solid var(--rosa-suave) !important; } /* Amarillo */
+        .card-good-pace { border-left: 5px solid var(--rosa-medio) !important; } /* Naranja */
+        .card-final-lap { border-left: 5px solid var(--rosa-fuerte) !important; } /* Rosa más fuerte */
+        .card-completed { border-left: 5px solid var(--violeta-exito) !important; } /* Violeta */
+
+        /* Estilos para el status badge */
+        .status-badge {
+            min-width: 100px;
+            text-align: center;
+            font-size: 0.8em;
+        }
+
+        /* Estilos para los números de las estadísticas */
+        .stat-value-small {
+            font-size: 1.1em;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .stat-label-small {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            color: var(--gris-texto);
+        }
+
+        /* Estilos para los detalles colapsables */
+        .details-wrapper-compact {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            max-height: 200px; /* **SOLUCIÓN CRÍTICA: Limita la altura del contenedor de detalles** */
+            overflow-y: auto; /* **SOLUCIÓN CRÍTICA: Permite solo scroll vertical cuando sea necesario** */
+            border: 1px solid #e9ecef;
+        }
+        .details-list-compact {
+            display: flex;
+            flex-wrap: wrap; /* **SOLUCIÓN CRÍTICA: Los badges saltarán a la siguiente línea si no hay espacio** */
+            gap: 0.5rem; /* Espacio entre los badges */
+        }
+        .details-list-compact .badge {
+            margin-right: 0.5rem; /* Espacio entre badges */
+            margin-bottom: 0.5rem; /* Espacio si se envuelve */
+            font-size: 0.8em;
+            padding: 0.5em 0.8em;
+            display: inline-flex; /* Asegura que el icono y texto estén alineados */
+            align-items: center;
+        }
+
+        /* --- MEJORAS EN LA ALERTA GLOBAL DE RESUMEN --- */
         .epic-alert-mini {
-            padding: 8px 15px;
-            border-radius: var(--radio-borde);
+            padding: 15px 25px; /* Más padding para que sea más grande */
+            border-radius: 12px; /* Bordes más redondeados */
             font-weight: 600;
-            font-size: 0.9em;
-            border-left: 5px solid;
+            font-size: 1.2em; /* Texto un poco más grande */
+            border-left: 8px solid; /* Borde más grueso */
             display: flex;
             align-items: center;
-            margin-bottom: 1rem;
+            justify-content: center; /* Centrar contenido */
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Sombra más definida */
+            gap: 10px; /* Espacio entre icono y texto */
+            animation: bounceIn 0.8s ease-out; /* Animación de entrada */
+        }
+
+        .epic-alert-mini i {
+            font-size: 1.8em !important; /* Icono más grande */
+            line-height: 1; /* Para centrar verticalmente el icono */
+        }
+        .epic-alert-mini span.fs-5 {
+            font-size: 1.2em !important; /* Asegura el tamaño de fuente para el texto */
         }
 
         .epic-stat-number {
-            font-size: 2.2em;
+            font-size: 2.5em;
             font-weight: 700;
-            color: var(--verde-completo);
             line-height: 1;
         }
 
@@ -256,49 +339,79 @@
             font-size: 0.9em;
             color: var(--gris-texto);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
         }
 
-        .cont-list-title {
+        /* --- ESTILOS DE BOTONES MODERNOS Y CHIDOS --- */
+        .btn-lg {
             font-weight: 600;
-            margin-top: 10px;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            border-radius: 50px; /* Botones más redondos */
+            padding: 0.75rem 2rem; /* Más padding */
+            transition: all 0.3s ease;
         }
 
-        .cont-list {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            line-height: 1.6;
+        .btn-primary {
+            background: linear-gradient(135deg, var(--btn-primary-gradient-start), var(--btn-primary-gradient-end));
+            border: none;
+            box-shadow: 0 4px 15px rgba(230,0,126,0.25);
+            color: var(--blanco);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #ff4081, #d60072); /* Un poco más claro al hover */
+            box-shadow: 0 6px 20px rgba(230,0,126,0.35);
+            transform: translateY(-2px);
         }
 
-        .cont-ent {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 3px 7px;
-            border-radius: 5px;
-            font-weight: 500;
-            margin: 2px;
-            display: inline-block;
+        .btn-success {
+            background: linear-gradient(135deg, var(--btn-success-gradient-start), var(--btn-success-gradient-end));
+            border: none;
+            box-shadow: 0 4px 15px rgba(40,167,69,0.25);
+            color: var(--blanco);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #34d058, #228b3d);
+            box-shadow: 0 6px 20px rgba(40,167,69,0.35);
+            transform: translateY(-2px);
         }
 
-        .cont-pend {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 3px 7px;
-            border-radius: 5px;
-            font-weight: 500;
-            margin: 2px;
-            display: inline-block;
+        .btn-outline-secondary {
+            border: 2px solid var(--btn-outline-secondary-color);
+            color: var(--btn-outline-secondary-color);
+            background-color: transparent;
+        }
+        .btn-outline-secondary:hover {
+            background-color: var(--btn-outline-secondary-hover-bg);
+            border-color: var(--rosa-principal); /* Borde se vuelve rosa al hover */
+            color: var(--rosa-principal); /* Texto se vuelve rosa al hover */
+            transform: translateY(-1px);
         }
 
-        /* SweetAlert2 Custom Styling (Crucial for z-index) */
+        /* Estilo para la rotación del icono de chevron en el botón de detalles */
+        .btn-details-toggle .chevron-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .btn-details-toggle[aria-expanded="true"] .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Estilos de los selects de filtro */
+        .form-select-lg {
+            height: calc(3.5rem + 2px); /* Ajuste de altura para que se vean más grandes */
+            border-radius: 50px; /* Más redondeado */
+            padding: 0.75rem 1.5rem; /* Más padding interno */
+            font-size: 1.1em;
+            background-position: right 1.5rem center; /* Ajustar posición de la flecha */
+        }
+        .form-select-lg:focus {
+            border-color: var(--rosa-principal);
+            box-shadow: 0 0 0 4px rgba(230,0,126,0.1);
+        }
+
+
+        /* SweetAlert2 Custom Styling (Crucial para z-index) */
         .swal2-container {
-            z-index: 1060 !important; /* Make sure SweetAlert2 is always on top */
+            z-index: 1060 !important; /* Asegura que SweetAlert2 siempre esté encima */
         }
         .swal2-popup {
             font-family: 'Poppins', sans-serif;
@@ -360,15 +473,81 @@
             background: var(--rosa-principal) !important;
         }
 
+        /* Estilos específicos para el SweetAlert del contenedor ya registrado */
+        .epic-icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--bs-success-bg-subtle); /* Fondo suave de éxito */
+            color: var(--bs-success); /* Color de icono de éxito */
+            font-size: 3.5rem;
+            margin: 0 auto 20px;
+        }
+        .epic-icon-container i {
+            line-height: 1; /* Asegura que el icono esté centrado verticalmente */
+        }
+        .epic-popup .epic-title {
+            color: var(--bs-success);
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+        .epic-popup .epic-html-container {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: var(--texto-principal);
+        }
+        .epic-details-card {
+            background-color: var(--gris-claro);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 15px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .epic-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .epic-detail-item i {
+            font-size: 1.5rem;
+            color: var(--rosa-principal);
+        }
+        .epic-detail-item div {
+            display: flex;
+            flex-direction: column;
+        }
+        .epic-label {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            color: var(--gris-texto);
+            font-weight: 600;
+        }
+        .epic-value {
+            font-size: 1em;
+            font-weight: 500;
+            color: var(--texto-principal);
+        }
+        /* Ajuste para móviles */
+        @media (max-width: 768px) {
+            .epic-details-card {
+                grid-template-columns: 1fr;
+            }
+        }
+
     </style>
 </head>
 <body>
-
 <header class="app-header">
     <button id="hamburger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#menuLateral" aria-controls="menuLateral" aria-label="Abrir menú">
         <span class="hamburger-icon"></span>
     </button>
-    <h1 class="header-title">Entregas Épicas</h1>
+    <h1 class="header-title">Entregas Contenedores</h1>
     <button id="logoutBtn" class="btn-menu"><i class="bi bi-power"></i></button>
 </header>
 
@@ -380,7 +559,7 @@
     <div class="offcanvas-body p-0">
         <nav class="nav flex-column">
             <a class="nav-link" href="../index.html"><i class="bi bi-house-heart-fill"></i>Inicio</a>
-            <a class="nav-link" href="../Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan"></i>Escanear Tarimas</a>
+            <a class="nav-link" href="../Escaneo/Contenedor.html"><i class="bi bi-qr-code-scan"></i>Escanear Contenedores</a>
             <a class="nav-link" href="../Manifiestos/Manifiestos.html"><i class="bi bi-file-earmark-text-fill"></i>Manifiestos</a>
             <a class="nav-link" href="../ChecarPrecios/index.html"><i class="bi bi-tags-fill"></i>Checar Precios</a>
             <a class="nav-link" href="../Bodegas/Bodegas.html"><i class="bi bi-inboxes-fill"></i>Bodegas</a>
@@ -394,19 +573,20 @@
 </div>
 
 <main class="container main-container">
-    <div id="app-container" class="row g-4" style="display: none;"> <div class="col-lg-5">
+    <div id="app-container" class="row g-4" style="display: none;">
+        <div class="col-lg-5">
             <div class="card">
                 <div class="card-header"><h2 class="h4 mb-0 card-title"><i class="bi bi-upc-scan me-2"></i> Registro de Entregas</h2></div>
                 <div class="card-body p-4">
                     <form id="deliveryForm">
-                        <div class="form-group mb-3">
+                        <div class="form-group mb-4">
                             <label for="bodegaInput" class="form-label fw-bold">1. Escanea la Bodega:</label>
-                            <input type="text" id="bodegaInput" class="form-control form-control-lg text-center" required disabled>
+                            <input type="text" id="bodegaInput" class="form-control form-control-lg text-center" placeholder="Ej. B001" required disabled>
                         </div>
-                        <div id="jefeInfoBox" class="alert alert-success" style="display: none;"></div>
+                        <div id="jefeInfoBox" class="alert alert-success mt-3 animated fadeIn" style="display: none;"></div>
                         <div class="form-group">
                             <label for="containerInput" class="form-label fw-bold">2. Escanea el Contenedor:</label>
-                            <input type="text" id="containerInput" class="form-control form-control-lg text-center" maxlength="9" required disabled>
+                            <input type="text" id="containerInput" class="form-control form-control-lg text-center" maxlength="9" placeholder="Ej. CONTENEDOR123" required disabled>
                         </div>
                     </form>
                 </div>
@@ -418,60 +598,62 @@
                 <div class="card-header"><h2 class="h4 mb-0 card-title"><i class="bi bi-tools me-2"></i> Herramientas</h2></div>
                 <div class="card-body p-4 d-grid gap-3">
                     <button id="summaryBtn" type="button" class="btn btn-success btn-lg" disabled><i class="bi bi-bar-chart-line-fill me-2"></i>Dashboard de Avance</button>
-                    <button id="progressBtn" type="button" class="btn btn-primary btn-lg" disabled><i class="bi bi-folder2-open me-2"></i>Gestionar Archivos</button>
+                    <button id="progressBtn" type="button" class="btn btn-primary btn-lg" disabled><i class="bi bi-folder2-open me-2"></i>Gestionar Archivos Maestros</button>
                 </div>
             </div>
             <div class="card mt-4">
-                <div class="card-header"><h2 class="h4 mb-0 card-title"><i class="bi bi-folder-plus me-2"></i> Cargar Archivos</h2></div>
+                <div class="card-header"><h2 class="h4 mb-0 card-title"><i class="bi bi-folder-plus me-2"></i> Cargar Archivos Maestros</h2></div>
                 <div class="card-body p-4">
-                    <div id="drop-zone">
+                    <div id="drop-zone" class="d-flex flex-column justify-content-center align-items-center">
                         <i class="bi bi-cloud-arrow-up-fill"></i>
-                        <p class="mt-3">Arrastra y suelta tus archivos aquí</p>
-                        <p class="mb-0">o <label for="fileInput" id="file-input-label">haz clic para seleccionar</label></p>
+                        <p class="mt-3 fs-5 fw-bold text-dark">Arrastra y suelta tus archivos aquí</p>
+                        <p class="mb-0 text-muted">o <label for="fileInput" id="file-input-label">haz clic para seleccionar</label></p>
                         <input type="file" id="fileInput" multiple accept=".xlsx, .xls" class="d-none">
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div id="error-container" class="alert alert-danger text-center" style="display: none;">
-        No has iniciado sesión o no tienes permisos. Por favor, inicia sesión.
+    <div id="error-container" class="alert alert-danger text-center p-4 fs-5 fw-bold" style="display: none;">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>No has iniciado sesión o no tienes permisos. Por favor, inicia sesión.
     </div>
 </main>
 
 <div id="fileSelectModal" class="modal">
     <div class="modal-dialog">
         <div class="modal-header-custom">
-            <h2>Seleccionar Archivo para Resumen</h2>
+            <h2 class="modal-title"><i class="bi bi-file-earmark-bar-graph me-2"></i>Seleccionar Archivo para Resumen</h2>
             <span class="close-button">&times;</span>
         </div>
         <div class="modal-body-custom">
-            <ul id="summaryFileList" class="list-group">
-                </ul>
+            <p class="text-muted mb-3">Haz clic en un archivo para generar su dashboard de avance.</p>
+            <ul id="summaryFileList" class="list-group list-group-flush shadow-sm rounded">
+            </ul>
         </div>
     </div>
 </div>
 
 <div id="summaryModal" class="modal">
-    <div class="modal-dialog"> <div class="modal-header-custom">
-            <h2 id="summaryModalTitle">Resumen de Avance</h2>
+    <div class="modal-dialog">
+        <div class="modal-header-custom">
+            <h2 id="summaryModalTitle" class="modal-title">Resumen de Avance</h2>
             <span class="close-button">&times;</span>
         </div>
         <div class="modal-body-custom">
-            <div class="d-flex mb-3 gap-3 flex-wrap">
+            <div class="d-flex mb-4 gap-3 flex-wrap align-items-end">
                 <div class="flex-grow-1">
-                    <label for="jefeFilter" class="form-label fw-bold">Filtrar por Jefe:</label>
-                    <select id="jefeFilter" class="form-select form-select-lg"></select>
+                    <label for="jefeFilter" class="form-label fw-bold text-muted">Filtrar por Jefe:</label>
+                    <select id="jefeFilter" class="form-select form-select-lg shadow-sm rounded-pill px-4"></select>
                 </div>
                 <div class="flex-grow-1">
-                    <label for="seccionFilter" class="form-label fw-bold">Filtrar por Sección:</label>
-                    <select id="seccionFilter" class="form-select form-select-lg" disabled></select>
+                    <label for="seccionFilter" class="form-label fw-bold text-muted">Filtrar por Sección:</label>
+                    <select id="seccionFilter" class="form-select form-select-lg shadow-sm rounded-pill px-4" disabled></select>
                 </div>
             </div>
-            <div id="summaryGlobalStats" class="text-center mb-4">
-                </div>
+            <div id="summaryGlobalStats" class="text-center mb-4 p-3 rounded-pill">
+            </div>
             <div id="dashboardContent" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -479,12 +661,13 @@
 <div id="progressModal" class="modal">
     <div class="modal-dialog">
         <div class="modal-header-custom">
-            <h2>Gestionar Archivos Maestros</h2>
+            <h2 class="modal-title"><i class="bi bi-folder-open me-2"></i>Gestionar Archivos Maestros</h2>
             <span class="close-button">&times;</span>
         </div>
         <div class="modal-body-custom">
-            <ul id="fileList" class="list-group">
-                </ul>
+            <p class="text-muted mb-3">Haz clic en un archivo para descargarlo o en el ícono de bote de basura para eliminarlo.</p>
+            <ul id="fileList" class="list-group list-group-flush shadow-sm rounded">
+            </ul>
         </div>
     </div>
 </div>
@@ -512,7 +695,7 @@
             });
         }
         
-        // Initial display handled by auth.onAuthStateChanged in app.js
+        // La visualización inicial es manejada por auth.onAuthStateChanged en app.js
     });
 </script>
 </body>
