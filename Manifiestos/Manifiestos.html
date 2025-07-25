@@ -1733,11 +1733,7 @@
                         </div>
                         <div class="header-actions">
 
-                            <button id="btnDescargarArchivo" class="btn-custom btn-descargar"
-                                title="Descargar archivo del manifiesto" aria-label="Descargar archivo del manifiesto">
-                                <i class="material-icons">download</i>
-                                <span>Descargar</span>
-                            </button>
+
                             <button id="btnCambiarContenedor" class="btn-custom btn-cambiar"
                                 title="Cambiar de contenedor" aria-label="Cambiar de contenedor">
                                 <i class="material-icons">switch_account</i>
@@ -1892,57 +1888,58 @@
                     hasFullAccess: false
                 };
 
-                // ...existing code...
+               const calculateProStatistics = (data) => {
+                    let tSAP = 0;
+                    // Renombrada para mayor claridad: esto almacenará la suma de los artículos escaneados HASTA su cantidad SAP.
+                    let tSCAN_for_expected = 0;
+                    let falt = 0;
+                    let exc = 0; // Esto acumulará el total de excedentes
 
-                // Reemplaza la función calculateProStatistics por esta versión mejorada:
-                const calculateProStatistics = (data) => {
-                    let tSAP = 0, tSCAN = 0, falt = 0, exc = 0;
-                    const contF = {}, contE = {}, secF = {}, secE = {};
+                    const contF = {}, contE = {}, secF = {}, secE = {};
 
-                    data.forEach(r => {
-                        const sap = Number(r.SAP) || 0;
-                        // El valor correcto de SCANNER debe ser la suma real de escaneos, no el valor inicial del Excel
-                        const scan = Number(r.SCANNER) || 0;
-                        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
-                        const sec = (r.SECCION || 'Sin sección').toString().trim();
+                    data.forEach(r => {
+                        const sap = Number(r.SAP) || 0;
+                        const scan = Number(r.SCANNER) || 0;
+                        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
+                        const sec = (r.SECCION || 'Sin sección').toString().trim();
 
-                        tSAP += sap;
-                        tSCAN += scan;
+                        tSAP += sap;
 
-                        if (scan < sap) {
-                            const diff = sap - scan;
-                            falt += diff;
-                            contF[cont] = (contF[cont] || 0) + diff;
-                            secF[sec] = (secF[sec] || 0) + diff;
-                        } else if (scan > sap) {
-                            const diff = scan - sap;
-                            exc += diff;
-                            contE[cont] = (contE[cont] || 0) + diff;
-                            secE[sec] = (secE[sec] || 0) + diff;
-                        }
-                    });
+                        // Calcula los artículos correctamente escaneados: solo hasta la cantidad SAP para cada SKU.
+                        tSCAN_for_expected += Math.min(scan, sap);
 
-                    // El avance debe calcularse sobre la suma real de escaneos
-                    const av = tSAP ? Math.round((tSCAN / tSAP) * 100) : 0;
+                        if (scan < sap) {
+                            const diff = sap - scan;
+                            falt += diff;
+                            contF[cont] = (contF[cont] || 0) + diff;
+                            secF[sec] = (secF[sec] || 0) + diff;
+                        } else if (scan > sap) {
+                            const diff = scan - sap;
+                            exc += diff; // Acumula el excedente para el conteo total de excedentes
+                            contE[cont] = (contE[cont] || 0) + diff;
+                            secE[sec] = (secE[sec] || 0) + diff;
+                        }
+                    });
 
-                    const getTopItems = (obj) => Object.entries(obj)
-                        .sort(([, a], [, b]) => b - a);
+                    // El avance debe calcularse en función de `tSCAN_for_expected` (lo escaneado correctamente)
+                    const av = tSAP ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
 
-                    return {
-                        totalSAP: tSAP,
-                        totalSCAN: tSCAN,
-                        faltantes: falt,
-                        excedentes: exc,
-                        avance: av,
-                        totalSKUs: data.length,
-                        topContenedoresFaltantes: getTopItems(contF),
-                        topSeccionesFaltantes: getTopItems(secF),
-                        topContenedoresExcedentes: getTopItems(contE),
-                        topSeccionesExcedentes: getTopItems(secE),
-                    };
-                };
+                    const getTopItems = (obj) => Object.entries(obj)
+                        .sort(([, a], [, b]) => b - a);
 
-
+                    return {
+                        totalSAP: tSAP,
+                        totalSCAN: tSCAN_for_expected, // Este es el valor corregido
+                        faltantes: falt,
+                        excedentes: exc,
+                        avance: av,
+                        totalSKUs: data.length,
+                        topContenedoresFaltantes: getTopItems(contF),
+                        topSeccionesFaltantes: getTopItems(secF),
+                        topContenedoresExcedentes: getTopItems(contE),
+                        topSeccionesExcedentes: getTopItems(secE),
+                    };
+                };
 
                 function formatFecha(d) {
                     if (d instanceof Date && !isNaN(d.getTime())) {
@@ -4531,6 +4528,21 @@
 
                     let statusClass = isOld ? 'is-archivable' : `status-${estadoInfo.clase}`;
 
+                    // Calcular el total escaneado correcto (sin excedente)
+                    let totalScanCorrecto = p.totalSCAN;
+                    if (file.data && Array.isArray(file.data)) {
+                        file.data.forEach(row => {
+                            const sap = Number(row.SAP) || 0;
+                            const scan = Number(row.SCANNER) || 0;
+                            totalScanCorrecto += Math.min(scan, sap);
+                        });
+                    } else if (p.totalSCAN && p.totalSAP) {
+                        // Fallback si no hay data detallada, usar el menor valor
+                        totalScanCorrecto = Math.min(p.totalSCAN, p.totalSAP);
+                    } else {
+                        totalScanCorrecto = p.totalSCAN || 0;
+                    }
+
                     return `
         <div class="manifest-card-pro ${statusClass}">
             ${isDestacado ? `<div class="badge-destacado"><i class="bi bi-fire"></i> Destacado</div>` : ''}
@@ -4551,7 +4563,7 @@
                 </div>
                 <div class="card-stats">
                     <div>
-                        <div class="stat-value">${p.totalSCAN.toLocaleString()} / ${p.totalSAP.toLocaleString()}</div>
+                        <div class="stat-value">${totalScanCorrecto.toLocaleString()} / ${p.totalSAP.toLocaleString()}</div>
                         <div class="stat-label">Escaneado vs. SAP</div>
                     </div>
                     <div>
@@ -4607,415 +4619,304 @@
                     }
                 };
                 window.verDashboardArchivo = async (folder, fileName) => {
-                    try {
-                        // La nueva función de cálculo que agrupa por sección y luego por contenedor.
-                        const calculateProStatistics = (data) => {
-                            let tSAP = 0, tSCAN = 0, falt = 0, exc = 0;
-                            const faltantesPorSeccion = {};
-                            const excedentesPorSeccion = {};
+            try {
+                // --- INICIO DE LA FUNCIÓN CORREGIDA ---
+                const calculateProStatistics = (data) => {
+                    let tSAP = 0;
+                    let tSCAN_for_expected = 0; // Escaneos correctos (de piezas con SAP > 0)
+                    let exc = 0; // Excedentes totales
 
-                            data.forEach(r => {
-                                const sap = Number(r.SAP) || 0;
-                                const scan = Number(r.SCANNER) || 0;
-                                const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
-                                const sec = (r.SECCION || 'Sin sección').toString().trim();
+                    const faltantesPorSeccion = {};
+                    const excedentesPorSeccion = {};
 
-                                tSAP += sap;
-                                tSCAN += scan;
+                    data.forEach(r => {
+                        const sap = Number(r.SAP) || 0;
+                        const scan = Number(r.SCANNER) || 0;
+                        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
+                        const sec = (r.SECCION || 'Sin sección').toString().trim();
 
-                                if (scan < sap) {
-                                    const diff = sap - scan;
-                                    falt += diff;
-                                    if (!faltantesPorSeccion[sec]) {
-                                        faltantesPorSeccion[sec] = { total: 0, contenedores: {} };
-                                    }
-                                    faltantesPorSeccion[sec].total += diff;
-                                    faltantesPorSeccion[sec].contenedores[cont] = (faltantesPorSeccion[sec].contenedores[cont] || 0) + diff;
-                                } else if (scan > sap) {
-                                    const diff = scan - sap;
-                                    exc += diff;
-                                    if (!excedentesPorSeccion[sec]) {
-                                        excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
-                                    }
-                                    excedentesPorSeccion[sec].total += diff;
-                                    excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + diff;
+                        tSAP += sap;
+
+                        if (sap > 0) {
+                            // Es un artículo esperado
+                            const found_expected = Math.min(scan, sap);
+                            tSCAN_for_expected += found_expected;
+
+                            if (scan > sap) {
+                                const excess_amount = scan - sap;
+                                exc += excess_amount;
+                                if (!excedentesPorSeccion[sec]) {
+                                    excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
                                 }
-                            });
+                                excedentesPorSeccion[sec].total += excess_amount;
+                                excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + excess_amount;
+                            }
+                        } else {
+                            // Es un artículo nuevo/excedente (SAP = 0)
+                            exc += scan;
+                            if (scan > 0) {
+                                if (!excedentesPorSeccion[sec]) {
+                                    excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
+                                }
+                                excedentesPorSeccion[sec].total += scan;
+                                excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + scan;
+                            }
+                        }
 
-                            const av = tSAP ? Math.round((tSCAN / tSAP) * 100) : 0;
+                        if (scan < sap) {
+                            const missing_amount = sap - scan;
+                            if (!faltantesPorSeccion[sec]) {
+                                faltantesPorSeccion[sec] = { total: 0, contenedores: {} };
+                            }
+                            faltantesPorSeccion[sec].total += missing_amount;
+                            faltantesPorSeccion[sec].contenedores[cont] = (faltantesPorSeccion[sec].contenedores[cont] || 0) + missing_amount;
+                        }
+                    });
 
-                            const sortDetailedBreakdown = (obj) => {
-                                const sortedSections = Object.entries(obj).sort(([, a], [, b]) => b.total - a.total);
-                                sortedSections.forEach(([, sectionData]) => {
-                                    sectionData.contenedores = Object.entries(sectionData.contenedores).sort(([, a], [, b]) => b - a);
-                                });
-                                return sortedSections;
-                            };
+                    const falt = tSAP - tSCAN_for_expected; // Los faltantes se calculan sobre lo esperado
+                    const av = tSAP > 0 ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
 
-                            return {
-                                totalSAP: tSAP, totalSCAN: tSCAN, faltantes: falt, excedentes: exc, avance: av, totalSKUs: data.length,
-                                faltantesDetallado: sortDetailedBreakdown(faltantesPorSeccion),
-                                excedentesDetallado: sortDetailedBreakdown(excedentesPorSeccion),
-                            };
-                        };
+                    const sortDetailedBreakdown = (obj) => {
+                        const sortedSections = Object.entries(obj).sort(([, a], [, b]) => b.total - a.total);
+                        sortedSections.forEach(([, sectionData]) => {
+                            sectionData.contenedores = Object.entries(sectionData.contenedores).sort(([, a], [, b]) => b - a);
+                        });
+                        return sortedSections;
+                    };
 
-                        await reconstructManifestDataFromFirebase(fileName);
-                        const datos = excelDataGlobal[fileName].data;
-                        const stats = calculateProStatistics(datos);
+                    return {
+                        totalSAP: tSAP,
+                        totalSCAN: tSCAN_for_expected, // Devolvemos el conteo correcto de escaneos esperados
+                        faltantes: falt,
+                        excedentes: exc,
+                        avance: av, // Devolvemos el avance correcto
+                        totalSKUs: data.length,
+                        faltantesDetallado: sortDetailedBreakdown(faltantesPorSeccion),
+                        excedentesDetallado: sortDetailedBreakdown(excedentesPorSeccion),
+                    };
+                };
+                // --- FIN DE LA FUNCIÓN CORREGIDA ---
 
-                        const statColors = {
-                            total: { bg: 'linear-gradient(135deg, #E6007E 0%, #fff 100%)', icon: 'apps', color: '#E6007E' },
-                            expected: { bg: 'linear-gradient(135deg, #6f42c1 0%, #fff 100%)', icon: 'inventory', color: '#6f42c1' },
-                            scanned: { bg: 'linear-gradient(135deg, #198754 0%, #fff 100%)', icon: 'task_alt', color: '#198754' },
-                            missing: { bg: 'linear-gradient(135deg, #dc3545 0%, #fff 100%)', icon: 'remove_circle', color: '#dc3545' },
-                            excess: { bg: 'linear-gradient(135deg, #ffc107 0%, #fff 100%)', icon: 'add_circle', color: '#ffc107' }
-                        };
+                await reconstructManifestDataFromFirebase(fileName);
+                const datos = excelDataGlobal[fileName].data;
+                const stats = calculateProStatistics(datos);
 
-                        const createProStatCard = (title, value, iconKey, className) => {
-                            const colorObj = statColors[className] || statColors.total;
-                            return `
-                                <div class="stat-card ${className} animate__animated animate__fadeInUp" style="
-                                    display: flex; align-items: center; justify-content: center;
-                                    gap: 1.2rem; box-shadow: 0 8px 24px rgba(0,0,0,0.10);
-                                    border-left: 8px solid ${colorObj.color}; background: ${colorObj.bg};
-                                    transition: transform 0.3s cubic-bezier(.4,2,.3,1); text-align: center;">
-                                    <div class="stat-icon d-flex align-items-center justify-content-center" style="
-                                        background: ${colorObj.bg}; border-radius: 50%; width: 56px; height: 56px;
-                                        box-shadow: 0 4px 16px ${colorObj.color}22; animation: bounceIn 1s;">
-                                        <i class="material-icons" style="font-size: 2.5rem; color: ${colorObj.color}; filter: drop-shadow(0 2px 4px ${colorObj.color}33);">${colorObj.icon}</i>
-                                    </div>
-                                    <div class="stat-info" style="flex: 1;">
-                                        <div class="stat-value" style="font-size: 2.5rem; font-weight: 800; color: #343a40; margin-bottom: 4px; letter-spacing: 1px; text-shadow: 0 2px 8px ${colorObj.color}11; animation: pulse 1.2s;">
-                                            ${value.toLocaleString('es-MX')}
-                                        </div>
-                                        <div class="stat-title" style="font-size: 1.05rem; color: ${colorObj.color}; font-weight: 700; letter-spacing: 0.5px;">
-                                            ${title}
-                                        </div>
-                                    </div>
+                const statColors = {
+                    total: { bg: 'linear-gradient(135deg, #E6007E 0%, #fff 100%)', icon: 'apps', color: '#E6007E' },
+                    expected: { bg: 'linear-gradient(135deg, #6f42c1 0%, #fff 100%)', icon: 'inventory', color: '#6f42c1' },
+                    scanned: { bg: 'linear-gradient(135deg, #198754 0%, #fff 100%)', icon: 'task_alt', color: '#198754' },
+                    missing: { bg: 'linear-gradient(135deg, #dc3545 0%, #fff 100%)', icon: 'remove_circle', color: '#dc3545' },
+                    excess: { bg: 'linear-gradient(135deg, #ffc107 0%, #fff 100%)', icon: 'add_circle', color: '#ffc107' }
+                };
+
+                const createProStatCard = (title, value, iconKey, className) => {
+                    const colorObj = statColors[className] || statColors.total;
+                    return `
+                        <div class="stat-card ${className} animate__animated animate__fadeInUp" style="
+                                display: flex; align-items: center; justify-content: center;
+                                gap: 1.2rem; box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+                                border-left: 8px solid ${colorObj.color}; background: ${colorObj.bg};
+                                transition: transform 0.3s cubic-bezier(.4,2,.3,1); text-align: center;">
+                            <div class="stat-icon d-flex align-items-center justify-content-center" style="
+                                    background: ${colorObj.bg}; border-radius: 50%; width: 56px; height: 56px;
+                                    box-shadow: 0 4px 16px ${colorObj.color}22; animation: bounceIn 1s;">
+                                <i class="material-icons" style="font-size: 2.5rem; color: ${colorObj.color}; filter: drop-shadow(0 2px 4px ${colorObj.color}33);">${colorObj.icon}</i>
+                            </div>
+                            <div class="stat-info" style="flex: 1;">
+                                <div class="stat-value" style="font-size: 2.5rem; font-weight: 800; color: #343a40; margin-bottom: 4px; letter-spacing: 1px; text-shadow: 0 2px 8px ${colorObj.color}11; animation: pulse 1.2s;">
+                                    ${value.toLocaleString('es-MX')}
                                 </div>
-                                <style>
-                                    @keyframes bounceIn { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 80% { transform: scale(0.95); } 100% { transform: scale(1); } }
-                                    @keyframes pulse { 0% { text-shadow: 0 0 0 #e6007e11; } 50% { text-shadow: 0 4px 16px #e6007e33; } 100% { text-shadow: 0 2px 8px #e6007e11; } }
-                                </style>`;
-                        };
+                                <div class="stat-title" style="font-size: 1.05rem; color: ${colorObj.color}; font-weight: 700; letter-spacing: 0.5px;">
+                                    ${title}
+                                </div>
+                            </div>
+                        </div>
+                        <style>
+                            @keyframes bounceIn { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 80% { transform: scale(0.95); } 100% { transform: scale(1); } }
+                            @keyframes pulse { 0% { text-shadow: 0 0 0 #e6007e11; } 50% { text-shadow: 0 4px 16px #e6007e33; } 100% { text-shadow: 0 2px 8px #e6007e11; } }
+                        </style>`;
+                };
 
-                        const createKeyInsightsPanel = (stats) => {
-                            const createAccordionItems = (items, type) => {
-                                if (items.length === 0) return `<div class="text-center p-3 text-muted">No hay ${type === 'faltantes' ? 'faltantes' : 'excedentes'} que reportar.</div>`;
+                const createKeyInsightsPanel = (stats) => {
+                    const createAccordionItems = (items, type) => {
+                        if (items.length === 0) return `<div class="text-center p-3 text-muted">No hay ${type === 'faltantes' ? 'faltantes' : 'excedentes'} que reportar.</div>`;
 
-                                return items.map(([sectionName, data], index) => {
-                                    const accordionId = `accordion-${type}-${index}`;
-                                    const color = type === 'faltantes' ? '#dc3545' : '#ffc107';
-                                    const icon = type === 'faltantes' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle';
+                        return items.map(([sectionName, data], index) => {
+                            const accordionId = `accordion-${type}-${index}`;
+                            const color = type === 'faltantes' ? '#dc3545' : '#ffc107';
+                            const icon = type === 'faltantes' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle';
 
-                                    const containerList = data.contenedores.map(([contName, qty]) => `
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            <span><i class="bi bi-box-seam me-2"></i>${contName}</span>
-                                            <span class="badge" style="background-color: ${color};">${qty.toLocaleString('es-MX')} pz.</span>
-                                        </li>
-                                    `).join('');
-
-                                    return `
-                                        <div class="accordion-item">
-                                            <h2 class="accordion-header" id="heading-${accordionId}">
-                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" aria-expanded="false" aria-controls="collapse-${accordionId}">
-                                                    <i class="bi ${icon} me-2" style="color: ${color};"></i>
-                                                    <strong>${sectionName}</strong>
-                                                    <span class="ms-auto me-3 badge rounded-pill" style="background-color: ${color}; font-size: 0.9rem;">Total: ${data.total.toLocaleString('es-MX')} pz.</span>
-                                                </button>
-                                            </h2>
-                                            <div id="collapse-${accordionId}" class="accordion-collapse collapse" aria-labelledby="heading-${accordionId}">
-                                                <div class="accordion-body">
-                                                    <h6 class="text-muted">Desglose por Contenedor:</h6>
-                                                    <ul class="list-group list-group-flush">${containerList}</ul>
-                                                </div>
-                                            </div>
-                                        </div>`;
-                                }).join('');
-                            };
+                            const containerList = data.contenedores.map(([contName, qty]) => `
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-box-seam me-2"></i>${contName}</span>
+                                    <span class="badge" style="background-color: ${color};">${qty.toLocaleString('es-MX')} pz.</span>
+                                </li>
+                            `).join('');
 
                             return `
-                                <div class="key-insights-panel" style="background: linear-gradient(135deg,#f8f9fa 80%,#e6007e08 100%); border-radius: 18px; box-shadow: 0 8px 32px rgba(230,0,126,0.07); padding: 2rem 1.5rem; margin-top: 1rem;">
-                                    <h4 style="display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:800;color:#E6007E;margin-bottom:2rem;justify-content:center;"><i class="bi bi-lightbulb" style="font-size:2rem;color:#E6007E;opacity:0.7;"></i> Insights Clave del Manifiesto</h4>
-                                    <div class="row gx-5">
-                                        <div class="col-lg-6">
-                                            <h5 class="text-center mb-3" style="color: #dc3545;">Análisis de Faltantes</h5>
-                                            <div class="accordion" id="accordionFaltantes">${createAccordionItems(stats.faltantesDetallado, 'faltantes')}</div>
-                                        </div>
-                                        <div class="col-lg-6 mt-4 mt-lg-0">
-                                            <h5 class="text-center mb-3" style="color: #ffc107;">Análisis de Excedentes</h5>
-                                            <div class="accordion" id="accordionExcedentes">${createAccordionItems(stats.excedentesDetallado, 'excedentes')}</div>
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading-${accordionId}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" aria-expanded="false" aria-controls="collapse-${accordionId}">
+                                            <i class="bi ${icon} me-2" style="color: ${color};"></i>
+                                            <strong>${sectionName}</strong>
+                                            <span class="ms-auto me-3 badge rounded-pill" style="background-color: ${color}; font-size: 0.9rem;">Total: ${data.total.toLocaleString('es-MX')} pz.</span>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse-${accordionId}" class="accordion-collapse collapse" aria-labelledby="heading-${accordionId}">
+                                        <div class="accordion-body">
+                                            <h6 class="text-muted">Desglose por Contenedor:</h6>
+                                            <ul class="list-group list-group-flush">${containerList}</ul>
                                         </div>
                                     </div>
                                 </div>`;
-                        };
+                        }).join('');
+                    };
 
-                        const isComplete = stats.avance >= 100;
-                        const statusClass = isComplete ? 'is-success' : 'is-warning';
-                        const statusMessage = isComplete ? `<i class="material-icons">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉` : `<i class="material-icons">warning</i> Aún falta un ${100 - stats.avance}% por completar. ¡Ánimo!`;
-
-                        const canvasId = `grafico_pro_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                        const dashboardHTML = `
-                            <div class="analisis-dashboard-pro" style="max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);">
-                                <div class="status-message ${statusClass}" style="justify-content:center;text-align:center;font-size:1.25rem;border-radius:12px;margin-bottom:2rem;box-shadow:0 2px 8px #e6007e11;">${statusMessage}</div>
-                                <div class="stats-grid stats-grid-responsive" style="margin:0 auto;max-width:950px;gap:2rem;">
-                                    ${createProStatCard('SKUs Totales', stats.totalSKUs, 'apps', 'total')}
-                                    ${createProStatCard('Piezas Esperadas (SAP)', stats.totalSAP, 'inventory', 'expected')}
-                                    ${createProStatCard('Piezas Escaneadas', stats.totalSCAN, 'task_alt', 'scanned')}
-                                    ${createProStatCard('Piezas Faltantes', stats.faltantes, 'error', 'missing')}
-                                    ${createProStatCard('Piezas Excedentes', stats.excedentes, 'add_shopping_cart', 'excess')}
+                    return `
+                        <div class="key-insights-panel" style="background: linear-gradient(135deg,#f8f9fa 80%,#e6007e08 100%); border-radius: 18px; box-shadow: 0 8px 32px rgba(230,0,126,0.07); padding: 2rem 1.5rem; margin-top: 1rem;">
+                            <h4 style="display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:800;color:#E6007E;margin-bottom:2rem;justify-content:center;"><i class="bi bi-lightbulb" style="font-size:2rem;color:#E6007E;opacity:0.7;"></i> Insights Clave del Manifiesto</h4>
+                            <div class="row gx-5">
+                                <div class="col-lg-6">
+                                    <h5 class="text-center mb-3" style="color: #dc3545;">Análisis de Faltantes</h5>
+                                    <div class="accordion" id="accordionFaltantes">${createAccordionItems(stats.faltantesDetallado, 'faltantes')}</div>
                                 </div>
-                                <div class="progress-container" style="margin:2.5rem auto 2.5rem auto;max-width:520px;height:32px;box-shadow:0 2px 8px #e6007e11;">
-                                    <div class="progress-fill ${isComplete ? 'bg-success' : 'bg-primary'}" style="width:${stats.avance}%;font-size:1.25rem;justify-content:center;align-items:center;height:100%;border-radius:32px;"><span style="font-weight:700;">${stats.avance}%</span></div>
-                                </div>
-                                <div class="dashboard-main-layout" style="display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.5rem;">
-                                    <div class="chart-container" style="flex:1 1 350px;max-width:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;">
-                                        <canvas id="${canvasId}" style="margin:0 auto;display:block;max-width:340px;max-height:340px;"></canvas>
-                                        <div style="text-align:center;margin-top:1.2rem;font-size:1.05rem;color:#6c757d;"><i class="material-icons" style="vertical-align:middle;color:#0d6efd;">pie_chart</i><span>Distribución de piezas</span></div>
-                                    </div>
-                                    <div style="flex:2 1 600px;max-width:700px;">${createKeyInsightsPanel(stats)}</div>
+                                <div class="col-lg-6 mt-4 mt-lg-0">
+                                    <h5 class="text-center mb-3" style="color: #ffc107;">Análisis de Excedentes</h5>
+                                    <div class="accordion" id="accordionExcedentes">${createAccordionItems(stats.excedentesDetallado, 'excedentes')}</div>
                                 </div>
                             </div>
-                            <style>
-                                .analisis-dashboard-pro{background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);padding:2.5rem 1.5rem}.stats-grid.stats-grid-responsive{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2rem;justify-content:center;margin-bottom:2rem}.stat-card{min-width:210px;max-width:260px;width:100%;padding:1.2rem 1rem;margin:0 auto;box-sizing:border-box}.stat-card .stat-value{font-size:2.2rem!important;font-weight:800;color:#343a40;margin-bottom:4px;letter-spacing:1px;text-shadow:0 2px 8px #e6007e11;animation:pulse 1.2s}.stat-card .stat-title{font-size:1rem!important;color:inherit;font-weight:700;letter-spacing:.5px}.stat-card .stat-icon{width:48px!important;height:48px!important;font-size:2rem!important}.progress-container{box-shadow:0 2px 8px #e6007e11;height:32px;border-radius:32px;background:#f8f9fa;overflow:hidden}.progress-fill{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.25rem;transition:width .5s cubic-bezier(.4,2,.3,1);background:linear-gradient(90deg,#e6007e 0%,#0d6efd 100%)}.dashboard-main-layout{margin-top:2rem;gap:2.5rem}.chart-container{background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;min-width:320px}@media (max-width:900px){.dashboard-main-layout{flex-direction:column;gap:1.5rem}.chart-container,.key-insights-panel{max-width:100%!important}.analisis-dashboard-pro{padding:1.2rem .5rem}.stats-grid.stats-grid-responsive{grid-template-columns:1fr 1fr;gap:1rem}.stat-card{min-width:160px;max-width:100%;padding:1rem .5rem}}@media (max-width:600px){.stats-grid.stats-grid-responsive{grid-template-columns:1fr;gap:.7rem}.stat-card{min-width:120px;padding:.7rem .3rem}}
-                            </style>`;
-
-                        Swal.fire({
-                            title: `<div style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem;">
-                                <i class="bi bi-bar-chart-line-fill" style="font-size: 2.5rem; color: var(--rosa-principal);"></i>
-                                <div>
-                                    <h2 style="font-size: 1.7rem; font-weight: 700; color: var(--texto-principal); margin: 0;">Análisis PRO</h2>
-                                    <p style="font-size: 1rem; color: #6c757d; margin: 0;">${fileName}</p>
-                                </div>
-                                </div>`,
-                            html: dashboardHTML,
-                            width: '98vw',
-                            maxWidth: '1400px',
-                            padding: '0',
-                            showCloseButton: true,
-                            showConfirmButton: false,
-                            customClass: {
-                                popup: 'dashboard-modal animate__animated animate__fadeInUp',
-                                header: 'p-3 border-bottom-0'
-                            },
-                            grow: 'row',
-                            didOpen: () => {
-                                const chartContainer = document.getElementById(canvasId);
-                                if (chartContainer) {
-                                    chartContainer.height = 340;
-                                    chartContainer.width = 340;
-                                    const ctx = chartContainer.getContext('2d');
-                                    new Chart(ctx, {
-                                        type: 'doughnut',
-                                        data: {
-                                            labels: ['Correcto', 'Faltante', 'Excedente'],
-                                            datasets: [{
-                                                data: [stats.totalSCAN - stats.excedentes, stats.faltantes, stats.excedentes],
-                                                backgroundColor: ['#20c997', '#e53935', '#ffb22d'],
-                                                borderColor: '#ffffff',
-                                                borderWidth: 8,
-                                                hoverOffset: 20,
-                                                hoverBorderColor: '#f8f9fa'
-                                            }]
-                                        },
-                                        options: {
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            cutout: '75%',
-                                            animation: { duration: 0 }, // Crucial para la captura de pantalla
-                                            plugins: {
-                                                legend: {
-                                                    position: 'bottom',
-                                                    labels: {
-                                                        padding: 25,
-                                                        usePointStyle: true,
-                                                        pointStyle: 'rectRounded',
-                                                        font: { size: 14, family: 'Poppins', weight: '600' },
-                                                        color: '#495057'
-                                                    }
-                                                },
-                                                tooltip: {
-                                                    enabled: true,
-                                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                                    titleColor: 'var(--rosa-principal)',
-                                                    bodyColor: '#ffffff',
-                                                    borderColor: 'var(--rosa-principal)',
-                                                    borderWidth: 1,
-                                                    padding: 12,
-                                                    cornerRadius: 8,
-                                                    callbacks: {
-                                                        label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas`
-                                                    }
-                                                }
-                                            }
-                                        },
-                                        plugins: [{
-                                            id: 'doughnut-center-text',
-                                            beforeDraw: function (chart) {
-                                                const { width, height, ctx } = chart;
-                                                ctx.restore();
-                                                const fontSize = (height / 110).toFixed(2);
-                                                ctx.font = `700 ${fontSize}em Poppins`;
-                                                ctx.textBaseline = "middle";
-                                                const text = `${stats.avance}%`;
-                                                const textX = Math.round((width - ctx.measureText(text).width) / 2);
-                                                const textY = height / 2;
-                                                ctx.fillStyle = '#343a40';
-                                                ctx.fillText(text, textX, textY);
-                                                ctx.save();
-                                            }
-                                        }]
-                                    });
-                                }
-                            }
-                        });
-
-                    } catch (e) {
-                        console.error("Error al generar dashboard PRO:", e);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error Inesperado',
-                            text: 'No se pudo generar el dashboard del archivo.'
-                        });
-                    }
+                        </div>`;
                 };
 
-                window.generatePdfReport = async (folder, name) => {
-                    Swal.fire({
-                        title: 'Generando Reporte PDF...',
-                        html: `Creando un dashboard y resúmenes de análisis. ¡Un momento, por favor!<br>
-               <div class="mt-3 spinner-border text-primary" role="status">
-                 <span class="visually-hidden">Cargando...</span>
-               </div>`,
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading()
-                    });
+                const isComplete = stats.avance >= 100 && stats.faltantes === 0;
+                const statusClass = isComplete ? 'is-success' : 'is-warning';
+                const statusMessage = isComplete ? `<i class="material-icons">celebration</i> ¡Manifiesto completo! Excelente trabajo 🎉` : `<i class="material-icons">warning</i> Aún falta un ${100 - stats.avance}% por completar. ¡Ánimo!`;
 
-                    try {
-                        await reconstructManifestDataFromFirebase(name);
-                        const data = excelDataGlobal[name].data;
-                        const stats = calculateProStatistics(data);
+                const canvasId = `grafico_pro_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const dashboardHTML = `
+                    <div class="analisis-dashboard-pro" style="max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);">
+                        <div class="status-message ${statusClass}" style="justify-content:center;text-align:center;font-size:1.25rem;border-radius:12px;margin-bottom:2rem;box-shadow:0 2px 8px #e6007e11;">${statusMessage}</div>
+                        <div class="stats-grid stats-grid-responsive" style="margin:0 auto;max-width:950px;gap:2rem;">
+                            ${createProStatCard('SKUs Totales', stats.totalSKUs, 'apps', 'total')}
+                            ${createProStatCard('Piezas Esperadas (SAP)', stats.totalSAP, 'inventory', 'expected')}
+                            ${createProStatCard('Piezas Escaneadas', stats.totalSCAN, 'task_alt', 'scanned')}
+                            ${createProStatCard('Piezas Faltantes', stats.faltantes, 'error', 'missing')}
+                            ${createProStatCard('Piezas Excedentes', stats.excedentes, 'add_shopping_cart', 'excess')}
+                        </div>
+                        <div class="progress-container" style="margin:2.5rem auto 2.5rem auto;max-width:520px;height:32px;box-shadow:0 2px 8px #e6007e11;">
+                            <div class="progress-fill ${isComplete ? 'bg-success' : 'bg-primary'}" style="width:${stats.avance}%;font-size:1.25rem;justify-content:center;align-items:center;height:100%;border-radius:32px;"><span style="font-weight:700;">${stats.avance}%</span></div>
+                        </div>
+                        <div class="dashboard-main-layout" style="display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.5rem;">
+                            <div class="chart-container" style="flex:1 1 350px;max-width:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;">
+                                <canvas id="${canvasId}" style="margin:0 auto;display:block;max-width:340px;max-height:340px;"></canvas>
+                                <div style="text-align:center;margin-top:1.2rem;font-size:1.05rem;color:#6c757d;"><i class="material-icons" style="vertical-align:middle;color:#0d6efd;">pie_chart</i><span>Distribución de piezas</span></div>
+                            </div>
+                            <div style="flex:2 1 600px;max-width:700px;">${createKeyInsightsPanel(stats)}</div>
+                        </div>
+                    </div>
+                    <style>
+                        .analisis-dashboard-pro{background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);padding:2.5rem 1.5rem}.stats-grid.stats-grid-responsive{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2rem;justify-content:center;margin-bottom:2rem}.stat-card{min-width:210px;max-width:260px;width:100%;padding:1.2rem 1rem;margin:0 auto;box-sizing:border-box}.stat-card .stat-value{font-size:2.2rem!important;font-weight:800;color:#343a40;margin-bottom:4px;letter-spacing:1px;text-shadow:0 2px 8px #e6007e11;animation:pulse 1.2s}.stat-card .stat-title{font-size:1rem!important;color:inherit;font-weight:700;letter-spacing:.5px}.stat-card .stat-icon{width:48px!important;height:48px!important;font-size:2rem!important}.progress-container{box-shadow:0 2px 8px #e6007e11;height:32px;border-radius:32px;background:#f8f9fa;overflow:hidden}.progress-fill{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.25rem;transition:width .5s cubic-bezier(.4,2,.3,1);background:linear-gradient(90deg,#e6007e 0%,#0d6efd 100%)}.dashboard-main-layout{margin-top:2rem;gap:2.5rem}.chart-container{background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;min-width:320px}@media (max-width:900px){.dashboard-main-layout{flex-direction:column;gap:1.5rem}.chart-container,.key-insights-panel{max-width:100%!important}.analisis-dashboard-pro{padding:1.2rem .5rem}.stats-grid.stats-grid-responsive{grid-template-columns:1fr 1fr;gap:1rem}.stat-card{min-width:160px;max-width:100%;padding:1rem .5rem}}@media (max-width:600px){.stats-grid.stats-grid-responsive{grid-template-columns:1fr;gap:.7rem}.stat-card{min-width:120px;padding:.7rem .3rem}}
+                    </style>`;
 
-                        const canvas = document.getElementById('hiddenChartCanvas');
-                        canvas.width = 1000;
-                        canvas.height = 500;
-                        const ctx = canvas.getContext('2d');
-
-                        if (canvas.chartInstance) {
-                            canvas.chartInstance.destroy();
-                        }
-
-                        canvas.chartInstance = new Chart(ctx, {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['Correcto', 'Faltante', 'Excedente'],
-                                datasets: [{
-                                    data: [stats.totalSCAN - stats.excedentes, stats.faltantes, stats.excedentes],
-                                    backgroundColor: ['#4CAF50', '#dc3545', '#FFC107'],
-                                    borderColor: '#ffffff',
-                                    borderWidth: 10,
-                                    hoverOffset: 20
+                Swal.fire({
+                    title: `<div style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem;">
+                        <i class="bi bi-bar-chart-line-fill" style="font-size: 2.5rem; color: var(--rosa-principal);"></i>
+                        <div>
+                            <h2 style="font-size: 1.7rem; font-weight: 700; color: var(--texto-principal); margin: 0;">Análisis PRO</h2>
+                            <p style="font-size: 1rem; color: #6c757d; margin: 0;">${fileName}</p>
+                        </div>
+                        </div>`,
+                    html: dashboardHTML,
+                    width: '98vw',
+                    maxWidth: '1400px',
+                    padding: '0',
+                    showCloseButton: true,
+                    showConfirmButton: false,
+                    customClass: {
+                        popup: 'dashboard-modal animate__animated animate__fadeInUp',
+                        header: 'p-3 border-bottom-0'
+                    },
+                    grow: 'row',
+                    didOpen: () => {
+                        const chartContainer = document.getElementById(canvasId);
+                        if (chartContainer) {
+                            chartContainer.height = 340;
+                            chartContainer.width = 340;
+                            const ctx = chartContainer.getContext('2d');
+                            new Chart(ctx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ['Correcto', 'Faltante', 'Excedente'],
+                                    datasets: [{
+                                        data: [stats.totalSCAN - stats.excedentes, stats.faltantes, stats.excedentes],
+                                        backgroundColor: ['#20c997', '#e53935', '#ffb22d'],
+                                        borderColor: '#ffffff',
+                                        borderWidth: 8,
+                                        hoverOffset: 20,
+                                        hoverBorderColor: '#f8f9fa'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    cutout: '75%',
+                                    animation: { duration: 0 }, // Crucial para la captura de pantalla
+                                    plugins: {
+                                        legend: {
+                                            position: 'bottom',
+                                            labels: {
+                                                padding: 25,
+                                                usePointStyle: true,
+                                                pointStyle: 'rectRounded',
+                                                font: { size: 14, family: 'Poppins', weight: '600' },
+                                                color: '#495057'
+                                            }
+                                        },
+                                        tooltip: {
+                                            enabled: true,
+                                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                            titleColor: 'var(--rosa-principal)',
+                                            bodyColor: '#ffffff',
+                                            borderColor: 'var(--rosa-principal)',
+                                            borderWidth: 1,
+                                            padding: 12,
+                                            cornerRadius: 8,
+                                            callbacks: {
+                                                label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas`
+                                            }
+                                        }
+                                    }
+                                },
+                                plugins: [{
+                                    id: 'doughnut-center-text',
+                                    beforeDraw: function (chart) {
+                                        const { width, height, ctx } = chart;
+                                        ctx.restore();
+                                        const fontSize = (height / 110).toFixed(2);
+                                        ctx.font = `700 ${fontSize}em Poppins`;
+                                        ctx.textBaseline = "middle";
+                                        const text = `${stats.avance}%`;
+                                        const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                                        const textY = height / 2;
+                                        ctx.fillStyle = '#343a40';
+                                        ctx.fillText(text, textX, textY);
+                                        ctx.save();
+                                    }
                                 }]
-                            },
-                            options: {
-                                responsive: false, maintainAspectRatio: false, cutout: '70%',
-                                plugins: {
-                                    legend: { position: 'right', labels: { font: { size: 14, family: 'Roboto', weight: 'normal' }, padding: 20, usePointStyle: true, pointStyle: 'circle' } },
-                                    tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas` } }
-                                }
-                            }
-                        });
-
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        const chartImage = canvas.toDataURL('image/png', 1.0);
-
-                        // ESTE BLOQUE ES ESENCIAL
-                        pdfMake.fonts = {
-                            Roboto: {
-                                normal: 'Roboto-Regular.ttf',
-                                bold: 'Roboto-Medium.ttf',
-                                italics: 'Roboto-Italic.ttf',
-                                bolditalics: 'Roboto-MediumItalics.ttf'
-                            }
-                        };
-
-                        const formatInsightList = (title, items, type) => {
-                            const listContent = items.length === 0 ? [{ text: 'No hay datos disponibles.', color: '#6c757d', margin: [0, 5], fontSize: 9 }] :
-                                items.map(([name, quantity]) => ({
-                                    columns: [
-                                        { text: name, width: 'auto', bold: true, fontSize: 9, color: '#343a40' },
-                                        { text: `${quantity.toLocaleString('es-MX')} pz.`, alignment: 'right', color: type === 'missing' ? '#dc3545' : '#ffc107', fontSize: 9 },
-                                    ],
-                                    margin: [0, 3]
-                                }));
-                            return [
-                                { text: title, style: 'subheaderSection', margin: [0, 10, 0, 5] },
-                                { stack: listContent, margin: [10, 0, 0, 0] }
-                            ];
-                        };
-
-                        const docDefinition = {
-                            defaultStyle: { font: 'Roboto', fontSize: 9, lineHeight: 1.3, color: '#343a40' },
-                            pageMargins: [40, 80, 40, 60],
-                            header: function (currentPage, pageCount, pageSize) {
-                                return {
-                                    columns: [
-                                        { text: 'LIVERPOOL', style: 'headerMainText' },
-                                        { text: `REPORTE DE MANIFIESTO - ${name.toUpperCase().replace(/\.XLSX$/, '')}`, style: 'headerSubText' }
-                                    ],
-                                    margin: [40, 30, 40, 0],
-                                    canvas: [{ type: 'line', x1: 0, y1: 0, x2: pageSize.width - 80, y2: 0, lineWidth: 1, lineColor: '#E6007E' }]
-                                };
-                            },
-                            footer: function (currentPage, pageCount, pageSize) {
-                                return {
-                                    columns: [
-                                        { text: 'CONFIDENCIAL | SISTEMA DE MANIFIESTOS', style: 'footerMainText' },
-                                        { text: `PÁGINA ${currentPage.toString()} de ${pageCount}`, style: 'footerPageNum' }
-                                    ],
-                                    margin: [40, 0, 40, 30],
-                                    canvas: [{ type: 'line', x1: 0, y1: 0, x2: pageSize.width - 80, y2: 0, lineWidth: 1, lineColor: '#E6007E' }]
-                                };
-                            },
-                            content: [
-                                { columns: [{ width: '45%', stack: [{ text: 'ANÁLISIS EJECUTIVO DEL MANIFIESTO', style: 'mainSectionTitle' }, { text: `Manifiesto: ${data[0]?.MANIFIESTO || 'N/A'}`, style: 'mainSubInfo' }, { text: `Archivo de Origen: ${name}`, style: 'mainSubInfo' }, { text: `Generado por: ${currentUser.email || 'Usuario Desconocido'}`, style: 'mainSubInfo' }, { text: `Fecha del Reporte: ${formatFecha(new Date())}`, style: 'mainSubInfo', margin: [0, 5, 0, 20] },] }, { width: '55%', image: chartImage, fit: [350, 350], alignment: 'right', margin: [0, -40, 0, 0] }] },
-                                { columns: [{ stack: [{ text: "PIEZAS ESPERADAS", style: "metricLabelStyle" }, { text: stats.totalSAP.toLocaleString("es-MX"), style: "metricValueMainStyle" }], alignment: "center" }, { stack: [{ text: "PIEZAS ESCANEADAS", style: "metricLabelStyle" }, { text: stats.totalSCAN.toLocaleString("es-MX"), style: "metricValueSuccessStyle" }], alignment: "center" }, { stack: [{ text: "SKUs TOTALES", style: "metricLabelStyle" }, { text: stats.totalSKUs.toLocaleString("es-MX"), style: "metricValueMainStyle" }], alignment: "center" },], columnGap: 20, margin: [0, 0, 0, 20] },
-                                { columns: [{ stack: [{ text: "PIEZAS FALTANTES", style: "metricLabelStyle" }, { text: stats.faltantes.toLocaleString("es-MX"), style: "metricValueDangerStyle" }], alignment: "center" }, { stack: [{ text: "PIEZAS EXCEDENTES", style: "metricLabelStyle" }, { text: stats.excedentes.toLocaleString("es-MX"), style: "metricValueWarningStyle" }], alignment: "center" }, { stack: [{ text: "PROGRESO GENERAL", style: "metricLabelStyle" }, { text: `${stats.avance}%`, style: "metricValueAccentStyle" }], alignment: "center" },], columnGap: 20, margin: [0, 0, 0, 60] },
-                                { text: 'ANÁLISIS DE INCIDENCIAS', style: 'mainSectionTitle', pageBreak: 'before' },
-                                { text: 'Identifica y aborda rápidamente las discrepancias en el inventario para una gestión eficiente.', style: 'sectionDescription', margin: [0, 5, 0, 30] },
-                                { columns: [{ width: '50%', stack: formatInsightList('Contenedores con Faltantes', stats.topContenedoresFaltantes, 'missing') }, { width: '50%', stack: formatInsightList('Secciones con Faltantes', stats.topSeccionesFaltantes, 'missing') },], margin: [0, 0, 0, 30] },
-                                { columns: [{ width: '50%', stack: formatInsightList('Contenedores con Excedentes', stats.topContenedoresExcedentes, 'excess') }, { width: '50%', stack: formatInsightList('Secciones con Excedentes', stats.topSeccionesExcedentes, 'excess') },], margin: [0, 0, 0, 60] },
-                                { text: 'DETALLE COMPLETO DE ARTÍCULOS', style: 'mainSectionTitle', pageBreak: 'before' },
-                                { text: 'Listado exhaustivo de todos los SKUs y su estado actual para una auditoría detallada.', style: 'sectionDescription', margin: [0, 5, 0, 30] },
-                                {
-                                    table: {
-                                        headerRows: 1, widths: ['auto', '*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
-                                        body: [
-                                            [{ text: 'SKU', style: 'tableHeaderElegant' }, { text: 'Descripción', style: 'tableHeaderElegant' }, { text: 'SAP', style: 'tableHeaderElegant' }, { text: 'SCAN', style: 'tableHeaderElegant' }, { text: 'DIF.', style: 'tableHeaderElegant' }, { text: 'Contenedor', style: 'tableHeaderElegant' }, { text: 'Sección', style: 'tableHeaderElegant' }, { text: 'Cond.', style: 'tableHeaderElegant' }],
-                                            ...data.map(item => { const sap = Number(item.SAP) || 0; const scanner = Number(item.SCANNER) || 0; let diffText = ''; let diffColor = '#343a40'; if (scanner === sap) { diffText = 'OK'; diffColor = '#4CAF50'; } else if (scanner < sap) { diffText = `-${sap - scanner}`; diffColor = '#dc3545'; } else { diffText = `+${scanner - sap}`; diffColor = '#FFC107'; } return [{ text: item.SKU || '', fontSize: 8, alignment: 'center' }, { text: item.DESCRIPCION || '', fontSize: 8 }, { text: sap.toLocaleString('es-MX'), alignment: 'center', fontSize: 8 }, { text: scanner.toLocaleString('es-MX'), alignment: 'center', fontSize: 8 }, { text: diffText, alignment: 'center', color: diffColor, bold: true, fontSize: 8 }, { text: item.CONTENEDOR || 'N/A', fontSize: 8, alignment: 'center' }, { text: item.SECCION || 'N/A', fontSize: 8, alignment: 'center' }, { text: (item.DANIO_CANTIDAD > 0 ? `${item.DANIO_CANTIDAD}` : '0'), alignment: 'center', fontSize: 8 },]; })
-                                        ]
-                                    },
-                                    alignment: 'center',
-                                    layout: { hLineWidth: function (i, node) { return (i === 0 || i === 1 || i === node.table.body.length) ? 1 : 0.2; }, vLineWidth: function (i, node) { return 0; }, hLineColor: function (i, node) { return (i === 0 || i === 1 || i === node.table.body.length) ? '#999' : '#eee'; }, vLineColor: function (i, node) { return 0; }, paddingLeft: function (i, node) { return 5; }, paddingRight: function (i, node) { return 5; }, paddingTop: function (i, node) { return 5; }, paddingBottom: function (i, node) { return 5; } },
-                                }
-                            ],
-                            styles: {
-                                mainSectionTitle: { fontSize: 20, bold: true, color: '#0d6efd', margin: [0, 0, 0, 10], alignment: 'left' }, sectionDescription: { fontSize: 9, color: '#6c757d', margin: [0, 0, 0, 10], alignment: 'left' }, mainSubInfo: { fontSize: 10, color: '#343a40', margin: [0, 3, 0, 0] }, subheaderSection: { fontSize: 11, bold: true, color: '#343a40', margin: [0, 8, 0, 5] }, tableHeaderElegant: { bold: true, fontSize: 8, fillColor: '#f0f0f0', alignment: 'center', color: '#343a40', margin: [0, 2] }, headerMainText: { fontSize: 10, bold: true, color: '#E6007E', alignment: 'left' }, headerSubText: { fontSize: 9, color: '#6c757d', alignment: 'right', bold: true }, footerMainText: { fontSize: 8, color: '#6c757d', alignment: 'left', bold: true }, footerPageNum: { fontSize: 8, color: '#6c757d', alignment: 'right', bold: true }, metricLabelStyle: { fontSize: 10, bold: true, color: '#6c757d', alignment: 'center', margin: [0, 0, 0, 5] }, metricValueMainStyle: { fontSize: 22, bold: true, color: '#0d6efd', alignment: 'center' }, metricValueSuccessStyle: { fontSize: 22, bold: true, color: '#4CAF50', alignment: 'center' }, metricValueDangerStyle: { fontSize: 22, bold: true, color: '#DC3545', alignment: 'center' }, metricValueWarningStyle: { fontSize: 22, bold: true, color: '#FFC107', alignment: 'center' }, metricValueAccentStyle: { fontSize: 22, bold: true, color: '#E6007E', alignment: 'center' }
-                            },
-                        };
-
-                        pdfMake.createPdf(docDefinition).download(`Reporte_Manifiesto_${name.replace(/\.xlsx$/i, '')}_${new Date().toISOString().slice(0, 10)}.pdf`);
-                        Swal.close();
-
-                    } catch (e) {
-                        console.error("Error al generar PDF:", e);
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            text: "No se pudo generar el PDF. Revisa la consola para más detalles."
-                        });
+                            });
+                        }
                     }
-                };
+                });
+
+            } catch (e) {
+                console.error("Error al generar dashboard PRO:", e);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Inesperado',
+                    text: 'No se pudo generar el dashboard del archivo.'
+                });
+            }
+        };
                 /**
                  * ✅ SOLUCIÓN FINAL (V.5) - CORRECCIÓN DE TARJETAS DE ESTADÍSTICAS
                  * Modifica temporalmente los estilos de las tarjetas para una captura perfecta.
@@ -7210,96 +7111,7 @@
                         Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la información de condiciones." });
                     }
                 });
-                /***********************************************************
-                 * DESCARGAR ARCHIVO
-                 ***********************************************************/
-                document.getElementById("btnDescargarArchivo").addEventListener("click", () => {
-                    let fn = selectedFileToWorkEl.textContent;
-                    if (!fn || !excelDataGlobal[fn]) {
-                        return Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            html: `<i class="material-icons" style="color:#F44336;">error</i> No hay archivo para descargar.`
-                        });
-                    }
-                    descargarArchivoTotal(fn);
-                });
 
-                function descargarArchivoTotal(fileName) {
-                    let dataObj = excelDataGlobal[fileName];
-                    if (!dataObj || !dataObj.data) {
-                        return Swal.fire({
-                            icon: "error",
-                            title: "Error",
-                            html: `<i class="material-icons" style="color:#F44336;">error</i> No hay datos para descargar.`
-                        });
-                    }
-                    let arr = dataObj.data.slice();
-                    arr.sort((a, b) => {
-                        let ca = String(a.CONTENEDOR || "").trim().toUpperCase();
-                        let cb = String(b.CONTENEDOR || "").trim().toUpperCase();
-                        if (ca < cb) return -1;
-                        if (ca > cb) return 1;
-                        return String(a.SKU || "").localeCompare(String(b.SKU || ""));
-                    });
-                    arr = arr.map(r => {
-                        if (r.SCANNER > 0) r.ENTREGADO_A = r.ENTREGADO_A || currentEmployeeNumber;
-                        return r;
-                    });
-                    let exportData = arr.map(r => {
-                        let SAP = r.SAP || 0;
-                        let SCANNER = r.SCANNER || 0;
-                        let diff = (SCANNER === SAP) ? "OK" :
-                            (SCANNER < SAP) ? `FALTAN ${SAP - SCANNER} piezas` :
-                                `MERCANCIA DE MAS: ${SCANNER - SAP} piezas`;
-                        return {
-                            FECHA: formatFecha(r.FECHA),
-                            SECCION: r.SECCION || "",
-                            MANIFIESTO: r.MANIFIESTO || "",
-                            CONTENEDOR: r.CONTENEDOR || "",
-                            SKU: r.SKU || "",
-                            EUROPEO: r.EUROPEO || "",
-                            DESCRIPCION: r.DESCRIPCION || "",
-                            SAP,
-                            SCANNER,
-                            LAST_SCANNED_BY: r.LAST_SCANNED_BY || "",
-                            ENTREGADO_A: r.ENTREGADO_A || "",
-                            DIFERENCIA: diff,
-                            "Fecha de Escaneo": r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : "",
-                            "CONDICIONES_MCIA": r.DANIO_CANTIDAD || 0,
-                            "FOTO_CONDICIONES": r.DANIO_FOTO_URL || ""
-                        };
-                    });
-                    let ws = XLSX.utils.json_to_sheet(exportData, {
-                        header: [
-                            "FECHA", "SECCION", "MANIFIESTO", "CONTENEDOR", "SKU", "EUROPEO",
-                            "DESCRIPCION", "SAP", "SCANNER", "LAST_SCANNED_BY", "ENTREGADO_A",
-                            "DIFERENCIA", "Fecha de Escaneo", "CONDICIONES_MCIA", "FOTO_CONDICIONES"
-                        ]
-                    });
-                    let wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-                    let wbout = XLSX.write(wb, {
-                        bookType: "xlsx",
-                        type: "array"
-                    });
-                    let blob = new Blob([wbout], {
-                        type: "application/octet-stream"
-                    });
-                    let url = URL.createObjectURL(blob);
-                    let a = document.createElement("a");
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    Swal.fire({
-                        icon: "success",
-                        title: "Descargado",
-                        html: `<i class="material-icons" style="color:#4CAF50;">check_circle</i> Archivo descargado.`
-                    });
-                }
 
 
 
@@ -7327,97 +7139,157 @@
 
                 function getContainerSummaryDetailed(recs) {
                     let totalRecords = recs.length;
-                    let assignedUsers = new Set();
                     let workers = new Set();
-                    let dates = [];
                     let sapSum = 0,
-                        scannerSum = 0;
-                    let completeCount = 0,
-                        totalMissing = 0,
-                        totalExtra = 0;
+                        scannedCorrectlySum = 0,
+                        excessSum = 0,
+                        missingSum = 0;
+
                     recs.forEach(r => {
-                        let sap = Number(r.SAP) || 0;
-                        let sc = Number(r.SCANNER) || 0;
+                        const sap = Number(r.SAP) || 0;
+                        const scanner = Number(r.SCANNER) || 0;
                         sapSum += sap;
-                        scannerSum += sc;
-                        if (r.ENTREGADO_A) assignedUsers.add(r.ENTREGADO_A);
+
+                        if (scanner >= sap) {
+                            scannedCorrectlySum += sap;
+                            excessSum += (scanner - sap);
+                        } else { // scanner < sap
+                            scannedCorrectlySum += scanner;
+                            missingSum += (sap - scanner);
+                        }
+
                         if (r.LAST_SCANNED_BY) workers.add(r.LAST_SCANNED_BY);
-                        if (r.FECHA_ESCANEO) {
-                            let d = new Date(r.FECHA_ESCANEO);
-                            if (!isNaN(d.getTime())) dates.push(d);
-                        }
-                        if (sc >= sap) {
-                            completeCount++;
-                            if (sc > sap) totalExtra += (sc - sap);
-                        } else {
-                            totalMissing += (sap - sc);
-                        }
                     });
+
                     let status = "INCOMPLETO";
-                    if (totalMissing === 0 && totalExtra > 0) {
-                        status = "COMPLETO CON MERCANCÍA DE MÁS";
-                    } else if (completeCount === totalRecords && totalExtra === 0) {
-                        status = "COMPLETO";
+                    let statusColor = "#E74C3C"; // Rojo para incompleto
+                    let statusIcon = "bi-exclamation-triangle-fill";
+
+                    if (missingSum === 0) {
+                        if (excessSum > 0) {
+                            status = "COMPLETO CON EXCEDENTES";
+                            statusColor = "#F1C40F"; // Amarillo para excedentes
+                            statusIcon = "bi-plus-circle-dotted";
+                        } else {
+                            status = "COMPLETO";
+                            statusColor = "#2ECC71"; // Verde para completo
+                            statusIcon = "bi-check-circle-fill";
+                        }
                     }
-                    let dateInfo = "N/A";
-                    if (dates.length > 0) {
-                        let minDate = new Date(Math.min(...dates));
-                        let maxDate = new Date(Math.max(...dates));
-                        dateInfo = `${formatFecha(minDate)} - ${formatFecha(maxDate)}`;
-                    }
-                    let completionInfo = "N/A";
-                    if (status === "INCOMPLETO" || status === "COMPLETO CON MERCANCÍA DE MÁS") {
-                        let lastDate = (dates.length > 0) ? new Date(Math.max(...dates)) : new Date();
-                        let lastWorker = Array.from(workers).pop() || "N/A";
-                        completionInfo = `${lastWorker} el ${formatFecha(lastDate)}`;
-                    } else {
-                        completionInfo = (workers.size === 1) ? Array.from(workers)[0] : `Varios (${Array.from(workers).join(", ")})`;
-                    }
+
                     return `
-                        <div style="font-size:0.95rem; display:flex; flex-direction:column; gap:4px;">
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#666;">apps</i>
-                                <strong>SKUs en contenedor:</strong> ${totalRecords}
+                        <style>
+                            .summary-grid {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                                gap: 1rem;
+                                padding: 1rem;
+                                background-color: #f8f9fa;
+                                border-radius: 12px;
+                            }
+                            .summary-item {
+                                display: flex;
+                                align-items: center;
+                                gap: 0.8rem;
+                                background-color: #fff;
+                                padding: 1rem;
+                                border-radius: 8px;
+                                border-left: 5px solid var(--rosa-principal);
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+                                transition: transform 0.2s ease-in-out;
+                            }
+                            .summary-item:hover {
+                                transform: translateY(-3px);
+                            }
+                            .summary-item.full-width {
+                                grid-column: 1 / -1;
+                            }
+                            .summary-item i {
+                                font-size: 2rem;
+                                color: var(--rosa-principal);
+                                opacity: 0.8;
+                                flex-shrink: 0;
+                            }
+                            .summary-item .label {
+                                font-size: 0.85rem;
+                                color: #6c757d;
+                                display: block;
+                                font-weight: 500;
+                                margin-bottom: 0.1rem;
+                            }
+                            .summary-item .value {
+                                font-size: 1.4rem;
+                                font-weight: 700;
+                                color: var(--texto-principal);
+                                line-height: 1.2;
+                            }
+                            .summary-item .value-badge {
+                                font-size: 1rem;
+                                font-weight: 600;
+                                color: #fff;
+                                padding: 0.4rem 1rem;
+                                border-radius: 50px;
+                                display: inline-block;
+                            }
+                            .status-item {
+                                grid-column: 1 / -1;
+                                justify-content: center;
+                                border-color: ${statusColor};
+                            }
+                            .status-item i {
+                                color: ${statusColor};
+                                font-size: 2.2rem;
+                            }
+                        </style>
+                        <div class="summary-grid">
+                            <div class="summary-item status-item">
+                                <i class="bi ${statusIcon}"></i>
+                                <div>
+                                    <span class="label">Estado del Contenedor</span>
+                                    <span class="value-badge" style="background-color: ${statusColor};">${status}</span>
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#8E44AD;">receipt_long</i>
-                                <strong>Piezas Totales (SAP):</strong> ${sapSum}
+                            <div class="summary-item">
+                                <i class="bi bi-tags-fill"></i>
+                                <div>
+                                    <span class="label">Total SKUs</span>
+                                    <span class="value">${totalRecords.toLocaleString('es-MX')}</span>
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#27AE60;">fact_check</i>
-                                <strong>Piezas Escaneadas:</strong> ${scannerSum}
+                            <div class="summary-item">
+                                <i class="bi bi-box-seam"></i>
+                                <div>
+                                    <span class="label">Piezas Esperadas</span>
+                                    <span class="value">${sapSum.toLocaleString('es-MX')}</span>
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#2980B9;">check_box</i>
-                                <strong>SKUs Completos:</strong> ${completeCount} ${totalExtra > 0 ? `(con ${totalExtra} piezas de más)` : ""} 
+                            <div class="summary-item">
+                                <i class="bi bi-check-all"></i>
+                                <div>
+                                    <span class="label">Escaneado Correcto</span>
+                                    <span class="value" style="color: #2ECC71;">${scannedCorrectlySum.toLocaleString('es-MX')}</span>
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:${totalMissing > 0 ? "#E74C3C" : "#95A5A6"};">remove_circle</i>
-                                <strong>Faltan piezas:</strong> ${totalMissing}
+                            <div class="summary-item">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                <div>
+                                    <span class="label">Piezas Faltantes</span>
+                                    <span class="value" style="color: #E74C3C;">${missingSum.toLocaleString('es-MX')}</span>
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:${totalExtra > 0 ? "#F1C40F" : "#95A5A6"};">add_circle</i>
-                                <strong>Excedentes:</strong> ${totalExtra} ${totalExtra > 0 ? "<em style='font-size:0.85rem;color:#555;'>(piezas agregadas de más)</em>" : ""} 
+                             <div class="summary-item">
+                                <i class="bi bi-plus-circle-dotted"></i>
+                                <div>
+                                    <span class="label">Piezas Excedentes</span>
+                                    <span class="value" style="color: #F1C40F;">${excessSum.toLocaleString('es-MX')}</span>
+                                </div>
                             </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#16A085;">person</i>
-                                <strong>Asignados a:</strong> ${Array.from(assignedUsers).join(", ") || "N/A"}
-                            </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#34495E;">engineering</i>
-                                <strong>Trabajado por:</strong> ${Array.from(workers).join(", ") || "N/A"}
-                            </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:#CD6155;">date_range</i>
-                                <strong>Fechas de escaneo:</strong> ${dateInfo || "N/A"}
-                            </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:${status === "COMPLETO" ? "#2ECC71" : "#E74C3C"};">info</i>
-                                <strong>Estado:</strong> ${status}
-                            </div>
-                            <div class="analysis-item">
-                                <i class="material-icons" style="color:${status === "COMPLETO" ? "#2ECC71" : "#E74C3C"};">person</i>
-                                <strong>${status === "COMPLETO" ? "Completado por:" : "Última actualización:"}</strong> ${completionInfo}
+                            <div class="summary-item full-width">
+                                <i class="bi bi-people-fill"></i>
+                                <div>
+                                    <span class="label">Trabajado por</span>
+                                    <span class="value" style="font-size: 1rem;">${Array.from(workers).join(", ") || "N/A"}</span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -7488,14 +7360,31 @@
                     let blob = new Blob([wbout], {
                         type: "application/octet-stream"
                     });
-                    let storeFolder = (currentUserStore === "ALL") ? "ALL" : currentUserStore;
-                    let storageRef = storage.ref(`Manifiestos/${storeFolder}/${fileName}`);
-                    await storageRef.put(blob);
+
+                    // ***** INICIO DE LA CORRECCIÓN IMPORTANTE *****
+                    // Paso 1: Obtener la tienda original del manifiesto desde Firestore
+                    const manifestDocRef = db.collection('manifiestos').doc(fileName);
+                    const manifestDocSnap = await manifestDocRef.get();
+
+                    let originalManifestStore = '0042'; // Valor por defecto seguro
+
+                    if (manifestDocSnap.exists && manifestDocSnap.data().store) {
+                        originalManifestStore = manifestDocSnap.data().store;
+                    }
+
+                    // Paso 2: Usar la tienda original del manifiesto para la ruta de Storage
+                    let storageRef = storage.ref(`Manifiestos/${originalManifestStore}/${fileName}`);
+                    // ***** FIN DE LA CORRECCIÓN IMPORTANTE *****
+
+                    await storageRef.put(blob); // Sube el archivo a la carpeta correcta
+
+                    // También asegúrate de que el documento en Firestore se actualice con la tienda correcta
+                    // (la original), no con "ALL" si es un admin.
                     await db.collection('manifiestos')
                         .doc(fileName)
                         .set({
                             fileName,
-                            store: storeFolder,
+                            store: originalManifestStore, // <--- Importante: Guarda la tienda original del manifiesto aquí también
                             lastUser: dataObj.lastUser,
                             lastUserStore: (dataObj.lastUserStore !== undefined) ? dataObj.lastUserStore : null,
                             lastUserRole: (dataObj.lastUserRole !== undefined) ? dataObj.lastUserRole : null,
