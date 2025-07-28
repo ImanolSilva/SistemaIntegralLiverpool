@@ -1,0 +1,2543 @@
+// === CONFIGURACIÓN DE FIREBASE ===
+const firebaseConfig = {
+    apiKey: "AIzaSyA_4H46I7TCVLnFjet8fQPZ006latm-mRE",
+    authDomain: "loginliverpool.firebaseapp.com",
+    projectId: "loginliverpool",
+    storageBucket: "loginliverpool.appspot.com",
+    messagingSenderId: "704223815941",
+    appId: "1:704223815941:web:c871525230fb61caf96f6c",
+    measurementId: "G-QFEPQ4TSPY"
+};
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+const auth = firebase.auth();
+const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
+
+// === VARIABLES GLOBALES NECESARIAS PARA EL RESUMEN ===
+const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2";
+let currentUser = null;
+let currentUserStore = null;
+let currentUserRole = null;
+let excelDataGlobal = {}; // Caché para los datos de los manifiestos
+let allFilesList = null; // Caché para la lista de archivos de Storage
+const SUPER_ADMINS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2"];
+
+// === VARIABLES DE ESTADO PARA LOS FILTROS Y GRÁFICAS DEL DASHBOARD DE RESUMEN ===
+let currentStatusFilterManifiestos = 'Todos';
+let currentManifestIdSelected = null;
+let currentJefaturaFilterManifiestosDetalle = 'Todos';
+let currentContenedorFilterManifiestosDetalle = 'Todos';
+let currentJefaturaFilterExcedentes = 'Todos';
+let excedentesChartInstance = null;
+let report = {}; // Objeto que contendrá todos los datos agregados del reporte
+let seccionesMap = new Map(); // Mapa de secciones a jefaturas, global para acceso
+let jefaturasConDatosEnPeriodo = new Set(); // Conjunto de jefaturas con actividad en el periodo
+
+
+// ==============================================================================
+// === FUNCIONES AUXILIARES (DEFINIDAS ANTES DE generarResumenSemanal) ===
+// Estas funciones se definen aquí para asegurar que estén disponibles en el ámbito
+// global antes de que `generarResumenSemanal` u otras funciones las llamen.
+// ==============================================================================
+
+// Helper para obtener propiedades de un objeto sin importar mayúsculas/minúsculas
+const getProp = (obj, key) => {
+    if (!obj) return undefined;
+    const lowerKey = String(key).toLowerCase();
+    const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
+    return objKey ? obj[objKey] : undefined;
+};
+
+// Formatea una fecha a string dd/mm/yyyy
+function formatFecha(d) {
+    if (d instanceof Date && !isNaN(d.getTime())) {
+        const dd = String(d.getDate()).padStart(2, "0");
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const yy = d.getFullYear();
+        return `${dd}/${mm}/${yy}`;
+    }
+    if (typeof d === "string") {
+        let dateObj = new Date(d);
+        if (!isNaN(dateObj.getTime())) {
+            let correctedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
+            return `${String(correctedDate.getDate()).padStart(2, "0")}/${String(correctedDate.getMonth() + 1).padStart(2, "0")}/${correctedDate.getFullYear()}`;
+        }
+        return d;
+    }
+    if (typeof d === "number") {
+        let dateObj = new Date(Math.round((d - 25569) * 86400 * 1000));
+        let correctedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
+        return `${String(correctedDate.getDate()).padStart(2, "0")}/${String(correctedDate.getMonth() + 1).padStart(2, "0")}/${correctedDate.getFullYear()}`;
+    }
+    return "";
+}
+
+// Reconstruye los datos de un manifiesto desde Firebase y los escaneos asociados
+async function reconstructManifestDataFromFirebase(manifestoId) {
+    try {
+        const manifestDoc = await db.collection('manifiestos').doc(manifestoId).get();
+        if (!manifestDoc.exists) {
+            throw new Error(`El documento del manifiesto con ID ${manifestoId} no existe.`);
+        }
+
+        const manifestData = manifestDoc.data();
+        const folder = manifestData.store;
+        const fileName = manifestData.fileName;
+
+        if (!folder || !fileName) {
+            throw new Error(`El documento ${manifestoId} no tiene información de tienda o nombre de archivo.`);
+        }
+
+        const url = await storage.ref(`Manifiestos/${folder}/${fileName}`).getDownloadURL();
+        const buffer = await (await fetch(url)).arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+        const baseData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+        let reconstructedData = JSON.parse(JSON.stringify(baseData));
+
+        reconstructedData.forEach(row => {
+            row.SCANNER = 0;
+            row.DANIO_CANTIDAD = 0;
+            row.DANIO_FOTO_URL = "";
+            row.LAST_SCANNED_BY = "";
+            row.ENTREGADO_A = "";
+            row.FECHA_ESCANEO = "";
+        });
+
+        const scansSnapshot = await db.collection('manifiestos').doc(manifestoId).collection('scans').orderBy('scannedAt').get();
+
+        const newItems = new Map();
+        const deletedSkus = new Set();
+
+        scansSnapshot.docs.forEach(doc => {
+            const scan = doc.data();
+            const skuUpper = String(scan.sku || "").toUpperCase();
+            const containerUpper = String(scan.container || "").trim().toUpperCase();
+
+            if (scan.type === 'delete') {
+                let recordToDelete = reconstructedData.find(r =>
+                    String(r.SKU || "").toUpperCase() === skuUpper &&
+                    String(r.CONTENEDOR || "").trim().toUpperCase() === containerUpper
+                );
+                if (recordToDelete && (Number(recordToDelete.SAP) || 0) === 0) {
+                    deletedSkus.add(`${skuUpper}|${containerUpper}`);
+                }
+                return;
+            }
+
+            let record = reconstructedData.find(r =>
+                String(r.SKU || "").toUpperCase() === skuUpper &&
+                String(r.CONTENEDOR || "").trim().toUpperCase() === containerUpper
+            );
+
+            if (record) {
+                if (deletedSkus.has(`${skuUpper}|${containerUpper}`)) return;
+
+                switch (scan.type) {
+                    case 'subtract':
+                        record.SCANNER = (Number(record.SCANNER) || 0) - (Number(scan.quantity) || 1);
+                        break;
+                    case 'damage':
+                        record.DANIO_CANTIDAD = (Number(record.DANIO_CANTIDAD) || 0) + (Number(scan.quantity) || 1);
+                        if (scan.photoURL) record.DANIO_FOTO_URL = scan.photoURL;
+                        break;
+                    default:
+                        record.SCANNER = (Number(record.SCANNER) || 0) + (Number(scan.quantity) || 1);
+                }
+
+                record.LAST_SCANNED_BY = scan.user || "Desconocido";
+                record.ENTREGADO_A = scan.employee || record.ENTREGADO_A;
+                if (scan.scannedAt) record.FECHA_ESCANEO = scan.scannedAt.toDate();
+
+            } else if (scan.type === 'add') {
+                const newItemKey = `${skuUpper}|${containerUpper}`;
+                if (deletedSkus.has(newItemKey)) return;
+
+                const refBaseRow = reconstructedData.length > 0 ? reconstructedData[0] : {};
+                let newItem = newItems.get(newItemKey);
+
+                if (!newItem) {
+                    newItem = { ...refBaseRow, SKU: scan.sku, SAP: 0, SCANNER: 0, DANIO_CANTIDAD: 0 };
+                }
+
+                newItem.SCANNER += (Number(scan.quantity) || 1);
+                newItem.DESCRIPCION = scan.description || "ARTÍCULO NUEVO";
+                newItem.CONTENEDOR = scan.container || refBaseRow.CONTENEDOR || "N/A";
+                newItem.LAST_SCANNED_BY = scan.user || "Desconocido";
+                newItem.ENTREGADO_A = scan.employee || newItem.ENTREGADO_A;
+                if (scan.scannedAt) newItem.FECHA_ESCANEO = scan.scannedAt.toDate();
+
+                newItems.set(newItemKey, newItem);
+            }
+        });
+
+        reconstructedData = reconstructedData.filter(r => {
+            const key = `${String(r.SKU || "").toUpperCase()}|${String(r.CONTENEDOR || "").trim().toUpperCase()}`;
+            return !deletedSkus.has(key);
+        });
+
+        newItems.forEach(item => reconstructedData.push(item));
+
+        excelDataGlobal[manifestoId] = { data: reconstructedData, ...manifestData };
+
+        return { data: reconstructedData, ...manifestData };
+
+    } catch (error) {
+        console.error(`Error al reconstruir datos para el manifiesto ${manifestoId}:`, error);
+        throw new Error("No se pudieron reconstruir los datos del manifiesto desde Firebase.");
+    }
+}
+
+// Calcula estadísticas para el dashboard PRO
+const calculateProStatistics = (data) => {
+    let tSAP = 0;
+    let tSCAN_for_expected = 0;
+    let exc = 0;
+
+    const faltantesPorSeccion = {};
+    const excedentesPorSeccion = {};
+
+    data.forEach(r => {
+        const sap = Number(r.SAP) || 0;
+        const scan = Number(r.SCANNER) || 0;
+        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
+        const sec = (r.SECCION || 'Sin sección').toString().trim();
+
+        tSAP += sap;
+
+        if (sap > 0) {
+            const found_expected = Math.min(scan, sap);
+            tSCAN_for_expected += found_expected;
+
+            if (scan > sap) {
+                const excess_amount = scan - sap;
+                exc += excess_amount;
+                if (!excedentesPorSeccion[sec]) {
+                    excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
+                }
+                excedentesPorSeccion[sec].total += excess_amount;
+                excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + excess_amount;
+            }
+        } else {
+            exc += scan;
+            if (scan > 0) {
+                if (!excedentesPorSeccion[sec]) {
+                    excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
+                }
+                excedentesPorSeccion[sec].total += scan;
+                excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + scan;
+            }
+        }
+
+        if (scan < sap) {
+            const missing_amount = sap - scan;
+            if (!faltantesPorSeccion[sec]) {
+                faltantesPorSeccion[sec] = { total: 0, contenedores: {} };
+            }
+            faltantesPorSeccion[sec].total += missing_amount;
+            faltantesPorSeccion[sec].contenedores[cont] = (faltantesPorSeccion[sec].contenedores[cont] || 0) + missing_amount;
+        }
+    });
+
+    const falt = tSAP - tSCAN_for_expected;
+    const av = tSAP > 0 ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
+
+    const sortDetailedBreakdown = (obj) => {
+        const sortedSections = Object.entries(obj).sort(([, a], [, b]) => b.total - a.total);
+        sortedSections.forEach(([, sectionData]) => {
+            sectionData.contenedores = Object.entries(sectionData.contenedores).sort(([, a], [, b]) => b - a);
+        });
+        return sortedSections;
+    };
+
+    return {
+        totalSAP: tSAP,
+        totalSCAN: tSCAN_for_expected,
+        faltantes: falt,
+        excedentes: exc,
+        avance: av,
+        totalSKUs: data.length,
+        topContenedoresFaltantes: Object.entries(faltantesPorSeccion).flatMap(([sec, d]) => Object.entries(d.contenedores).map(([cont, qty]) => ([`${cont} (${sec})`, qty]))).sort(([, a], [, b]) => b - a).slice(0, 5),
+        topSeccionesFaltantes: Object.entries(faltantesPorSeccion).map(([sec, d]) => ([sec, d.total])).sort(([, a], [, b]) => b - a).slice(0, 5),
+        topContenedoresExcedentes: Object.entries(excedentesPorSeccion).flatMap(([sec, d]) => Object.entries(d.contenedores).map(([cont, qty]) => ([`${cont} (${sec})`, qty]))).sort(([, a], [, b]) => b - a).slice(0, 5),
+        topSeccionesExcedentes: Object.entries(excedentesPorSeccion).map(([sec, d]) => ([sec, d.total])).sort(([, a], [, b]) => b - a).slice(0, 5),
+    };
+};
+
+// Genera un reporte PDF del manifiesto seleccionado
+window.generatePdfReport = async (folder, name) => {
+    Swal.fire({
+        title: 'Generando PDF...',
+        html: 'Creando reporte PDF. Por favor, espera.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const manifest = await reconstructManifestDataFromFirebase(name);
+        const stats = calculateProStatistics(manifest.data);
+
+        const docDefinition = {
+            header: {
+                columns: [
+                    { text: 'Sistema Liverpool - Reporte de Manifiesto', alignment: 'left', margin: [40, 30, 0, 0], fontSize: 10, bold: true },
+                    { text: `Fecha: ${new Date().toLocaleDateString('es-ES')}`, alignment: 'right', margin: [0, 30, 40, 0], fontSize: 10 }
+                ]
+            },
+            content: [
+                { text: 'Análisis Detallado del Manifiesto', style: 'header' },
+                { text: `Manifiesto: ${name}`, style: 'subheader' },
+                { text: `Tienda: ${folder}`, style: 'subheader' },
+                { text: '\nMétricas Clave:', style: 'sectionHeader' },
+                {
+                    columns: [
+                        { text: `Piezas SAP: ${stats.totalSAP.toLocaleString()}`, width: 'auto' },
+                        { text: `Piezas Escaneadas: ${stats.totalSCAN.toLocaleString()}`, width: 'auto' },
+                        { text: `Avance: ${stats.avance}%`, width: 'auto' }
+                    ],
+                    columnGap: 20,
+                    margin: [0, 5, 0, 15]
+                },
+                { text: 'Faltantes por Sección y Contenedor:', style: 'sectionHeader' },
+                stats.faltantesDetallado.length > 0 ? {
+                    ul: stats.faltantesDetallado.map(([section, data]) => ({
+                        text: `${section}: ${data.total.toLocaleString()} piezas faltantes`,
+                        ul: data.contenedores.map(([cont, qty]) => `${cont}: ${qty.toLocaleString()} piezas`)
+                    }))
+                } : { text: 'No se reportaron faltantes.', margin: [0, 0, 0, 10] },
+
+                { text: '\nExcedentes por Sección y Contenedor:', style: 'sectionHeader' },
+                stats.excedentesDetallado.length > 0 ? {
+                    ul: stats.excedentesDetallado.map(([section, data]) => ({
+                        text: `${section}: ${data.total.toLocaleString()} piezas excedentes`,
+                        ul: data.contenedores.map(([cont, qty]) => `${cont}: ${qty.toLocaleString()} piezas`)
+                    }))
+                } : { text: 'No se reportaron excedentes.', margin: [0, 0, 0, 10] }
+            ],
+            styles: {
+                header: { fontSize: 22, bold: true, alignment: 'center', margin: [0, 0, 0, 10], color: '#E6007E' },
+                subheader: { fontSize: 15, bold: true, alignment: 'center', margin: [0, 0, 0, 5], color: '#333333' },
+                sectionHeader: { fontSize: 14, bold: true, margin: [0, 15, 0, 5], color: '#0d6efd' },
+                defaultStyle: { font: 'Roboto' }
+            },
+            defaultStyle: {
+                font: 'Roboto'
+            }
+        };
+
+        pdfMake.createPdf(docDefinition).download(`Reporte_PDF_${name.replace(/\.xlsx$/i, '')}.pdf`);
+        Swal.close();
+    } catch (error) {
+        console.error("Error al generar el PDF:", error);
+        Swal.fire('Error al generar PDF', error.message, 'error');
+    }
+};
+
+// Genera un reporte Excel del manifiesto seleccionado
+window.downloadFile = async function (folder, name) {
+    const manifestoId = name;
+    if (!manifestoId) return Swal.fire('Error', 'No se ha seleccionado manifiesto.', 'error');
+
+    try {
+        const test_wb = XLSX.utils.book_new();
+        const test_ws = XLSX.utils.aoa_to_sheet([["Test"]]);
+        const cell = test_ws['A1'];
+        cell.s = { fill: { fgColor: { rgb: "FF0000" } } };
+    } catch (e) {
+        console.error("Error al verificar xlsx-js-style:", e);
+        return Swal.fire(
+            'Error de Configuración',
+            'Parece que la librería "xlsx-js-style" no está cargada correctamente o en la versión adecuada. ' +
+            'Asegúrate de que `xlsx.full.min.js` se cargue primero y luego `xlsx.bundle.js` de "xlsx-js-style".',
+            'error'
+        );
+    }
+
+    Swal.fire({
+        title: 'Generando Reporte Profesional...',
+        html: 'Creando dashboard y hojas de análisis. Por favor, espera.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const seccionToJefeMap = new Map();
+        try {
+            const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
+            const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
+            const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+
+            const findSheetName = (workbook) => {
+                const possibleNames = ["jefatura sil", "jefaturaa"];
+                return workbook.SheetNames.find(sheet => possibleNames.includes(sheet.trim().toLowerCase())) || workbook.SheetNames[0];
+            };
+            const sheetName = findSheetName(seccionesWB);
+            if (!sheetName) throw new Error(`No se encontró una hoja de cálculo en Secciones.xlsx.`);
+
+            const worksheet = seccionesWB.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+            if (data.length < 1) throw new Error(`La hoja "${sheetName}" está vacía.`);
+
+            let headerRowIndex = -1, seccionIndex = -1, jefaturaIndex = -1;
+            for (let i = 0; i < Math.min(5, data.length); i++) {
+                const headers = data[i].map(h => String(h || '').trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+                const tempSeccionIndex = headers.indexOf('seccion');
+                const tempJefaturaIndex = headers.indexOf('jefatura');
+                if (tempSeccionIndex !== -1 && tempJefaturaIndex !== -1) {
+                    headerRowIndex = i; seccionIndex = tempSeccionIndex; jefaturaIndex = tempJefaturaIndex;
+                    break;
+                }
+            }
+
+            if (headerRowIndex === -1) throw new Error(`No se encontraron las columnas "Seccion" y "Jefatura" en Secciones.xlsx.`);
+
+            for (let i = headerRowIndex + 1; i < data.length; i++) {
+                const row = data[i];
+                const seccion = String(row[seccionIndex] || '').trim().toUpperCase();
+                const jefe = String(row[jefaturaIndex] || 'Sin Asignar').trim();
+                if (seccion) seccionToJefeMap.set(seccion, jefe);
+            }
+        } catch (error) {
+            throw new Error("Error al leer Secciones.xlsx: " + error.message);
+        }
+
+        const manifest = await reconstructManifestDataFromFirebase(manifestoId);
+
+        const numericWithCommaFormatKeys = ['SAP', 'SCANNER', 'DIFERENCIA'];
+        const numericNoCommaFormatKeys = ['MANIFIESTO', 'SKU', 'EUROPEO', 'ENTREGADO_A', 'DAÑO_CANTIDAD'];
+        const textFormatKeys = ['CONTENEDOR', 'SECCION', 'JEFATURA', 'DESCRIPCION', 'LAST_SCANNED_BY', 'DANIO_FOTO_URL'];
+
+        const augmentedData = manifest.data.map(row => {
+            const newRow = {};
+
+            const findValueByKey = (obj, keyName) => {
+                const foundKey = Object.keys(obj).find(k => k.trim().toUpperCase() === keyName.toUpperCase());
+                return foundKey ? obj[foundKey] : undefined;
+            };
+
+            for (const originalKey in row) {
+                const upperKey = originalKey.trim().toUpperCase();
+                let value = row[originalKey];
+
+                if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '') ||
+                    (upperKey === 'DAÑO_CANTIDAD' && (value === 0 || value === '0'))) {
+                    newRow[originalKey] = null;
+                    continue;
+                }
+
+                if (textFormatKeys.includes(upperKey)) {
+                    newRow[originalKey] = String(value);
+                    continue;
+                }
+
+                if (upperKey === 'FECHA_ESCANEO') {
+                    if (value instanceof Date) {
+                        newRow[originalKey] = formatFecha(value);
+                    } else if (typeof value === 'string' && value.trim() !== '') {
+                        const parsedDate = new Date(value);
+                        if (!isNaN(parsedDate.getTime())) {
+                            newRow[originalKey] = formatFecha(parsedDate);
+                        } else {
+                            newRow[originalKey] = String(value);
+                        }
+                    } else {
+                        newRow[originalKey] = null;
+                    }
+                    continue;
+                }
+
+                if (typeof value === 'string') {
+                    const cleanedValue = value.replace(/,/g, '');
+                    const numValue = Number(cleanedValue);
+
+                    if (isNaN(numValue)) {
+                        newRow[originalKey] = String(value);
+                    } else {
+                        newRow[originalKey] = numValue;
+                    }
+                } else {
+                    newRow[originalKey] = value;
+                }
+            }
+
+            const seccionKey = Object.keys(newRow).find(k => k.trim().toUpperCase() === 'SECCION');
+            const seccionValue = seccionKey ? newRow[seccionKey] : '';
+            const seccion = String(seccionValue || '').trim().toUpperCase();
+            const jefe = seccionToJefeMap.get(seccion) || 'Sin Jefe Asignado';
+            newRow.JEFATURA = jefe;
+
+            const sapValue = Number(findValueByKey(newRow, 'SAP') || 0);
+            const scannerValue = Number(findValueByKey(newRow, 'SCANNER') || 0);
+            newRow.DIFERENCIA = scannerValue - sapValue;
+
+            return newRow;
+        });
+
+        augmentedData.sort((a, b) => {
+            const jefaturaA = a.JEFATURA || '';
+            const jefaturaB = b.JEFATURA || '';
+            const skuA = String(a.SKU || '');
+            const skuB = String(b.SKU || '');
+            return jefaturaA.localeCompare(jefaturaB) || skuA.localeCompare(skuB);
+        });
+
+        const wb = XLSX.utils.book_new();
+        const commonBorderStyle = { style: "thin", color: { rgb: "C0C0C0" } };
+
+        const styles = {
+            mainHeader: {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+                fill: { fgColor: { rgb: "333333" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            analysisHeader: {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+                fill: { fgColor: { rgb: "0056b3" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dataRowEven: {
+                fill: { fgColor: { rgb: "F0F0F0" } },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dataRowOdd: {
+                fill: { fgColor: { rgb: "FFFFFF" } },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dashTitle: { font: { sz: 18, bold: true, color: { rgb: "E6007E" } } },
+            dashSubtitle: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } },
+            dashHeader: { font: { sz: 14, bold: true, color: { rgb: "000000" } } },
+            metricLabel: { font: { bold: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "right" } },
+            metricValue: { font: { sz: 12, bold: true }, alignment: { horizontal: "left" } },
+            metricPositive: { font: { sz: 12, bold: true, color: { rgb: "28a745" } }, alignment: { horizontal: "left" } },
+            metricNegative: { font: { sz: 12, bold: true, color: { rgb: "dc3545" } }, alignment: { horizontal: "left" } },
+
+            diffOk: {
+                font: { bold: true, color: { rgb: "28a745" } },
+                fill: { fgColor: { rgb: "D4EDDA" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            diffNegative: {
+                font: { bold: true, color: { rgb: "DC3545" } },
+                fill: { fgColor: { rgb: "F8D7DA" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            diffPositive: {
+                font: { bold: true, color: { rgb: "856404" } },
+                fill: { fgColor: { rgb: "FFF3CD" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dashDate: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } }
+        };
+
+        const applyTableStyles = (ws, headerStyle, dataEvenStyle, dataOddStyle, numHeaderRows = 1) => {
+            if (!ws['!ref']) return;
+
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const numCols = range.e.c - range.s.c + 1;
+
+            for (let r = 0; r < numHeaderRows; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                    if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+                    ws[cellRef].s = headerStyle;
+                }
+            }
+
+            for (let r = numHeaderRows; r <= range.e.r; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                    if (ws[cellRef] === undefined || ws[cellRef].v === null) {
+                        continue;
+                    }
+
+                    const hasCustomDiffStyle = ws[cellRef].s && (ws[cellRef].s === styles.diffOk || ws[cellRef].s === styles.diffNegative || ws[cellRef].s === styles.diffPositive);
+
+                    if (!ws[cellRef].s || (ws[cellRef].s !== headerStyle && !hasCustomDiffStyle)) {
+                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
+                    } else if (!ws[cellRef].s && !hasCustomDiffStyle) {
+                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
+                    }
+                }
+            }
+
+            ws['!cols'] = [];
+            for (let C = 0; C < numCols; ++C) {
+                let max_width = 0;
+                for (let R = 0; R <= range.e.r; ++R) {
+                    const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
+                    if (cell && cell.v != null) {
+                        const cell_text = String(cell.v);
+                        const lines = cell_text.split(/\r\n|\r|\n/);
+                        const longest_line = lines.reduce((max, line) => Math.max(max, line.length), 0);
+                        max_width = Math.max(max_width, longest_line);
+                    }
+                }
+                ws['!cols'][C] = { wch: Math.min(60, Math.max(8, max_width + 2)) };
+            }
+
+            ws['!freeze'] = {
+                xSplit: "0",
+                ySplit: "1",
+                topLeftCell: "A2",
+                activePane: "bottomLeft",
+                state: "frozen"
+            };
+        };
+
+        const stats = calculateProStatistics(augmentedData);
+
+        const uploadDateString = manifest.createdAt ? manifest.createdAt.toLocaleDateString('es-ES', {
+            year: 'numeric', month: 'long', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: true
+        }) : 'Fecha no disponible';
+
+        let dashboardData = [
+            [{ v: "⭐️ Dashboard de Manifiesto", s: styles.dashTitle }],
+            [{ v: `Archivo: ${manifestoId}`, s: styles.dashSubtitle }],
+            [{ v: `Fecha de Carga: ${uploadDateString}`, s: styles.dashDate }],
+            [],
+            [{ v: "📊 MÉTRICAS GENERALES", s: styles.dashHeader }],
+            [{ v: "📥 Total Piezas (SAP):", s: styles.metricLabel }, { v: stats.totalSAP, s: styles.metricValue, z: '#,##0' }],
+            [{ v: "✅ Total Piezas Escaneadas:", s: styles.metricLabel }, { v: stats.totalSCAN, s: styles.metricValue, z: '#,##0' }],
+            [{ v: "⚠️ Diferencia Total:", s: styles.metricLabel }, { v: stats.totalSCAN - stats.totalSAP, s: (stats.totalSCAN - stats.totalSAP < 0 ? styles.metricNegative : styles.metricPositive), z: '#,##0' }],
+            [{ v: "🎯 Progreso General:", s: styles.metricLabel }, { v: stats.avance / 100, s: styles.metricPositive, z: '0.00%' }],
+            [],
+            [{ v: "🚨 PUNTOS CRÍTICOS (FALTANTES)", s: styles.dashHeader }],
+            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topContenedoresFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
+            [],
+            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topSeccionesFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
+            [],
+            [{ v: "📈 PUNTOS DE OPORTUNIDAD (EXCEDENTES)", s: styles.dashHeader }],
+            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topContenedoresExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
+            [],
+            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topSeccionesExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
+        ];
+        const wsDash = XLSX.utils.aoa_to_sheet(dashboardData);
+        wsDash['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }];
+        const baseRowShift = 1;
+        wsDash['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } },
+            { s: { r: 3 + baseRowShift, c: 0 }, e: { r: 3 + baseRowShift, c: 2 } },
+            { s: { r: 9 + baseRowShift, c: 0 }, e: { r: 9 + baseRowShift, c: 2 } },
+            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 2 } },
+            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 2 } }
+        ];
+
+        XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard");
+
+        const wsMain = XLSX.utils.json_to_sheet(augmentedData);
+        if (augmentedData.length > 0) {
+            const headers = Object.keys(augmentedData[0]);
+            XLSX.utils.sheet_add_aoa(wsMain, [headers], { origin: "A1" });
+
+            const headerKeysUpper = headers.map(key => key.toUpperCase());
+            const diffColIndex = headerKeysUpper.indexOf('DIFERENCIA');
+
+            for (let r = 1; r <= augmentedData.length; r++) {
+                numericWithCommaFormatKeys.forEach(colName => {
+                    if (colName === 'DIFERENCIA') return;
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') {
+                            wsMain[cellRef].z = '#,##0';
+                        }
+                    }
+                });
+
+                numericNoCommaFormatKeys.forEach(colName => {
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') {
+                            wsMain[cellRef].z = '0';
+                        }
+                    }
+                });
+
+                textFormatKeys.forEach(colName => {
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                        if (wsMain[cellRef]) {
+                            wsMain[cellRef].t = 's';
+                            delete wsMain[cellRef].z;
+                        }
+                    }
+                });
+
+                if (diffColIndex !== -1) {
+                    const cellRef = XLSX.utils.encode_cell({ c: diffColIndex, r: r });
+                    const cell = wsMain[cellRef];
+
+                    if (cell && cell.t === 'n') {
+                        const diffValue = cell.v;
+                        if (diffValue === 0) {
+                            cell.s = styles.diffOk;
+                            cell.v = "OK";
+                            cell.t = 's';
+                            delete cell.z;
+                        } else if (diffValue < 0) {
+                            cell.s = styles.diffNegative;
+                            cell.v = `FALTANTE: ${Math.abs(diffValue)}`;
+                            cell.t = 's';
+                            delete cell.z;
+                        } else {
+                            cell.s = styles.diffPositive;
+                            cell.v = `EXCEDENTE: ${diffValue}`;
+                            cell.t = 's';
+                            delete cell.z;
+                        }
+                    } else if (cell && (cell.v === null || cell.v === undefined || cell.v === '')) {
+                        continue;
+                    }
+                }
+            }
+
+            applyTableStyles(wsMain, styles.mainHeader, styles.dataRowEven, styles.dataRowOdd);
+            wsMain['!autofilter'] = { ref: wsMain['!ref'] };
+        }
+        XLSX.utils.book_append_sheet(wb, wsMain, "Reporte por Jefatura");
+
+        const analysisHeadersCont = ["Contenedor", "Jefatura(s)", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
+        const analysisHeadersSect = ["Sección", "Jefatura", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
+        const containerAnalysis = {}, sectionAnalysis = {};
+        augmentedData.forEach(row => {
+            const findKey = (obj, key) => Object.keys(obj).find(k => k.toUpperCase() === key.toUpperCase());
+            const cont = row[findKey(row, 'CONTENEDOR')];
+            const sect = row[findKey(row, 'SECCION')] || "N/A";
+            const sap = Number(row[findKey(row, 'SAP')] || 0);
+            const scanner = Number(row[findKey(row, 'SCANNER')] || 0);
+            const jefe = row.JEFATURA;
+            if (!containerAnalysis[cont]) containerAnalysis[cont] = { SAP: 0, SCANNER: 0, Jefes: new Set() };
+            containerAnalysis[cont].SAP += sap;
+            containerAnalysis[cont].SCANNER += scanner;
+            if (jefe !== 'Sin Jefe Asignado') containerAnalysis[cont].Jefes.add(jefe);
+            if (!sectionAnalysis[sect]) sectionAnalysis[sect] = { SAP: 0, SCANNER: 0 };
+            sectionAnalysis[sect].SAP += sap;
+            sectionAnalysis[sect].SCANNER += scanner;
+        });
+
+        const wsContData = Object.entries(containerAnalysis).map(([key, val]) => ({ "Contenedor": key, "Jefatura(s)": [...val.Jefes].join(', '), "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
+        const wsCont = XLSX.utils.json_to_sheet(wsContData, { header: analysisHeadersCont });
+        const numColsCont = analysisHeadersCont.length;
+        for (let r = 1; r <= wsContData.length; r++) {
+            const numericColsWithCommas_analysis = [2, 3, 4];
+            numericColsWithCommas_analysis.forEach(colIndex => {
+                if (numColsCont > colIndex) {
+                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                    if (wsCont[cellRef] && wsCont[cellRef].t === 'n') {
+                        wsCont[cellRef].z = '#,##0';
+                    }
+                }
+            });
+            const contColIndex = analysisHeadersCont.indexOf('Contenedor');
+            if (contColIndex !== -1) {
+                const cellRef = XLSX.utils.encode_cell({ c: contColIndex, r: r });
+                if (wsCont[cellRef]) {
+                    wsCont[cellRef].t = 's';
+                    delete wsCont[cellRef].z;
+                }
+            }
+        }
+        applyTableStyles(wsCont, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
+        wsCont['!autofilter'] = { ref: wsCont['!ref'] };
+        XLSX.utils.book_append_sheet(wb, wsCont, "Análisis por Cont.");
+
+        const wsSectData = Object.entries(sectionAnalysis).map(([key, val]) => ({ "Sección": key, "Jefatura": seccionToJefeMap.get(key.toUpperCase()) || "Sin Jefe Asignado", "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
+        const wsSect = XLSX.utils.json_to_sheet(wsSectData, { header: analysisHeadersSect });
+        const numColsSect = analysisHeadersSect.length;
+        for (let r = 1; r <= wsSectData.length; r++) {
+            const numericColsWithCommas_analysis = [2, 3, 4];
+            numericColsWithCommas_analysis.forEach(colIndex => {
+                if (numColsSect > colIndex) {
+                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                    if (wsSect[cellRef] && wsSect[cellRef].t === 'n') {
+                        wsSect[cellRef].z = '#,##0';
+                    }
+                }
+            });
+        }
+        applyTableStyles(wsSect, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
+        wsSect['!autofilter'] = { ref: wsSect['!ref'] };
+        XLSX.utils.book_append_sheet(wb, wsSect, "Análisis por Secc.");
+
+        XLSX.writeFile(wb, `Reporte_Completo_${manifestoId}.xlsx`);
+        Swal.close();
+
+    } catch (error) {
+        console.error("Error al generar reporte:", error);
+        Swal.fire('Error Inesperado', error.message, 'error');
+    }
+};
+
+// ==============================================================================
+// === FUNCIONES DE RENDERIZADO DE LAS PESTAÑAS DEL DASHBOARD ===
+// ==============================================================================
+
+const renderJefaturaFilter = () => {
+    const container = document.getElementById('seccion-jefatura-filter');
+    if (!container) return;
+
+    let filtersHTML = '<button class="filter-btn active" data-jefe="Todos">Todos</button>';
+    // `jefaturasConDatosEnPeriodo` es una variable global que se llena en `generarResumenSemanal`.
+    filtersHTML += Array.from(jefaturasConDatosEnPeriodo).sort().map(jefe => `<button class="filter-btn" data-jefe="${jefe}">${String(jefe || 'N/A').trim()}</button>`).join('');
+    container.innerHTML = filtersHTML;
+
+    container.querySelectorAll('.filter-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            container.querySelector('.active')?.classList.remove('active');
+            e.currentTarget.classList.add('active');
+            renderSecciones(e.currentTarget.dataset.jefe);
+        });
+    });
+};
+
+const renderJefaturas = () => {
+    const grid = document.getElementById('jefaturas-grid');
+    const chartContainer = document.getElementById('jefaturas-comparativa-container'); // Contenedor para la nueva gráfica
+
+    if (!grid || !chartContainer) return;
+
+    // Solo ordenar y mostrar jefes que realmente tienen datos en el reporte
+    const jefesOrdenados = Object.entries(report.jefaturas)
+        .filter(([_, data]) => data.sap > 0 || data.scan > 0) // Solo jefes con actividad
+        .sort((a, b) => (b[1].scan / b[1].sap) - (a[1].scan / a[1].sap)); // Ordenar por % de avance
+
+    // --- NUEVA FUNCIÓN PARA LA GRÁFICA COMPARATIVA ---
+    const renderJefaturasComparativaChart = (jefes) => {
+        chartContainer.innerHTML = '<canvas id="jefaturasComparativaChart"></canvas>';
+        const ctx = document.getElementById('jefaturasComparativaChart').getContext('2d');
+
+        const labels = jefes.map(([nombre, _]) => nombre);
+        const dataPoints = jefes.map(([_, data]) => data.sap > 0 ? (data.scan / data.sap) * 100 : 100);
+
+        const backgroundColors = dataPoints.map(avance => {
+            if (avance < 50) return 'rgba(225, 0, 152, 0.7)'; // liverpool-pink
+            if (avance < 90) return 'rgba(240, 173, 78, 0.7)'; // Naranja
+            return 'rgba(149, 193, 31, 0.7)'; // liverpool-green
+        });
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Avance de Escaneo',
+                    data: dataPoints,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors.map(color => color.replace('0.7', '1')),
+                    borderWidth: 1,
+                    borderRadius: 5,
+                }]
+            },
+            options: {
+                indexAxis: 'y', // Esto hace la gráfica horizontal
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function (value) {
+                                return value + "%"
+                            }
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            autoSkip: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `Avance: ${context.raw.toFixed(2)}%`;
+                            }
+                        }
+                    },
+                    // Para mostrar el valor encima de cada barra
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: (value) => value.toFixed(1) + '%',
+                        color: '#414141',
+                        font: {
+                            weight: 'bold'
+                        }
+                    }
+                }
+            },
+            // Necesitas registrar el plugin de datalabels si no lo tienes globalmente
+            plugins: [ChartDataLabels],
+        });
+    };
+
+    // --- LÓGICA EXISTENTE (MODIFICADA LIGERAMENTE) ---
+
+    if (jefesOrdenados.length === 0) {
+        chartContainer.innerHTML = ''; // Limpiar la gráfica si no hay datos
+        grid.innerHTML = '<p class="text-center text-muted col-12 mt-5">No se encontraron datos de jefaturas con actividad en este periodo.</p>';
+        return;
+    }
+
+    // Primero, renderiza la nueva gráfica comparativa con los datos ordenados
+    renderJefaturasComparativaChart(jefesOrdenados);
+
+    // Luego, renderiza las tarjetas individuales como antes
+    grid.innerHTML = jefesOrdenados.map(([nombreJefe, data]) => {
+        // ... (El resto de tu código para generar las tarjetas individuales no cambia)
+        const chartId = `chart-jefe-${String(nombreJefe || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+        const seccionesHTML = data.secciones.sort((a, b) => b.avance - a.avance).map(s => `
+            <li>
+                <span class="section-name">${String(s.nombre || 'N/A').trim()}</span>
+                <span class="badge rounded-pill" style="background-color: ${s.avance < 50 ? 'var(--liverpool-pink)' : s.avance < 90 ? '#f0ad4e' : 'var(--liverpool-green)'}; min-width: 50px;">${s.avance.toFixed(0)}%</span>
+            </li>
+        `).join('');
+
+        const avanceTotalJefatura = data.sap > 0 ? (data.scan / data.sap) * 100 : 100;
+
+        return `
+            <div class="jefatura-card">
+                <div class="jefatura-header">
+                    <div class="jefatura-chart-container"><canvas id="${chartId}"></canvas></div>
+                    <div class="jefatura-title">
+                        <h5>${String(nombreJefe || 'N/A').trim()}</h5>
+                        <span class="stats-summary">${(data.scan || 0).toLocaleString('es-MX')} / ${(data.sap || 0).toLocaleString('es-MX')} pzs escaneadas</span>
+                    </div>
+                </div>
+                <ul class="jefatura-secciones-list">${seccionesHTML}</ul>
+            </div>`;
+    }).join('');
+
+    setTimeout(() => {
+        jefesOrdenados.forEach(([nombreJefe, data]) => {
+            const doughnutCtx = document.getElementById(`chart-jefe-${String(nombreJefe || '').replace(/[^a-zA-Z0-9]/g, '')}`)?.getContext('2d');
+            if (doughnutCtx) {
+                const avance = data.sap > 0 ? (data.scan / data.sap) * 100 : 100;
+                const colorAvance = avance < 50 ? 'var(--liverpool-pink)' : avance < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
+                new Chart(doughnutCtx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [avance, 100 - avance],
+                            backgroundColor: [colorAvance, '#f1f3f5'],
+                            borderWidth: 0,
+                            cutout: '75%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    },
+                    plugins: [{
+                        id: `gaugeText-jefe-${nombreJefe}`,
+                        beforeDraw: chart => {
+                            const { ctx, width, height } = chart;
+                            ctx.restore();
+                            ctx.font = `700 ${(height / 4).toFixed(0)}px Poppins`;
+                            ctx.fillStyle = colorAvance;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${avance.toFixed(0)}%`, width / 2, height / 2);
+                            ctx.save();
+                        }
+                    }]
+                });
+            }
+        });
+    }, 100);
+};
+
+const renderSecciones = (filtroJefe = 'Todos') => {
+    const grid = document.getElementById('secciones-grid-container');
+    if (!grid) return;
+
+    const seccionesFiltradas = Object.entries(report.secciones)
+        .filter(([_, data]) => (filtroJefe === 'Todos' || data.jefatura === filtroJefe) && (data.sap > 0 || data.scan > 0));
+
+    if (seccionesFiltradas.length === 0) {
+        grid.innerHTML = '<div class="col-12"><p class="text-center text-muted mt-4">No hay secciones que coincidan con el filtro o con actividad en este periodo.</p></div>';
+        return;
+    }
+
+    grid.innerHTML = seccionesFiltradas.sort((a, b) => b[1].sap - a[1].sap).map(([nombre, data]) => {
+        const avance = data.sap > 0 ? (data.scan / data.sap * 100) : 100;
+        const progressColorClass = avance < 50 ? 'progress-pink' : avance < 90 ? 'progress-yellow' : 'progress-green';
+
+        return `<div class="col">
+            <div class="section-card-compact">
+                <div class="section-name" title="${String(data.descripcion || 'Sin Descripción').trim()}">${String(nombre || 'N/A').trim()}</div>
+                <div class="section-jefe">${String(data.jefatura || 'N/A').trim()}</div>
+                <div class="custom-progress">
+                    <div class="custom-progress-bar ${progressColorClass}" style="width: ${avance}%;">${avance.toFixed(0)}%</div>
+                </div>
+                <div class="section-counts">${(data.scan || 0).toLocaleString('es-MX')} / ${(data.sap || 0).toLocaleString('es-MX')} pzs</div>
+            </div>
+        </div>`;
+    }).join('');
+};
+
+const renderManifiestosList = () => {
+    const listContainer = document.getElementById('manifiestos-list-container');
+    if (!listContainer) return;
+
+    const statusFilterContainer = document.getElementById('manifiestos-status-filter');
+    if (statusFilterContainer) {
+        statusFilterContainer.querySelectorAll('.filter-btn').forEach(button => {
+            const newListener = (e) => {
+                statusFilterContainer.querySelector('.active')?.classList.remove('active');
+                e.currentTarget.classList.add('active');
+                currentStatusFilterManifiestos = e.currentTarget.dataset.statusFilter;
+                renderManifiestosList();
+            };
+            button.removeEventListener('click', button._eventListener || (() => { }));
+            button.addEventListener('click', newListener);
+            button._eventListener = newListener;
+        });
+    }
+
+    let filteredManifests = Object.values(report.manifiestos);
+
+    if (currentStatusFilterManifiestos !== 'Todos') {
+        filteredManifests = filteredManifests.filter(man => {
+            const totalSapMan = Object.values(man.seccionesResumen).reduce((sum, s) => sum + (s.totalSap || 0), 0);
+            const totalScanMan = Object.values(man.seccionesResumen).reduce((sum, s) => sum + (s.totalScan || 0), 0);
+            const avanceMan = totalSapMan > 0 ? (totalScanMan / totalSapMan) * 100 : 100;
+
+            if (totalSapMan === 0 && totalScanMan === 0) return false;
+
+            switch (currentStatusFilterManifiestos) {
+                case 'Completado': return avanceMan === 100;
+                case 'Diferencias': return avanceMan > 0 && avanceMan < 100;
+                case 'Sin Escanear': return avanceMan === 0 && totalSapMan > 0;
+                default: return true;
+            }
+        });
+    }
+
+    const sortedManifests = filteredManifests.sort((a, b) => {
+        const numA = parseInt(String(a.numero || '0').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt(String(b.numero || '0').replace(/\D/g, ''), 10) || 0;
+        if (numA !== numB) return numA - numB;
+        return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+    if (sortedManifests.length === 0) {
+        listContainer.innerHTML = '<li class="list-group-item text-center text-muted py-3">No hay manifiestos que coincidan con los filtros aplicados.</li>';
+        document.getElementById('manifest-detail-view').innerHTML = '<p class="text-muted text-center mt-4">Selecciona un manifiesto de la lista para ver su detalle.</p>';
+        return;
+    }
+
+    listContainer.innerHTML = sortedManifests.map((m) => {
+        const totalSapMan = Object.values(m.seccionesResumen).reduce((sum, s) => sum + (s.totalSap || 0), 0);
+        const totalScanMan = Object.values(m.seccionesResumen).reduce((sum, s) => sum + (s.totalScan || 0), 0);
+        const avanceMan = totalSapMan > 0 ? (totalScanMan / totalSapMan) * 100 : 100;
+
+        let statusClass = '';
+        if (totalSapMan === 0 && totalScanMan === 0) {
+            statusClass = '';
+        } else if (avanceMan === 100) {
+            statusClass = 'manifest-status-completed';
+        } else if (avanceMan > 0 && avanceMan < 100) {
+            statusClass = 'manifest-status-diff';
+        } else if (avanceMan === 0 && totalSapMan > 0) {
+            statusClass = 'manifest-status-zero';
+        }
+
+        return `
+            <li class="list-group-item d-flex justify-content-between align-items-center manifiesto-list-item ${currentManifestIdSelected === m.id ? 'active' : ''} ${statusClass}" data-manifest-id="${String(m.id || 'N/A').trim()}">
+                <i class="bi bi-file-earmark-text me-2" style="color:var(--liverpool-pink);"></i>
+                <div>
+                    <strong>${String(m.numero || 'N/A').trim()}</strong> <br>
+                    <span class="text-muted small">${String(m.id || 'N/A').substring(0, 8)}...</span> </div>
+                <span class="badge bg-secondary ms-2">${(m.contenedores || []).length} Cont.</span>
+            </li>
+        `;
+    }).join('');
+
+    listContainer.querySelectorAll('.manifiesto-list-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            listContainer.querySelectorAll('.manifiesto-list-item').forEach(li => li.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            currentManifestIdSelected = e.currentTarget.dataset.manifestId;
+            currentJefaturaFilterManifiestosDetalle = 'Todos';
+            currentContenedorFilterManifiestosDetalle = 'Todos';
+            renderManifestDetail(currentManifestIdSelected);
+        });
+    });
+
+    if (!currentManifestIdSelected || !filteredManifests.some(m => m.id === currentManifestIdSelected)) {
+        if (sortedManifests.length > 0) {
+            currentManifestIdSelected = sortedManifests[0].id;
+            listContainer.querySelector(`[data-manifest-id="${currentManifestIdSelected}"]`)?.classList.add('active');
+            renderManifestDetail(currentManifestIdSelected);
+        } else {
+            document.getElementById('manifest-detail-view').innerHTML = '<p class="text-muted text-center mt-4">Selecciona un manifiesto de la lista para ver su detalle.</p>';
+        }
+    } else {
+        renderManifestDetail(currentManifestIdSelected);
+    }
+};
+
+const renderManifestDetail = (manifestId) => {
+    const detailContainer = document.getElementById('manifest-detail-view');
+    if (!detailContainer) return;
+
+    const manifest = report.manifiestos[manifestId];
+    if (!manifest) {
+        detailContainer.innerHTML = '<p class="text-muted text-center mt-4">Manifiesto no encontrado o no se pudo procesar.</p>';
+        return;
+    }
+
+    const manifestTotalSAP = Object.values(manifest.seccionesResumen).reduce((sum, s) => sum + (s.totalSap || 0), 0);
+    const manifestTotalSCAN = Object.values(manifest.seccionesResumen).reduce((sum, s) => sum + (s.totalScan || 0), 0);
+    const manifestAvanceOverall = manifestTotalSAP > 0 ? (manifestTotalSCAN / manifestTotalSAP) * 100 : 100;
+    const colorManifestAvance = manifestAvanceOverall < 50 ? 'var(--liverpool-pink)' : (manifestAvanceOverall < 90 ? '#f0ad4e' : 'var(--liverpool-green)');
+
+    const jefaturasEnEsteManifiesto = new Set();
+    for (const seccionKey in manifest.seccionesResumen) {
+        const seccionData = manifest.seccionesResumen[seccionKey];
+        if (seccionData.totalSap > 0 || seccionData.totalScan > 0 ||
+            Object.values(seccionData.byContenedor || {}).some(c => c.faltantes > 0 || c.excedentes > 0)) {
+            jefaturasEnEsteManifiesto.add(seccionData.jefatura);
+        }
+    }
+    const sortedJefaturasManifiesto = Array.from(jefaturasEnEsteManifiesto).sort();
+
+    const jefaturaFilterHTML = sortedJefaturasManifiesto.map(jefe =>
+        `<button class="filter-btn ${currentJefaturaFilterManifiestosDetalle === jefe ? 'active' : ''}" data-jefe-detail="${jefe}">${String(jefe || 'N/A').trim()}</button>`
+    ).join('');
+
+    detailContainer.innerHTML = `
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card-main h-100 d-flex flex-column justify-content-center">
+            <i class="bi bi-tag-fill icon" style="color: var(--liverpool-dark);"></i>
+            <div class="value">${String(manifest.numero || 'N/A').trim()}</div>
+            <div class="label">Manifiesto</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card-main h-100 d-flex flex-column justify-content-center">
+            <i class="bi bi-box-seam icon" style="color: var(--liverpool-dark);"></i>
+            <div class="value">${manifestTotalSAP.toLocaleString('es-MX')}</div>
+            <div class="label">Pzs. SAP Manifiesto</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card-main h-100 d-flex flex-column justify-content-center">
+            <i class="bi bi-check-circle-fill icon" style="color: var(--liverpool-green);"></i>
+            <div class="value">${manifestTotalSCAN.toLocaleString('es-MX')}</div>
+            <div class="label">Pzs. Escaneadas Manifiesto</div>
+        </div>
+    </div>
+                             <div class="col-12 d-flex justify-content-center align-items-center">
+                                <div style="width: 150px; height: 150px; position: relative;">
+                                    <canvas id="manifestOverallGauge"></canvas>
+                                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                        <span style="font-size: 1.2rem; font-weight: 700; color: ${colorManifestAvance};">${manifestAvanceOverall.toFixed(0)}%</span><br>
+                                        <span style="font-size: 0.8rem; color: #6c757d;">Avance Total</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3" style="color: var(--liverpool-dark); border-bottom: 1px solid var(--liverpool-border-gray); padding-bottom: 0.5rem;"><i class="bi bi-filter-circle me-2"></i>Filtrar Desglose</h5>
+                        <div class="filter-pills mb-3 d-flex flex-wrap gap-2">
+                            <h6 class="card-title text-muted me-2 mt-1">Jefatura:</h6>
+                            <button class="filter-btn ${currentJefaturaFilterManifiestosDetalle === 'Todos' ? 'active' : ''}" data-jefe-detail="Todos">Todos</button>
+                            ${jefaturaFilterHTML}
+                        </div>
+                        <div id="contenedor-filter-per-manifest" class="filter-pills mb-4 d-flex flex-wrap gap-2">
+                            <h6 class="card-title text-muted me-2 mt-1">Contenedor:</h6>
+                            <button class="filter-btn active" data-contenedor-detail="Todos">Todos</button>
+                            </div>
+
+                        <h5 class="mt-4 mb-3" style="color: var(--liverpool-dark); border-bottom: 1px solid var(--liverpool-border-gray); padding-bottom: 0.5rem;"><i class="bi bi-bar-chart-fill me-2"></i>Desglose por Sección</h5>
+                        <div id="secciones-detail-grid" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                            </div>
+                    `;
+
+    const manifestGaugeCtx = document.getElementById('manifestOverallGauge')?.getContext('2d');
+    if (manifestGaugeCtx) {
+        new Chart(manifestGaugeCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [manifestAvanceOverall, 100 - manifestAvanceOverall],
+                    backgroundColor: [colorManifestAvance, '#e9ecef'],
+                    borderWidth: 0,
+                    cutout: '75%'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false },
+                    title: {
+                        display: false,
+                        text: 'Avance de Escaneo del Manifiesto',
+                        color: 'var(--liverpool-dark)',
+                        font: { size: 14, weight: 'bold' },
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    detailContainer.querySelectorAll('.filter-pills button[data-jefe-detail]').forEach(button => {
+        button.addEventListener('click', (e) => {
+            detailContainer.querySelectorAll('.filter-pills button[data-jefe-detail]').forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            currentJefaturaFilterManifiestosDetalle = e.currentTarget.dataset.jefeDetail;
+            currentContenedorFilterManifiestosDetalle = 'Todos';
+            renderSeccionesInManifestDetail(manifestId);
+        });
+    });
+
+    renderSeccionesInManifestDetail(manifestId);
+};
+
+const renderSeccionesInManifestDetail = (manifestId) => {
+    const manifest = report.manifiestos[manifestId];
+    if (!manifest) return;
+
+    const seccionesGrid = document.getElementById('secciones-detail-grid');
+    const contenedorFilterContainer = document.getElementById('contenedor-filter-per-manifest');
+    if (!seccionesGrid || !contenedorFilterContainer) return;
+
+    const filteredSectionsByJefatura = Object.entries(manifest.seccionesResumen).filter(([seccionNombre, data]) => {
+        const isRelevantToJefatura = (currentJefaturaFilterManifiestosDetalle === 'Todos' || data.jefatura === currentJefaturaFilterManifiestosDetalle);
+        const hasAnyRelevantData = (data.totalSap > 0 || data.totalScan > 0 || Object.values(data.byContenedor || {}).some(c => c.faltantes > 0 || c.excedentes > 0));
+        return isRelevantToJefatura && hasAnyRelevantData;
+    });
+
+    const contenedoresRelevantes = new Set();
+    filteredSectionsByJefatura.forEach(([seccionNombre, data]) => {
+        if (data.byContenedor && Object.keys(data.byContenedor).length > 0) {
+            for (const cont in data.byContenedor) {
+                if (data.byContenedor[cont].sap > 0 || data.byContenedor[cont].scan > 0 || data.byContenedor[cont].faltantes > 0 || data.byContenedor[cont].excedentes > 0) {
+                    contenedoresRelevantes.add(cont);
+                }
+            }
+        } else {
+            contenedoresRelevantes.add('N/A (Sin Cont.)');
+        }
+    });
+    const sortedContenedoresRelevantes = Array.from(contenedoresRelevantes).sort();
+
+    let contenedorButtonsHTML = `<button class="filter-btn ${currentContenedorFilterManifiestosDetalle === 'Todos' ? 'active' : ''}" data-contenedor-detail="Todos">Todos</button>`;
+    contenedorButtonsHTML += sortedContenedoresRelevantes.map(cont =>
+        `<button class="filter-btn ${currentContenedorFilterManifiestosDetalle === cont ? 'active' : ''}" data-contenedor-detail="${String(cont || 'N/A').trim()}">${String(cont || 'N/A').trim()}</button>`
+    ).join('');
+    const existingContenedorH6 = contenedorFilterContainer.querySelector('h6');
+    contenedorFilterContainer.innerHTML = '';
+    if (existingContenedorH6) contenedorFilterContainer.appendChild(existingContenedorH6);
+    contenedorFilterContainer.insertAdjacentHTML('beforeend', contenedorButtonsHTML);
+
+    contenedorFilterContainer.querySelectorAll('button[data-contenedor-detail]').forEach(button => {
+        const clonedButton = button.cloneNode(true);
+        button.parentNode.replaceChild(clonedButton, button);
+        clonedButton.addEventListener('click', (e) => {
+            contenedorFilterContainer.querySelectorAll('button[data-contenedor-detail]').forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            currentContenedorFilterManifiestosDetalle = e.currentTarget.dataset.contenedorDetail;
+            renderSeccionesInManifestDetail(manifestId);
+        });
+    });
+
+    const filteredSectionsByContenedor = filteredSectionsByJefatura.filter(([seccionNombre, data]) => {
+        let isRelevantToContenedor = false;
+        if (currentContenedorFilterManifiestosDetalle === 'Todos') {
+            isRelevantToContenedor = (data.totalSap > 0 || data.totalScan > 0 || Object.values(data.byContenedor || {}).some(c => c.faltantes > 0 || c.excedentes > 0));
+        } else if (currentContenedorFilterManifiestosDetalle === 'N/A (Sin Cont.)') {
+            isRelevantToContenedor = (!data.byContenedor || Object.keys(data.byContenedor).length === 0) && (data.totalSap > 0 || data.totalScan > 0 || Object.values(data.byContenedor || {}).some(c => c.faltantes > 0 || c.excedentes > 0));
+        } else {
+            isRelevantToContenedor = (data.byContenedor && data.byContenedor[currentContenedorFilterManifiestosDetalle] &&
+                (data.byContenedor[currentContenedorFilterManifiestosDetalle].sap > 0 || data.byContenedor[currentContenedorFilterManifiestosDetalle].scan > 0 ||
+                    data.byContenedor[currentContenedorFilterManifiestosDetalle].faltantes > 0 || data.byContenedor[currentContenedorFilterManifiestosDetalle].excedentes > 0));
+        }
+
+        const currentSap = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalSap || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.sap || 0));
+        const currentScan = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalScan || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.scan || 0));
+
+        return isRelevantToContenedor && (currentSap > 0 || currentScan > 0 || (currentContenedorFilterManifiestosDetalle !== 'Todos' && (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.faltantes > 0 || data.byContenedor[currentContenedorFilterManifiestosDetalle]?.excedentes > 0)) || (currentContenedorFilterManifiestosDetalle === 'Todos' && ((currentSap - currentScan > 0) || (currentScan - currentSap > 0))));
+    });
+
+    const sortedSectionsToDisplay = filteredSectionsByContenedor.sort((a, b) => {
+        const sapA = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (a[1].totalSap || 0) : (a[1].byContenedor[currentContenedorFilterManifiestosDetalle]?.sap || 0));
+        const scanA = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (a[1].totalScan || 0) : (a[1].byContenedor[currentContenedorFilterManifiestosDetalle]?.scan || 0));
+        const avanceA = sapA > 0 ? (scanA / sapA) : 1;
+
+        const sapB = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (b[1].totalSap || 0) : (b[1].byContenedor[currentContenedorFilterManifiestosDetalle]?.sap || 0));
+        const scanB = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (b[1].totalScan || 0) : (b[1].byContenedor[currentContenedorFilterManifiestosDetalle]?.scan || 0));
+        const avanceB = sapB > 0 ? (scanB / sapB) : 1;
+
+        return avanceB - avanceA;
+    });
+
+    if (sortedSectionsToDisplay.length > 0) {
+        seccionesGrid.innerHTML = sortedSectionsToDisplay.map(([seccionNombre, data]) => {
+            const seccionInfo = seccionesMap.get(seccionNombre.toUpperCase()) || {
+                jefatura: 'Sin Asignar',
+                descripcion: 'Descripción no encontrada',
+                asistente: 'N/A'
+            };
+            const currentSap = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalSap || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.sap || 0));
+            const currentScan = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalScan || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.scan || 0));
+            const currentFaltantes = (currentSap - currentScan) > 0 ? (currentSap - currentScan) : 0;
+            const currentExcedentes = (currentScan - currentSap) > 0 ? (currentScan - currentSap) : 0;
+
+
+            const avanceSeccion = currentSap > 0 ? (currentScan / currentSap) * 100 : 100;
+            const colorAvanceSeccion = avanceSeccion < 50 ? 'var(--liverpool-pink)' : avanceSeccion < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
+            const chartId = `chart-manifest-${String(manifest.id || '').replace(/[^a-zA-Z0-9]/g, '')}-seccion-${String(seccionNombre || '').replace(/[^a-zA-Z0-9]/g, '')}-${String(currentContenedorFilterManifiestosDetalle || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+
+            return `
+                <div class="col-md-6 col-lg-4">
+                    <div class="section-card-compact">
+                        <div class="section-name" title="${String(seccionInfo.descripcion || 'Sin Descripción').trim()}">${String(seccionNombre || 'N/A').trim()}</div>
+                        <div class="section-jefe">${String(seccionInfo.jefatura || 'N/A').trim()}</div>
+                        <div class="mb-2" style="width: 100px; height: 100px; margin: 0 auto;">
+                            <canvas id="${chartId}"></canvas>
+                        </div>
+                        <div class="section-counts">
+                            ${(currentScan || 0).toLocaleString('es-MX')} / ${(currentSap || 0).toLocaleString('es-MX')} pzs
+                            ${currentFaltantes > 0 ? `<br><span style="color: var(--liverpool-pink);">Faltantes: ${currentFaltantes.toLocaleString('es-MX')}</span>` : ''}
+                            ${currentExcedentes > 0 ? `<br><span style="color: #f0ad4e;">Excedentes: ${currentExcedentes.toLocaleString('es-MX')}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        seccionesGrid.innerHTML = '<div class="col-12"><p class="text-center text-muted mt-4">No hay secciones con piezas para este manifiesto que coincidan con los filtros de contenedor y jefatura.</p></div>';
+    }
+
+    setTimeout(() => {
+        sortedSectionsToDisplay.forEach(([seccionNombre, data]) => {
+            const chartId = `chart-manifest-${String(manifest.id || '').replace(/[^a-zA-Z0-9]/g, '')}-seccion-${String(seccionNombre || '').replace(/[^a-zA-Z0-9]/g, '')}-${String(currentContenedorFilterManifiestosDetalle || '').replace(/[^a-zA-Z0-9]/g, '')}`;
+            const doughnutCtx = document.getElementById(chartId)?.getContext('2d');
+            if (doughnutCtx) {
+                const currentSap = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalSap || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.sap || 0));
+                const currentScan = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalScan || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.scan || 0));
+
+                const avanceSeccion = currentSap > 0 ? (currentScan / currentSap) * 100 : 100;
+                const colorAvanceSeccion = avanceSeccion < 50 ? 'var(--liverpool-pink)' : avanceSeccion < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
+                new Chart(doughnutCtx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [avanceSeccion, 100 - avanceSeccion],
+                            backgroundColor: [colorAvanceSeccion, '#f1f3f5'],
+                            borderWidth: 0,
+                            cutout: '75%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        }
+                    },
+                    plugins: [{
+                        id: `gaugeText-manifest-seccion-${seccionNombre}-${currentContenedorFilterManifiestosDetalle}`,
+                        beforeDraw: chart => {
+                            const { ctx, width, height } = chart;
+                            ctx.restore();
+                            ctx.font = `700 ${(height / 5).toFixed(0)}px Poppins`;
+                            ctx.fillStyle = colorAvanceSeccion;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${avanceSeccion.toFixed(0)}%`, width / 2, height / 2);
+                            ctx.save();
+                        }
+                    }]
+                });
+            }
+        });
+    }, 100);
+};
+
+const renderExcedentesDetail = () => {
+    const container = document.getElementById('excedentes-list-container');
+    const jefaturaFilterContainer = document.getElementById('excedentes-jefatura-filter');
+    const excedentesChartCanvas = document.getElementById('excedentesChart');
+    if (!container || !jefaturaFilterContainer || !excedentesChartCanvas) return;
+
+    const jefaturasConExcedentes = new Set();
+    report.skusConExcedentes.forEach(item => {
+        if (Number(item.excedente || 0) > 0) {
+            jefaturasConExcedentes.add(item.jefatura);
+        }
+    });
+    const sortedJefaturasExcedentes = Array.from(jefaturasConExcedentes).sort();
+
+    let filterHTML = `<button class="filter-btn ${currentJefaturaFilterExcedentes === 'Todos' ? 'active' : ''}" data-jefe-excedente="Todos">Todos</button>`;
+    filterHTML += sortedJefaturasExcedentes.map(jefe =>
+        `<button class="filter-btn ${currentJefaturaFilterExcedentes === jefe ? 'active' : ''}" data-jefe-excedente="${jefe}">${String(jefe || 'N/A').trim()}</button>`
+    ).join('');
+    jefaturaFilterContainer.innerHTML = filterHTML;
+
+    jefaturaFilterContainer.querySelectorAll('button[data-jefe-excedente]').forEach(button => {
+        const newListener = (e) => {
+            jefaturaFilterContainer.querySelectorAll('button[data-jefe-excedente]').forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            currentJefaturaFilterExcedentes = e.currentTarget.dataset.jefeExcedente;
+            renderExcedentesDetail();
+        };
+        button.removeEventListener('click', button._eventListener || (() => { }));
+        button.addEventListener('click', newListener);
+        button._eventListener = newListener;
+    });
+
+
+    const filteredExcedentes = report.skusConExcedentes.filter(item => {
+        return (currentJefaturaFilterExcedentes === 'Todos' || item.jefatura === currentJefaturaFilterExcedentes) && (Number(item.excedente || 0) > 0);
+    });
+
+    if (filteredExcedentes.length === 0) {
+        container.innerHTML = '<li class="list-group-item text-center text-success fs-5 p-4">¡Genial! No se encontraron artículos con excedentes que coincidan con los filtros.</li>';
+    } else {
+        container.innerHTML = filteredExcedentes.map(item => `
+            <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+                <div>
+                    <strong style="color:#f0ad4e;">${String(item.sku || 'N/A').trim()}</strong> - ${String(item.desc || 'Sin Descripción').trim()}<br>
+                    <small class="text-muted">Manifiesto: ${String(item.manifiesto.numero || 'N/A').trim()} (ID: ${String(item.manifiesto.id || 'N/A').trim()})</small><br>
+                    <small class="text-muted">Contenedor: ${String(item.contenedor || 'N/A').trim()} | Sección: ${String(item.seccion || 'N/A').trim()} | Jefatura: ${String(item.jefatura || 'N/A').trim()}</small>
+                </div>
+                <span class="badge rounded-pill" style="background-color: #f0ad4e;">+${(Number(item.excedente) || 0)} pz.</span>
+            </li>
+        `).join('');
+    }
+
+    let chartLabels = [];
+    let chartData = [];
+    let backgroundColors = [];
+
+    if (currentJefaturaFilterExcedentes === 'Todos') {
+        const excedentesPorJefatura = {};
+        report.skusConExcedentes.forEach(item => {
+            if (Number(item.excedente || 0) > 0) {
+                excedentesPorJefatura[item.jefatura] = (excedentesPorJefatura[item.jefatura] || 0) + (Number(item.excedente) || 0);
+            }
+        });
+        chartLabels = Object.keys(excedentesPorJefatura).sort();
+        chartData = chartLabels.map(jefe => excedentesPorJefatura[jefe]);
+        backgroundColors = chartLabels.map((_, i) => `hsl(${i * 60}, 70%, 50%)`);
+    } else {
+        const excedentesPorSeccion = {};
+        filteredExcedentes.forEach(item => {
+            if (Number(item.excedente || 0) > 0) {
+                excedentesPorSeccion[item.seccion] = (excedentesPorSeccion[item.seccion] || 0) + (Number(item.excedente) || 0);
+            }
+        });
+        chartLabels = Object.keys(excedentesPorSeccion).sort();
+        chartData = chartLabels.map(seccion => excedentesPorSeccion[seccion]);
+        backgroundColors = chartLabels.map((_, i) => `hsl(${i * 45 + 30}, 60%, 60%)`);
+    }
+
+    if (excedentesChartInstance) {
+        excedentesChartInstance.destroy();
+    }
+
+    if (chartData.some(val => val > 0)) {
+        excedentesChartInstance = new Chart(excedentesChartCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'right',
+                        labels: {
+                            color: 'var(--liverpool-dark)'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: currentJefaturaFilterExcedentes === 'Todos' ? 'Excedentes por Jefatura' : `Excedentes en ${currentJefaturaFilterExcedentes} por Sección`,
+                        color: 'var(--liverpool-dark)',
+                        font: { size: 14, weight: 'bold' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed) {
+                                    label += context.parsed.toLocaleString('es-MX') + ' pzs';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    } else {
+        excedentesChartCanvas.getContext('2d').clearRect(0, 0, excedentesChartCanvas.width, excedentesChartCanvas.height);
+    }
+};
+
+// ==============================================================================
+// === FUNCIÓN PRINCIPAL QUE GENERA EL RESUMEN SEMANAL ===
+// ==============================================================================
+async function generarResumenSemanal() {
+    // 1. Modal de selección de fechas
+    const { value: dateRange } = await Swal.fire({
+        title: '<i class="bi bi-calendar2-range" style="color:#E10098;"></i> Periodo de Análisis',
+        html: `
+            <p class="text-muted mt-2 mb-4">Selecciona el rango de fechas para generar el reporte de rendimiento.</p>
+            <input type="text" id="date-range-picker" class="form-control text-center" placeholder="Seleccionar fechas...">
+        `,
+        width: 480,
+        padding: '2rem',
+        confirmButtonText: 'Generar Dashboard <i class="bi bi-arrow-right-circle-fill ms-1"></i>',
+        customClass: {
+            popup: 'animate__animated animate__fadeInDown border-0 shadow-lg',
+            confirmButton: 'btn btn-primary btn-lg',
+        },
+        didOpen: () => {
+            flatpickr.localize(flatpickr.l10ns.es);
+            const fp = flatpickr("#date-range-picker", {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                locale: {
+                    ...flatpickr.l10ns.es,
+                    rangeSeparator: ' a '
+                },
+                maxDate: "today"
+            });
+            setTimeout(() => fp.open(), 100);
+        },
+        preConfirm: (value) => {
+            const range = document.getElementById('date-range-picker').value;
+            const separator = range.includes(' a ') ? ' a ' : 'a';
+
+            if (!range || (range.split(separator).length < 2)) {
+                Swal.showValidationMessage('Debes seleccionar un rango de fechas válido.');
+                return false;
+            }
+            return range.split(separator);
+        }
+    });
+
+    if (!dateRange || dateRange.length < 2) {
+        document.getElementById('resumenContent').innerHTML = `
+            <div class="text-center p-5">
+                <i class="bi bi-calendar-x-fill text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Selección de Fechas Cancelada o Incompleta</h4>
+                <p class="text-muted">Por favor, selecciona un rango de fechas para generar el resumen semanal.</p>
+                <button class="btn btn-primary mt-3" onclick="generarResumenSemanal()">Seleccionar Fechas Ahora</button>
+            </div>
+        `;
+        return;
+    }
+
+    const [startDateStr, endDateStr] = dateRange;
+
+    // 2. Mostrar SweetAlert de carga mientras se procesan los datos
+    Swal.fire({
+        title: '<span style="font-weight:700;color:#E10098;">Analizando Datos...</span>',
+        html: `<div style="display:flex;flex-direction:column;align-items:center;gap:1.2rem;"><div class="liverpool-loader"></div><div id="loading-message" style="color:#6c757d;">Cargando inteligencia de secciones y procesando manifiestos...<br>Por favor, espera.</div></div><style>.liverpool-loader{width:60px;height:60px;border-radius:50%;background:conic-gradient(from 180deg at 50% 50%,#E10098,#414141,#95C11F,#E10098);animation:spin 1.2s linear infinite;-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 0);mask: radial-gradient(farthest-side, #0000 calc(100% - 8px), #000 0);}@keyframes spin{to{transform:rotate(1turn);}}</style>`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+    });
+
+    try {
+        // 3. Cargar datos de Secciones.xlsx
+        seccionesMap = new Map(); // Limpiar el mapa antes de llenarlo
+        try {
+            const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
+            const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
+            const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+            const seccionesData = XLSX.utils.sheet_to_json(seccionesWB.Sheets['Jefatura']); // Asume la hoja 'Jefatura'
+            seccionesData.forEach(row => {
+                const seccionKey = String(getProp(row, 'Seccion') || '').trim();
+                if (seccionKey) {
+                    seccionesMap.set(seccionKey.toUpperCase(), {
+                        descripcion: String(getProp(row, 'Descripcion') || 'Sin Descripción').trim(),
+                        jefatura: String(getProp(row, 'Jefatura') || 'Sin Asignar').trim(),
+                        asistente: String(getProp(row, 'Asistente de Operaciones') || 'N/A').trim()
+                    });
+                }
+            });
+        } catch (error) {
+            console.error("Error crítico al cargar 'ExcelManifiestos/Secciones.xlsx':", error);
+            Swal.fire('Error de Archivo', "No se pudo cargar el archivo <b>ExcelManifiestos/Secciones.xlsx</b>. Revisa la consola para más detalles.", 'error');
+            return;
+        }
+
+        // 4. Definir rango de fechas para la consulta a Firebase
+        const [startY, startM, startD] = startDateStr.split('-').map(Number);
+        const startDate = new Date(startY, startM - 1, startD, 0, 0, 0, 0);
+
+        const [endY, endM, endD] = endDateStr.split('-').map(Number);
+        const endDate = new Date(endY, endM - 1, endD, 23, 59, 59, 999);
+
+        // 5. Consultar manifiestos en Firebase
+        let query = db.collection('manifiestos').where('createdAt', '>=', startDate).where('createdAt', '<=', endDate);
+        if (currentUserStore !== 'ALL' && !SUPER_ADMINS.includes(currentUser.uid)) {
+            query = query.where('store', '==', currentUserStore);
+        }
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            Swal.fire('Sin Datos', 'No se encontraron manifiestos en el rango de fechas seleccionado.', 'info');
+            document.getElementById('resumenContent').innerHTML = '<p class="text-center text-muted fs-5 mt-5">No se encontraron manifiestos para el periodo seleccionado.</p>';
+            return;
+        }
+
+        // 6. Inicializar el objeto `report` para almacenar los datos agregados
+        report = { // Asignamos al `report` global
+            totalSAP: 0,
+            totalSCAN: 0,
+            manifiestos: {},
+            usuarios: {},
+            secciones: {},
+            skusSinEscanear: [],
+            skusConExcedentes: [],
+            failedManifests: []
+        };
+
+        // 7. Procesar cada manifiesto de forma concurrente
+        const totalManifestsInSnapshot = snapshot.docs.length;
+        document.getElementById('loading-message').innerHTML = `Cargando inteligencia de secciones y procesando manifiestos...<br>Procesando 0 de ${totalManifestsInSnapshot} manifiestos...<br>Por favor, espera.`;
+
+        const manifestPromises = snapshot.docs.map(async (doc, index) => {
+            try {
+                document.getElementById('loading-message').innerHTML = `Cargando inteligencia de secciones y procesando manifiestos...<br>Procesando ${index + 1} de ${totalManifestsInSnapshot} manifiestos...<br>Por favor, espera.`;
+
+                const reconstructed = await reconstructManifestDataFromFirebase(doc.id);
+                const manifestData = reconstructed.data;
+
+                const contenedoresUnicos = new Set();
+                manifestData.forEach(row => {
+                    const contenedor = String(getProp(row, 'CONTENEDOR') || 'N/A').trim();
+                    contenedoresUnicos.add(contenedor);
+                });
+
+                const manifestInfo = {
+                    id: doc.id,
+                    numero: String(getProp(manifestData[0], 'MANIFIESTO') || 'N/A').trim(),
+                    data: manifestData,
+                    seccionesResumen: {},
+                    contenedores: Array.from(contenedoresUnicos).sort()
+                };
+
+                manifestData.forEach(row => {
+                    const seccionKey = String(getProp(row, 'SECCION') || 'Sin Sección').trim();
+                    const sap = Number(getProp(row, 'SAP')) || 0;
+                    const scan = Number(getProp(row, 'SCANNER')) || 0;
+                    const user = String(getProp(row, 'LAST_SCANNED_BY') || 'N/A').trim();
+                    const contenedor = String(getProp(row, 'CONTENEDOR') || 'N/A').trim();
+                    const sku = String(getProp(row, 'SKU') || 'N/A').trim();
+                    const desc = String(getProp(row, 'DESCRIPCION') || 'Sin Descripción').trim();
+
+                    if (!report.secciones[seccionKey]) {
+                        const seccionInfo = seccionesMap.get(seccionKey.toUpperCase()) || {
+                            jefatura: 'Sin Asignar',
+                            descripcion: 'Sin Descripción',
+                            asistente: 'N/A'
+                        };
+                        report.secciones[seccionKey] = {
+                            sap: 0,
+                            scan: 0,
+                            skus: 0,
+                            faltantes: 0,
+                            excedentes: 0,
+                            jefatura: seccionInfo.jefatura,
+                            descripcion: seccionInfo.descripcion,
+                            asistente: seccionInfo.asistente
+                        };
+                    }
+                    report.secciones[seccionKey].sap += sap;
+                    report.secciones[seccionKey].scan += scan;
+                    report.secciones[seccionKey].skus++;
+                    if (scan < sap) report.secciones[seccionKey].faltantes += (sap - scan);
+                    if (scan > sap) report.secciones[seccionKey].excedentes += (scan - sap);
+
+                    if (!manifestInfo.seccionesResumen[seccionKey]) {
+                        manifestInfo.seccionesResumen[seccionKey] = {
+                            totalSap: 0,
+                            totalScan: 0,
+                            byContenedor: {},
+                            jefatura: (seccionesMap.get(seccionKey.toUpperCase()) || { jefatura: 'Sin Asignar' }).jefatura
+                        };
+                    }
+                    if (!manifestInfo.seccionesResumen[seccionKey].byContenedor[contenedor]) {
+                        manifestInfo.seccionesResumen[seccionKey].byContenedor[contenedor] = {
+                            sap: 0,
+                            scan: 0,
+                            faltantes: 0,
+                            excedentes: 0
+                        };
+                    }
+                    manifestInfo.seccionesResumen[seccionKey].byContenedor[contenedor].sap += sap;
+                    manifestInfo.seccionesResumen[seccionKey].byContenedor[contenedor].scan += scan;
+
+                    const seccionContFaltantes = (sap - scan) > 0 ? (sap - scan) : 0;
+                    const seccionContExcedentes = (scan - sap) > 0 ? (scan - sap) : 0;
+                    manifestInfo.seccionesResumen[seccionKey].byContenedor[contenedor].faltantes += seccionContFaltantes;
+                    manifestInfo.seccionesResumen[seccionKey].byContenedor[contenedor].excedentes += seccionContExcedentes;
+
+                    manifestInfo.seccionesResumen[seccionKey].totalSap += sap;
+                    manifestInfo.seccionesResumen[seccionKey].totalScan += scan;
+
+                    report.totalSAP += sap;
+                    report.totalSCAN += scan;
+
+                    if (sap > 0 && scan === 0) report.skusSinEscanear.push({
+                        sku: String(sku || 'N/A').trim(),
+                        desc: String(desc || 'Sin Descripción').trim(),
+                        sap: Number(sap || 0),
+                        manifiesto: {
+                            id: String(manifestInfo.id || 'N/A').trim(),
+                            numero: String(manifestInfo.numero || 'N/A').trim()
+                        }
+                    });
+
+                    if (scan > sap) {
+                        const currentExcedente = scan - sap;
+                        if (currentExcedente > 0) {
+                            report.skusConExcedentes.push({
+                                sku: String(sku || 'N/A').trim(),
+                                desc: String(desc || 'Sin Descripción').trim(),
+                                excedente: Number(currentExcedente),
+                                manifiesto: {
+                                    id: String(manifestInfo.id || 'N/A').trim(),
+                                    numero: String(manifestInfo.numero || 'N/A').trim()
+                                },
+                                contenedor: String(contenedor || 'N/A').trim(),
+                                seccion: String(seccionKey || 'Sin Sección').trim(),
+                                jefatura: String((seccionesMap.get(seccionKey.toUpperCase()) || { jefatura: 'Sin Asignar' }).jefatura || 'Sin Asignar').trim()
+                            });
+                        }
+                    }
+
+                    if (user !== 'N/A' && scan > 0) {
+                        if (!report.usuarios[user]) report.usuarios[user] = {
+                            scans: 0,
+                            manifests: new Map()
+                        };
+                        report.usuarios[user].scans += scan;
+                        if (!report.usuarios[user].manifests.has(manifestInfo.id)) report.usuarios[user].manifests.set(manifestInfo.id, {
+                            scans: 0,
+                            numero: manifestInfo.numero
+                        });
+                        report.usuarios[user].manifests.get(manifestInfo.id).scans += scan;
+                    }
+                });
+                return manifestInfo;
+            } catch (innerError) {
+                console.error(`Error procesando manifiesto ${doc.id}:`, innerError);
+                return { id: doc.id, error: innerError.message || 'Error desconocido al procesar' };
+            }
+        });
+
+        const results = await Promise.allSettled(manifestPromises);
+
+        report.failedManifests = results.filter(r => r.status === 'rejected').map(r => r.reason);
+        results.filter(r => r.status === 'fulfilled' && r.value !== null && !r.value.error)
+            .map(r => r.value)
+            .forEach(man => { report.manifiestos[man.id] = man; });
+
+        report.jefaturas = {};
+        jefaturasConDatosEnPeriodo.clear();
+        for (const [seccionNombre, seccionData] of Object.entries(report.secciones)) {
+            const jefe = seccionData.jefatura;
+            if (jefe === 'Sin Asignar') continue;
+
+            if (!report.jefaturas[jefe]) {
+                report.jefaturas[jefe] = {
+                    sap: 0,
+                    scan: 0,
+                    faltantes: 0,
+                    excedentes: 0,
+                    skus: 0,
+                    secciones: [],
+                    manifiestosConSecciones: new Set()
+                };
+            }
+            report.jefaturas[jefe].sap += seccionData.sap;
+            report.jefaturas[jefe].scan += seccionData.scan;
+            report.jefaturas[jefe].faltantes += seccionData.faltantes;
+            report.jefaturas[jefe].excedentes += seccionData.excedentes;
+            report.jefaturas[jefe].skus += seccionData.skus;
+            report.jefaturas[jefe].secciones.push({
+                nombre: seccionNombre,
+                sap: seccionData.sap,
+                scan: seccionData.scan,
+                avance: seccionData.sap > 0 ? (seccionData.scan / seccionData.sap) * 100 : 100
+            });
+            Object.values(report.manifiestos).forEach(man => {
+                const seccionResumenManifiesto = man.seccionesResumen[seccionNombre];
+                if (seccionResumenManifiesto && (seccionResumenManifiesto.totalSap > 0 || seccionResumenManifiesto.totalScan > 0 || Object.values(seccionResumenManifiesto.byContenedor || {}).some(c => c.faltantes > 0 || c.excedentes > 0))) {
+                    if (seccionResumenManifiesto.jefatura === jefe) {
+                        report.jefaturas[jefe].manifiestosConSecciones.add(man.id);
+                    }
+                }
+            });
+            if (seccionData.sap > 0 || seccionData.scan > 0) {
+                jefaturasConDatosEnPeriodo.add(jefe);
+            }
+        }
+
+        const avanceGeneral = report.totalSAP > 0 ? (report.totalSCAN / report.totalSAP) * 100 : 0;
+        const totalFaltantes = report.totalSAP > report.totalSCAN ? report.totalSAP - report.totalSCAN : 0;
+        const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) => acc + (seccion.excedentes || 0), 0);
+        const topScanners = Object.entries(report.usuarios).sort((a, b) => b[1].scans - a[1].scans);
+
+        const jefaturasUnicas = Array.from(jefaturasConDatosEnPeriodo).sort();
+
+
+        // Función para descargar el Excel del resumen completo
+        const descargarResumenExcel = () => {
+            const headerStyle = {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+                fill: { fgColor: { rgb: "000000" } },
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }
+            };
+            const cellStyle = {
+                border: { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } }
+            };
+            const redTextStyle = { font: { color: { rgb: "E10098" } }, ...cellStyle };
+            const greenTextStyle = { font: { color: { rgb: "95C11F" } }, ...cellStyle };
+            const orangeTextStyle = { font: { color: { rgb: "f0ad4e" } }, ...cellStyle };
+
+            const wb = XLSX.utils.book_new();
+
+            const wsResumenData = [
+                ["📊 Reporte de Inteligencia Semanal"],
+                [],
+                ["📅 Periodo Analizado:", `${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}`],
+                [],
+                ["🔑 Métricas Clave"],
+                [],
+                ["📦 Manifiestos Procesados", { v: Object.keys(report.manifiestos).length, t: 'n', z: '#,##0' }],
+                ["✅ Avance General de Escaneo", { v: avanceGeneral / 100, t: 'n', z: '0.00%' }],
+                ["📋 Piezas Totales (SAP)", { v: report.totalSAP, t: 'n', z: '#,##0' }],
+                ["🔍 Piezas Totales Escaneadas", { v: report.totalSCAN, t: 'n', z: '#,##0' }],
+                ["📉 Piezas Faltantes", { v: totalFaltantes, t: 'n', z: '#,##0', s: redTextStyle }],
+                ["📈 Piezas Excedentes", { v: totalExcedentes, t: 'n', z: '#,##0', s: orangeTextStyle }],
+                [],
+                ["📊 Detalles Adicionales"],
+                ["📁 Secciones Analizadas", { v: Object.keys(report.secciones).filter(key => report.secciones.hasOwnProperty(key) && (report.secciones[key].sap > 0 || report.secciones[key].scan > 0)).length, t: 'n', z: '#,##0' }],
+                ["🧑‍💻 Operadores Activos", { v: Object.keys(report.usuarios).length, t: 'n', z: '#,##0' }]
+            ];
+
+            const wsResumen = XLSX.utils.aoa_to_sheet(wsResumenData);
+
+            wsResumen["A1"].s = { font: { sz: 20, bold: true, color: { rgb: "E10098" } }, alignment: { horizontal: "center", vertical: "center" } };
+            wsResumen["A3"].s = { font: { bold: true, sz: 12 }, alignment: { horizontal: "left" } };
+            wsResumen["B3"].s = { font: { sz: 12 }, alignment: { horizontal: "left" } };
+            wsResumen["A5"].s = { font: { bold: true, sz: 14, color: { rgb: "414141" } }, alignment: { horizontal: "left" } };
+            wsResumen["A14"].s = { font: { bold: true, sz: 14, color: { rgb: "414141" } }, alignment: { horizontal: "left" } };
+
+            const metricLabelBaseStyle = { font: { bold: true, sz: 11 }, alignment: { horizontal: "left", vertical: "center" } };
+            const metricValueBaseStyle = { font: { sz: 13, bold: true }, alignment: { horizontal: "right", vertical: "center" } };
+
+            const applyMetricCardStyle = (startRow, labelColor = "000000", valueColor = "000000") => {
+                wsResumen[`A${startRow}`].s = { ...metricLabelBaseStyle, fill: { fgColor: { rgb: "F8F8F8" } }, border: { top: { style: "thin", color: { rgb: "E0E0E0" } }, bottom: { style: "thin", color: { rgb: "E0E0E0" } }, left: { style: "thin", color: { rgb: "E0E0E0" } }, right: { style: "thin", color: { rgb: "E0E0E0" } } }, font: { ...metricLabelBaseStyle.font, color: { rgb: labelColor } } };
+                wsResumen[`B${startRow}`].s = { ...metricValueBaseStyle, fill: { fgColor: { rgb: "FFFFFF" } }, border: { top: { style: "thin", color: { rgb: "E0E0E0" } }, bottom: { style: "thin", color: { rgb: "E0E0E0" } }, left: { style: "thin", color: { rgb: "E0E0E0" } }, right: { style: "thin", color: { rgb: "E0E0E0" } } }, font: { ...metricValueBaseStyle.font, color: { rgb: valueColor } } };
+            };
+
+            applyMetricCardStyle(7);
+            applyMetricCardStyle(8);
+            applyMetricCardStyle(9);
+            applyMetricCardStyle(10);
+            applyMetricCardStyle(11, "E10098", "E10098");
+            applyMetricCardStyle(12, "f0ad4e", "f0ad4e");
+            applyMetricCardStyle(15);
+            applyMetricCardStyle(16);
+
+            const progressBarLength = 15;
+            const filledBlocks = Math.round(avanceGeneral / (100 / progressBarLength));
+            const emptyBlocks = progressBarLength - filledBlocks;
+            const progressBarText = '█'.repeat(filledBlocks) + '░'.repeat(emptyBlocks);
+
+            wsResumen["A8"].v = wsResumen["A8"].v + " " + progressBarText;
+
+            wsResumen['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+
+            wsResumen['!cols'] = [
+                { wch: 30 },
+                { wch: 25 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen Ejecutivo");
+
+
+            const wsSeccionesData = [
+                ["Sección 📁", "Jefatura 🧑‍💼", "SKUs Únicos 🔢", "Pzs. SAP 📦", "Pzs. Escaneadas ✅", "Faltantes 📉", "Excedentes 📈", "Avance 📊"]
+            ];
+            const sortedSecciones = Object.entries(report.secciones)
+                .filter(([_, data]) => data.sap > 0 || data.scan > 0)
+                .sort((a, b) => (b[1].sap - b[1].scan) - (a[1].sap - a[1].scan));
+
+            sortedSecciones.forEach(([nombre, data]) => {
+                const avance = data.sap > 0 ? data.scan / data.sap : 1;
+                const avanceCell = { v: avance, t: 'n', z: '0.00%' };
+
+                if (avance < 0.5) avanceCell.s = { font: { color: { rgb: "E10098" } }, ...cellStyle };
+                else if (avance < 0.9) avanceCell.s = { font: { color: { rgb: "f0ad4e" } }, ...cellStyle };
+                else avanceCell.s = { font: { color: { rgb: "95C11F" } }, ...cellStyle };
+
+                wsSeccionesData.push([
+                    { v: String(nombre || 'N/A').trim(), s: cellStyle },
+                    { v: String(data.jefatura || 'N/A').trim(), s: cellStyle },
+                    { v: Number(data.skus || 0), t: 'n', z: '#,##0', s: cellStyle },
+                    { v: Number(data.sap || 0), t: 'n', z: '#,##0', s: cellStyle },
+                    { v: Number(data.scan || 0), t: 'n', z: '#,##0', s: cellStyle },
+                    { v: Number(data.faltantes || 0), t: 'n', z: '#,##0', s: data.faltantes > 0 ? redTextStyle : cellStyle },
+                    { v: Number(data.excedentes || 0), t: 'n', z: '#,##0', s: data.excedentes > 0 ? orangeTextStyle : cellStyle },
+                    avanceCell
+                ]);
+            });
+            const wsSecciones = XLSX.utils.aoa_to_sheet(wsSeccionesData, { cellStyles: true });
+            for (let c = 0; c < wsSeccionesData[0].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ c: c, r: 0 });
+                if (wsSecciones[cellRef]) wsSecciones[cellRef].s = headerStyle;
+            }
+            wsSecciones['!cols'] = [{ wch: 18 }, { wch: 25 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
+            wsSecciones['!autofilter'] = { ref: wsSecciones['!ref'] };
+            XLSX.utils.book_append_sheet(wb, wsSecciones, "Análisis por Sección");
+
+
+            const wsUsuariosData = [
+                ["Ranking 🏆", "Operador 🧑‍💻", "Escaneos Totales 🔢", "Manifiestos Trabajados 📑"]
+            ];
+            topScanners.forEach(([email, data], index) => {
+                wsUsuariosData.push([
+                    { v: Number(index + 1), t: 'n', z: '0', s: cellStyle },
+                    { v: String(email || 'N/A').trim(), s: cellStyle },
+                    { v: Number(data.scans || 0), t: 'n', z: '#,##0', s: cellStyle },
+                    { v: Number(data.manifests.size || 0), t: 'n', z: '#,##0', s: cellStyle }
+                ]);
+            });
+            const wsUsuarios = XLSX.utils.aoa_to_sheet(wsUsuariosData);
+            for (let c = 0; c < wsUsuariosData[0].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ c: c, r: 0 });
+                if (wsUsuarios[cellRef]) wsUsuarios[cellRef].s = headerStyle;
+            }
+            wsUsuarios['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 18 }, { wch: 22 }];
+            wsUsuarios['!autofilter'] = { ref: wsUsuarios['!ref'] };
+            XLSX.utils.book_append_sheet(wb, wsUsuarios, "Ranking Operadores");
+
+
+            const wsEvidenciaData = [
+                ["SKU 🏷️", "Descripción 📝", "Piezas Faltantes (SAP) 📉", "Manifiesto ID 🆔", "Número Manifiesto #️⃣"]
+            ];
+            report.skusSinEscanear.forEach(item => {
+                wsEvidenciaData.push([
+                    { v: String(item.sku || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.desc || 'N/A').trim(), s: cellStyle },
+                    { v: Number(item.sap || 0), t: 'n', z: '#,##0', s: redTextStyle },
+                    { v: String(item.manifiesto.id || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.manifiesto.numero || 'N/A').trim(), s: cellStyle }
+                ]);
+            });
+            const wsEvidencia = XLSX.utils.aoa_to_sheet(wsEvidenciaData);
+            for (let c = 0; c < wsEvidenciaData[0].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ c: c, r: 0 });
+                if (wsEvidencia[cellRef]) wsEvidencia[cellRef].s = headerStyle;
+            }
+            wsEvidencia['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 25 }, { wch: 40 }, { wch: 20 }];
+            wsEvidencia['!autofilter'] = { ref: wsEvidencia['!ref'] };
+            XLSX.utils.book_append_sheet(wb, wsEvidencia, "Evidencia (No Escaneados)");
+
+            const wsManifiestosData = [
+                ["Manifiesto ID 🆔", "Número Manifiesto #️⃣", "Contenedor 📦", "Sección 📁", "Jefatura 🧑‍💼", "Pzs. SAP (Cont/Sección) 📋", "Pzs. Escaneadas (Cont/Sección) ✅", "Faltantes (Cont/Sección) 📉", "Excedentes (Cont/Sección) 📈", "Avance (Cont/Sección) 📊"]
+            ];
+            const allManifestDetails = [];
+            Object.values(report.manifiestos).forEach(man => {
+                Object.entries(man.seccionesResumen).forEach(([seccionNombre, seccionData]) => {
+                    const seccionInfo = seccionesMap.get(seccionNombre.toUpperCase()) || { jefatura: 'Sin Asignar', descripcion: 'Descripción no encontrada' };
+
+                    if (seccionData.byContenedor && Object.keys(seccionData.byContenedor).length > 0) {
+                        Object.entries(seccionData.byContenedor).forEach(([contenedor, dataPorContenedor]) => {
+                            if (dataPorContenedor && (dataPorContenedor.sap > 0 || dataPorContenedor.scan > 0 || dataPorContenedor.faltantes > 0 || dataPorContenedor.excedentes > 0)) {
+                                const avance = dataPorContenedor.sap > 0 ? dataPorContenedor.scan / dataPorContenedor.sap : 1;
+                                const faltantes = Number(dataPorContenedor.faltantes || 0);
+                                const excedentes = Number(dataPorContenedor.excedentes || 0);
+                                allManifestDetails.push({
+                                    manifiestoId: String(man.id || 'N/A').trim(),
+                                    manifiestoNumero: String(man.numero || 'N/A').trim(),
+                                    contenedor: String(contenedor || 'N/A').trim(),
+                                    seccion: String(seccionNombre || 'N/A').trim(),
+                                    jefatura: String(seccionInfo.jefatura || 'N/A').trim(),
+                                    sap: Number(dataPorContenedor.sap || 0),
+                                    scan: Number(dataPorContenedor.scan || 0),
+                                    faltantes: faltantes,
+                                    excedentes: excedentes,
+                                    avance: avance
+                                });
+                            }
+                        });
+                    } else {
+                        const sapTotalSec = seccionData.totalSap || 0;
+                        const scanTotalSec = seccionData.totalScan || 0;
+                        const faltantesTotalSec = (sapTotalSec - scanTotalSec) > 0 ? (sapTotalSec - scanTotalSec) : 0;
+                        const excedentesTotalSec = (scanTotalSec - sapTotalSec) > 0 ? (scanTotalSec - sapTotalSec) : 0;
+
+                        if (sapTotalSec > 0 || scanTotalSec > 0 || faltantesTotalSec > 0 || excedentesTotalSec > 0) {
+                            const avance = sapTotalSec > 0 ? scanTotalSec / sapTotalSec : 1;
+                            allManifestDetails.push({
+                                manifiestoId: String(man.id || 'N/A').trim(),
+                                manifiestoNumero: String(man.numero || 'N/A').trim(),
+                                contenedor: 'N/A (Sin Cont.)',
+                                seccion: String(seccionNombre || 'N/A').trim(),
+                                jefatura: String(seccionInfo.jefatura || 'N/A').trim(),
+                                sap: Number(sapTotalSec),
+                                scan: Number(scanTotalSec),
+                                faltantes: faltantesTotalSec,
+                                excedentes: excedentesTotalSec,
+                                avance: avance
+                            });
+                        }
+                    }
+                });
+            });
+
+            allManifestDetails.sort((a, b) => {
+                const jefaturaCompare = String(a.jefatura || '').localeCompare(String(b.jefatura || ''));
+                if (jefaturaCompare !== 0) return jefaturaCompare;
+                const manifiestoCompare = String(a.manifiestoNumero || '').localeCompare(String(b.manifiestoNumero || ''));
+                if (manifiestoCompare !== 0) return manifiestoCompare;
+                const contenedorCompare = String(a.contenedor || '').localeCompare(String(b.contenedor || ''));
+                if (contenedorCompare !== 0) return contenedorCompare;
+                return String(a.seccion || '').localeCompare(String(b.seccion || ''));
+            });
+
+            allManifestDetails.forEach(item => {
+                const avanceCell = { v: item.avance, t: 'n', z: '0.00%' };
+                if (item.avance < 0.5) avanceCell.s = { font: { color: { rgb: "E10098" } }, ...cellStyle };
+                else if (item.avance < 0.9) avanceCell.s = { font: { color: { rgb: "f0ad4e" } }, ...cellStyle };
+                else avanceCell.s = { font: { color: { rgb: "95C11F" } }, ...cellStyle };
+
+                wsManifiestosData.push([
+                    { v: item.manifiestoId, s: cellStyle },
+                    { v: item.manifiestoNumero, s: cellStyle },
+                    { v: item.contenedor, s: cellStyle },
+                    { v: item.seccion, s: cellStyle },
+                    { v: item.jefatura, s: cellStyle },
+                    { v: item.sap, t: 'n', z: '#,##0', s: cellStyle },
+                    { v: item.scan, t: 'n', z: '#,##0', s: cellStyle },
+                    { v: item.faltantes, t: 'n', z: '#,##0', s: item.faltantes > 0 ? redTextStyle : cellStyle },
+                    { v: item.excedentes, t: 'n', z: '#,##0', s: item.excedentes > 0 ? orangeTextStyle : cellStyle },
+                    avanceCell
+                ]);
+            });
+
+            const wsManifiestos = XLSX.utils.aoa_to_sheet(wsManifiestosData, { cellStyles: true });
+            for (let c = 0; c < wsManifiestosData[0].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ c: c, r: 0 });
+                if (wsManifiestos[cellRef]) wsManifiestos[cellRef].s = headerStyle;
+            }
+            wsManifiestos['!cols'] = [
+                { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 },
+                { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 20 }, { wch: 15 }
+            ];
+            wsManifiestos['!autofilter'] = { ref: wsManifiestos['!ref'] };
+            XLSX.utils.book_append_sheet(wb, wsManifiestos, "Análisis por Manifiesto");
+
+            const wsExcedentesData = [
+                ["SKU 🏷️", "Descripción 📝", "Cantidad Excedente 📈", "Manifiesto ID 🆔", "Número Manifiesto #️⃣", "Contenedor 📦", "Sección 📁", "Jefatura 🧑‍💼"]
+            ];
+            report.skusConExcedentes.sort((a, b) => {
+                const jefaturaCompare = String(a.jefatura || '').localeCompare(String(b.jefatura || ''));
+                if (jefaturaCompare !== 0) return jefaturaCompare;
+                const manifiestoCompare = String(a.manifiesto.numero || '').localeCompare(String(b.manifiesto.numero || ''));
+                if (manifiestoCompare !== 0) return manifiestoCompare;
+                return String(a.sku || '').localeCompare(String(b.sku || ''));
+            });
+
+            report.skusConExcedentes.forEach(item => {
+                wsExcedentesData.push([
+                    { v: String(item.sku || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.desc || 'N/A').trim(), s: cellStyle },
+                    { v: Number(item.excedente || 0), t: 'n', z: '#,##0', s: orangeTextStyle },
+                    { v: String(item.manifiesto.id || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.manifiesto.numero || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.contenedor || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.seccion || 'N/A').trim(), s: cellStyle },
+                    { v: String(item.jefatura || 'N/A').trim(), s: cellStyle }
+                ]);
+            });
+            const wsExcedentes = XLSX.utils.aoa_to_sheet(wsExcedentesData);
+            for (let c = 0; c < wsExcedentesData[0].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ c: c, r: 0 });
+                if (wsExcedentes[cellRef]) wsExcedentes[cellRef].s = headerStyle;
+            }
+            wsExcedentes['!cols'] = [{ wch: 18 }, { wch: 45 }, { wch: 25 }, { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 25 }];
+            wsExcedentes['!autofilter'] = { ref: wsExcedentes['!ref'] };
+            XLSX.utils.book_append_sheet(wb, wsExcedentes, "Artículos con Excedentes");
+
+
+            if (report.failedManifests.length > 0) {
+                const wsFailedManifestsData = [
+                    ["ID Manifiesto ❌", "Error 🚨"]
+                ];
+                report.failedManifests.forEach(item => {
+                    wsFailedManifestsData.push([
+                        { v: String(item.id || 'N/A').trim(), s: cellStyle },
+                        { v: String(item.error || 'Error desconocido').trim(), s: redTextStyle }
+                    ]);
+                });
+                const wsFailedManifests = XLSX.utils.aoa_to_sheet(wsFailedManifestsData);
+                for (let c = 0; c < wsFailedManifestsData[0].length; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: 0 });
+                    if (wsFailedManifests[cellRef]) wsFailedManifests[cellRef].s = headerStyle;
+                }
+                wsFailedManifests['!cols'] = [{ wch: 40 }, { wch: 80 }];
+                wsFailedManifests['!autofilter'] = { ref: wsFailedManifests['!ref'] };
+                XLSX.utils.book_append_sheet(wb, wsFailedManifests, "Manifiestos Fallidos");
+            }
+
+            XLSX.writeFile(wb, `Reporte_Inteligencia_Semanal_${startDateStr}_a_${endDateStr}.xlsx`);
+        };
+
+
+        // Genera el HTML principal del dashboard de resumen semanal
+        const mainHTML = `
+                                <style>
+                                    :root {
+                                        --liverpool-pink: #E10098;
+                                        --liverpool-green: #95C11F;
+                                        --liverpool-dark: #414141;
+                                        --liverpool-light-gray: #f4f7fa;
+                                        --liverpool-border-gray: #dee2e6;
+                                    }
+                                    .swal2-popup.swal2-modal { border-radius: 1.5rem !important; }
+                                    .epic-summary-container{display:flex;min-height:85vh;width:100%;font-family:'Poppins',sans-serif;background:var(--liverpool-light-gray);border-radius:1.5rem;overflow:hidden;}
+                                    .epic-sidebar{width:280px;min-width:280px;background:#ffffff;color:var(--liverpool-dark);padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:flex-start;border-right: 1px solid var(--liverpool-border-gray);}
+                                    .epic-sidebar h3{font-weight:700;font-size:1.5rem;margin-bottom:0.25rem;color:var(--liverpool-pink);}
+                                    .epic-sidebar .date-range {font-size:0.9rem; color:#6c757d; margin-bottom: 2rem;}
+                                    .sidebar-nav{list-style:none;padding:0;margin:0;width:100%;}
+                                    .sidebar-nav li button{width:100%;text-align:left;padding:0.8rem 1rem;background:transparent;border:none;color:#495057;border-radius:10px;font-weight:500;display:flex;align-items:center;gap:0.8rem;transition:all 0.2s ease;margin-bottom:0.5rem;}
+                                    .sidebar-nav li button:hover{background:#e9ecef;color:var(--liverpool-pink);}
+                                    .sidebar-nav li button.active{background:var(--liverpool-pink);color:#fff;font-weight:600;}
+                                    .epic-content{flex-grow:1;padding:2rem 2.5rem;overflow-y:auto;}
+                                    .epic-tab-pane{display:none;animation:fadeIn 0.5s;} .epic-tab-pane.active{display:block;}
+                                    .epic-content h4{font-weight:600;color:var(--liverpool-dark);margin-bottom:1.5rem;border-bottom:1px solid var(--liverpool-border-gray);padding-bottom:0.8rem;display:flex;align-items:center;justify-content:space-between;}
+                                    
+                                    .stat-card-main{background:#fff;border-radius:1rem;padding:1.5rem;text-align:center;border:1px solid var(--liverpool-border-gray); transition:all 0.3s ease;}
+                                    .stat-card-main:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.08);}
+                                    .stat-card-main .icon{font-size:2rem;margin-bottom:0.0rem;line-height:1;}
+                                    .stat-card-main .value{font-size:2.2rem;font-weight:700;line-height:1.1; color: var(--liverpool-dark);}
+                                    .stat-card-main .label{color:#6c757d;font-weight:500;font-size:0.9rem;}
+                                    .stat-card-main.sap .icon { color: var(--liverpool-dark); }
+                                    .stat-card-main.scan .icon { color: var(--liverpool-green); }
+                                    .stat-card-main.missing .icon { color: var(--liverpool-pink); }
+                                    .stat-card-main.excess .icon { color: #f0ad4e; }
+                                    
+                                    .filter-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+                                    .filter-pills button { background-color: #e9ecef; border: none; border-radius: 2rem; padding: 0.4rem 1rem; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; cursor: pointer; }
+                                    .filter-pills button.active { background-color: var(--liverpool-pink); color: white; box-shadow: 0 4px 10px rgba(225, 0, 152, 0.3); }
+
+                                    .jefatura-card { background-color: #fff; border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--liverpool-border-gray); margin-bottom: 1.5rem; }
+                                    .jefatura-header { display: flex; align-items: center; gap: 1.5rem; padding-bottom:1rem; margin-bottom:1rem; border-bottom: 1px solid #f1f3f5; }
+                                    .jefatura-chart-container { width: 80px; height: 80px; position: relative; flex-shrink: 0; }
+                                    .jefatura-title h5 { font-weight: 700; margin-bottom: 0.1rem; color: var(--liverpool-dark); }
+                                    .jefatura-title .stats-summary { font-size: 0.9rem; color: #6c757d; }
+                                    .jefatura-secciones-list { list-style: none; padding: 0; margin: 0; }
+                                    .jefatura-secciones-list li { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.2rem; font-size: 0.95rem; border-bottom: 1px solid #f8f9fa; }
+                                    .jefatura-secciones-list li:last-child { border-bottom: none; }
+                                    .jefatura-secciones-list .section-name { font-weight: 500; }
+                                    
+                                    .section-card-compact { background: #fff; border: 1px solid var(--liverpool-border-gray); border-radius: 0.75rem; padding: 1rem; text-align: center; transition: all 0.2s ease-in-out; display: flex; flex-direction: column; height: 100%;}
+                                    .section-card-compact:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.1); z-index: 10; position:relative; }
+                                    .section-card-compact .section-name { font-weight: 600; font-size: 0.95rem; color: var(--liverpool-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                                    .section-card-compact .section-jefe { font-size: 0.8rem; color: #6c757d; margin-bottom: 0.75rem; }
+                                    .section-card-compact .section-counts { font-size: 0.8rem; color: #6c757d; margin-top: 0.5rem; }
+                                    
+                                    .custom-progress { background-color: #e9ecef; border-radius: 2rem; height: 1.25rem; overflow: hidden; }
+                                    .custom-progress-bar { display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-weight: 600; font-size: 0.75rem; transition: width 0.4s ease; }
+                                    .progress-green { background: linear-gradient(45deg, #84ac1c, #95C11F); }
+                                    .progress-yellow { background: linear-gradient(45deg, #e69a05, #f0ad4e); }
+                                    .progress-pink { background: linear-gradient(45deg, #d3008a, #E10098); }
+
+                                    .leaderboard-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 1rem; background: #fff; margin-bottom: 0.75rem; border: 1px solid var(--liverpool-border-gray); }
+                                    .leaderboard-rank { font-size: 1.2rem; font-weight: 700; color: var(--liverpool-pink); width: 2.5rem; text-align: center; flex-shrink: 0; }
+                                    .leaderboard-info { flex-grow: 1; }
+                                    .leaderboard-name { font-weight: 600; color: var(--liverpool-dark); }
+                                    .leaderboard-details { font-size: 0.85rem; color: #6c757d; }
+                                    .leaderboard-stats { font-size: 1.2rem; font-weight: 700; color: var(--liverpool-dark); text-align: right; }
+
+                                    .manifiesto-list-item {
+                                        cursor: pointer;
+                                        transition: background-color 0.2s ease;
+                                    }
+                                    .manifiesto-list-item:hover {
+                                        background-color: #f8f9fa;
+                                    }
+                                    .manifiesto-list-item.active {
+                                        background-color: var(--liverpool-pink) !important;
+                                        color: white;
+                                        border-color: var(--liverpool-pink);
+                                    }
+                                    .manifiesto-list-item.active i {
+                                        color: white !important;
+                                    }
+                                    .manifiesto-list-item.active .text-muted {
+                                        color: rgba(255,255,255,0.7) !important;
+                                    }
+                                     .manifiesto-list-item.active .badge {
+                                        background-color: #fff !important;
+                                        color: var(--liverpool-dark) !important;
+                                    }
+                                    .manifest-status-completed { border-left: 5px solid var(--liverpool-green); }
+                                    .manifest-status-diff { border-left: 5px solid #f0ad4e; }
+                                    .manifest-status-zero { border-left: 5px solid var(--liverpool-pink); }
+
+                                    #manifest-detail-view .stat-card-main .value {
+                                        font-size: 1.8rem;
+                                    }
+                                    #manifest-detail-view .stat-card-main .label {
+                                        font-size: 0.8rem;
+                                    }
+                                    /* Responsive improvements */
+                                    @media (max-width: 991px) {
+                                        .epic-summary-container { flex-direction: column; }
+                                        .epic-sidebar { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid var(--liverpool-border-gray); flex-direction: row; align-items: center; padding: 1rem 1rem; }
+                                        .epic-sidebar h3 { font-size: 1.1rem; margin-bottom: 0; }
+                                        .epic-sidebar .date-range { margin-bottom: 0; }
+                                        .sidebar-nav { flex-direction: row; display: flex; gap: 0.5rem; width: auto; }
+                                        .sidebar-nav li button { padding: 0.5rem 0.7rem; font-size: 0.9rem; margin-bottom: 0; }
+                                        .epic-content { padding: 1rem 0.5rem; }
+                                    }
+                                    @media (max-width: 600px) {
+                                        .epic-sidebar { flex-wrap: wrap; }
+                                        .sidebar-nav { flex-wrap: wrap; }
+                                        .sidebar-nav li button { font-size: 0.8rem; }
+                                    }
+                                </style>
+                                <div class="epic-summary-container">
+                                    <div class="epic-sidebar">
+                                        <h3><i class="bi bi-robot me-2"></i>Resumen AI</h3>
+                                        <p class="date-range">${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}</p>
+                                        <ul class="sidebar-nav">
+                                            <li><button class="nav-btn active" data-target="dashboard"><i class="bi bi-grid-1x2-fill"></i>Dashboard</button></li>
+                                            <li><button class="nav-btn" data-target="jefaturas"><i class="bi bi-person-badge-fill"></i>Por Jefatura</button></li>
+                                            <li><button class="nav-btn" data-target="secciones"><i class="bi bi-pie-chart-fill"></i>Por Sección</button></li>
+                                            <li><button class="nav-btn" data-target="manifiestos-detail"><i class="bi bi-journal-check"></i>Por Manifiesto</button></li>
+                                            <li><button class="nav-btn" data-target="excedentes-detail"><i class="bi bi-box-arrow-in-up-right"></i>Excedentes <span class="badge rounded-pill" style="background-color: #f0ad4e;">${report.skusConExcedentes.length}</span></button></li>
+                                            <li><button class="nav-btn" data-target="usuarios"><i class="bi bi-trophy-fill"></i>Ranking</button></li>
+                                            <li><button class="nav-btn" data-target="evidencia"><i class="bi bi-exclamation-diamond-fill"></i>Alertas <span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${report.skusSinEscanear.length}</span></button></li>
+                                        </ul>
+                                        <div class="mt-auto w-100"><button id="btnDescargarResumenExcel" class="btn btn-outline-success w-100"><i class="bi bi-file-earmarked-excel-fill me-2"></i>Descargar Excel</button></div>
+                                        ${report.failedManifests.length > 0 ? `<div class="mt-3 alert alert-danger p-2 small" role="alert"><i class="bi bi-exclamation-circle-fill me-1"></i> ${report.failedManifests.length} Manifiesto(s) con errores. Revisa la consola o descarga el Excel.</div>` : ''}
+                                    </div>
+                                    <div class="epic-content">
+                                        <div id="dashboard" class="epic-tab-pane active">
+                                                <h4><i class="bi bi-speedometer2"></i>Resumen General</h4>
+                                                <div class="row g-4 mb-5">
+                                                    <div class="col-lg-7">
+                                                        <div class="row g-3">
+                                                            <div class="col-6"><div class="stat-card-main sap"><i class="bi bi-box-seam icon"></i><div class="value">${report.totalSAP.toLocaleString('es-MX')}</div><div class="label">Piezas SAP</div></div></div>
+                                                            <div class="col-6"><div class="stat-card-main scan"><i class="bi bi-check-circle-fill icon"></i><div class="value">${report.totalSCAN.toLocaleString('es-MX')}</div><div class="label">Escaneadas</div></div></div>
+                                                            <div class="col-6"><div class="stat-card-main missing"><i class="bi bi-exclamation-triangle-fill icon"></i><div class="value">${totalFaltantes.toLocaleString('es-MX')}</div><div class="label">Faltantes</div></div></div>
+                                                            <div class="col-6"><div class="stat-card-main excess"><i class="bi bi-plus-circle-dotted icon"></i><div class="value">${totalExcedentes.toLocaleString('es-MX')}</div><div class="label">Excedentes</div></div></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-lg-5 d-flex align-items-center justify-content-center"><canvas id="gaugeChart"></canvas></div>
+                                                </div>
+                                                <h4><i class="bi bi-archive-fill me-2"></i>Manifiestos Incluidos</h4>
+                                                <ul class="list-group list-group-flush">${Object.values(report.manifiestos).map(m => `<li class="list-group-item d-flex justify-content-between align-items-center"><i class="bi bi-file-earmark-text me-2" style="color:var(--liverpool-pink);"></i><div><strong>${m.id}</strong> <br><span class="text-muted small">N° Manif: ${m.numero}</span></div><span class="badge bg-secondary ms-2">${(m.contenedores || []).length} Cont.</span></li>`).join('')}</ul>
+                                        </div>
+<div id="jefaturas" class="epic-tab-pane">
+    <h4><i class="bi bi-person-badge-fill me-2"></i>Rendimiento por Jefatura</h4>
+
+    <div class="accordion" id="jefaturasAccordion">
+
+        <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius: 1rem;">
+            <h2 class="accordion-header" id="headingComparativa">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComparativa" aria-expanded="true" aria-controls="collapseComparativa" style="border-radius: 1rem;">
+                    <i class="bi bi-bar-chart-line-fill me-2"></i>
+                    <span style="color: var(--liverpool-dark); font-weight: 600;">Comparativa de Rendimiento</span>
+                </button>
+            </h2>
+            <div id="collapseComparativa" class="accordion-collapse collapse show" aria-labelledby="headingComparativa" data-bs-parent="#jefaturasAccordion">
+                <div class="accordion-body">
+                    <div id="jefaturas-comparativa-container" style="min-height: 250px; max-height: 400px; position: relative;">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item border-0 shadow-sm" style="border-radius: 1rem;">
+            <h2 class="accordion-header" id="headingDesglose">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesglose" aria-expanded="false" aria-controls="collapseDesglose" style="border-radius: 1rem;">
+                    <i class="bi bi-card-list me-2"></i>
+                    <span style="color: var(--liverpool-dark); font-weight: 600;">Desglose Detallado por Jefe</span>
+                </button>
+            </h2>
+            <div id="collapseDesglose" class="accordion-collapse collapse" aria-labelledby="headingDesglose" data-bs-parent="#jefaturasAccordion">
+                <div class="accordion-body">
+                    <div id="jefaturas-grid" style="max-height: 70vh; overflow-y: auto; padding-right: 0.5rem;">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    </div>
+                                        <div id="secciones" class="epic-tab-pane">
+                                            <h4><i class="bi bi-pie-chart-fill me-2"></i>Rendimiento por Sección</h4>
+                                            <div id="seccion-jefatura-filter" class="filter-pills mb-4"></div>
+                                            <div id="secciones-grid-container" class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3"></div>
+                                        </div>
+                                        <div id="manifiestos-detail" class="epic-tab-pane">
+                                            <h4><i class="bi bi-journal-check me-2"></i>Análisis Detallado por Manifiesto</h4>
+                                            <div class="row mb-4">
+                                                <div class="col-lg-4">
+                                                    <div class="card p-3 shadow-sm border-0 h-100">
+                                                        <h6 class="card-title text-muted mb-3"><i class="bi bi-list-check me-1"></i> Seleccionar Manifiesto</h6>
+                                                        <div id="manifiestos-status-filter" class="filter-pills mb-3 d-flex flex-wrap gap-2">
+                                                            <button class="filter-btn active" data-status-filter="Todos">Todos</button>
+                                                            <button class="filter-btn" data-status-filter="Completado">Completados</button>
+                                                            <button class="filter-btn" data-status-filter="Diferencias">Con Diferencias</button>
+                                                            <button class="filter-btn" data-status-filter="Sin Escanear">Sin Escanear</button>
+                                                        </div>
+                                                        <div id="manifiestos-list-container" class="list-group list-group-flush" style="max-height: 50vh; overflow-y: auto; border: 1px solid var(--liverpool-border-gray); border-radius: 0.5rem;">
+                                                            <li class="list-group-item text-center text-muted py-3">Cargando manifiestos...</li>
+                                                        </div>
+                                                        <p class="small text-muted mt-3">💡 <b>Consejo para Auditoría:</b> Enfócate en manifiestos con alta desviación (muchas piezas faltantes/excedentes) para identificar problemas de raíz. Revisa la sección de "Alertas" para SKUs específicos no escaneados.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-8">
+                                                    <div id="manifest-detail-view" class="card p-4 shadow-sm border-0 h-100">
+                                                        <p class="text-muted text-center mt-4">Selecciona un manifiesto de la lista para ver su detalle y desglose por jefatura, contenedor y sección.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="excedentes-detail" class="epic-tab-pane">
+                                            <h4 style="color: #f0ad4e;"><i class="bi bi-box-arrow-in-up-right me-2"></i>Artículos con Excedentes</h4>
+                                            <div class="row mb-4">
+                                                <div class="col-lg-4">
+                                                    <div class="card p-3 shadow-sm border-0 h-100">
+                                                        <h6 class="card-title text-muted mb-3"><i class="bi bi-filter-circle me-1"></i> Filtrar Excedentes por Jefatura</h6>
+                                                        <div id="excedentes-jefatura-filter" class="filter-pills mb-3 d-flex flex-wrap gap-2">
+                                                            </div>
+                                                        <p class="small text-muted mt-3">Utiliza este filtro para ver los excedentes por la jefatura responsable de la sección.</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-8">
+                                                    <div class="card p-4 shadow-sm border-0 h-100 d-flex flex-column align-items-center justify-content-center">
+                                                        <h5 class="mt-4 mb-3" style="color: var(--liverpool-dark); border-bottom: 1px solid var(--liverpool-border-gray); padding-bottom: 0.5rem; width: 100%; text-align: center;"><i class="bi bi-pie-chart-fill me-2"></i>Distribución de Excedentes</h5>
+                                                        <div style="width: 200px; height: 200px; position: relative;">
+                                                            <canvas id="excedentesChart"></canvas>
+                                                        </div>
+                                                        <div class="mt-4 w-100" style="max-height: 250px; overflow-y: auto;">
+                                                            <ul class="list-group list-group-flush" id="excedentes-list-container">
+                                                                </ul>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="usuarios" class="epic-tab-pane">
+                                            <h4><i class="bi bi-trophy-fill me-2"></i>Ranking de Operadores</h4>
+                                            <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;">
+                                                ${topScanners.length > 0 ? topScanners.map(([email, data], i) => `
+                                                    <div class="leaderboard-item">
+                                                        <div class="leaderboard-rank">${['🥇', '🥈', '🥉'][i] || `#${i + 1}`}</div>
+                                                        <div class="leaderboard-info">
+                                                            <div class="leaderboard-name">${String(email || 'N/A').trim()}</div>
+                                                            <div class="leaderboard-details">En ${data.manifests.size} manifiesto(s)</div>
+                                                        </div>
+                                                        <div class="leaderboard-stats">${(data.scans || 0).toLocaleString('es-MX')} <span class="small text-muted">pzs</span></div>
+                                                    </div>`).join('') : '<p class="text-muted text-center mt-4">No hay datos de rendimiento de usuarios.</p>'}
+                                            </div>
+                                        </div>
+                                        <div id="evidencia" class="epic-tab-pane">
+                                            <h4 style="color: var(--liverpool-pink);"><i class="bi bi-exclamation-diamond-fill me-2"></i>Artículos con Cero Escaneos</h4>
+                                            <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;"><ul class="list-group list-group-flush">${report.skusSinEscanear.length > 0 ? report.skusSinEscanear.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center"><div><strong style="color:var(--liverpool-dark);">${String(item.sku || 'N/A').trim()}</strong> - ${String(item.desc || 'Sin Descripción').trim()}<br><small class="text-muted">Manifiesto: ${String(item.manifiesto.id || 'N/A').trim()} (N° ${String(item.manifiesto.numero || 'N/A').trim()})</small></div><span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${(item.sap || 0)} pz.</span></li>`).join('') : '<li class="list-group-item text-center text-success fs-5 p-4">¡Felicidades! Todos los artículos fueron escaneados.</li>'}</ul></div>
+                                        </div>
+                                    </div>
+                                </div>`;
+
+        // 9. Añadir el HTML al div principal de la página (`resumenContent`)
+        const resumenContentDiv = document.getElementById('resumenContent');
+        if (resumenContentDiv) {
+            resumenContentDiv.innerHTML = mainHTML;
+        } else {
+            console.error("No se encontró el div #resumenContent para renderizar el resumen.");
+            Swal.fire('Error', 'No se pudo cargar la interfaz del resumen.', 'error');
+            return;
+        }
+
+        // 10. Configurar listeners para las pestañas de navegación y botones de descarga
+        const navButtons = document.querySelectorAll('.sidebar-nav li button');
+        const tabPanes = document.querySelectorAll('.epic-tab-pane');
+        document.getElementById('btnDescargarResumenExcel').addEventListener('click', descargarResumenExcel);
+
+        navButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                navButtons.forEach(b => b.classList.remove('active'));
+                tabPanes.forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.target).classList.add('active');
+
+                // Llama a las funciones de renderizado correspondientes al hacer clic en las pestañas
+                if (btn.dataset.target === 'jefaturas') {
+                    renderJefaturas();
+                } else if (btn.dataset.target === 'secciones') {
+                    renderSecciones();
+                } else if (btn.dataset.target === 'manifiestos-detail') {
+                    renderManifiestosList();
+                } else if (btn.dataset.target === 'excedentes-detail') {
+                    renderExcedentesDetail();
+                }
+            });
+        });
+
+        // 11. Renderizado inicial de las secciones y gráficas al cargar el dashboard
+        // Es crucial que estas funciones se llamen *después* de que `mainHTML` se ha insertado
+        // en el DOM, ya que dependen de la existencia de los elementos HTML que crean.
+        renderJefaturaFilter();
+        renderJefaturas();
+        renderSecciones();
+        renderManifiestosList();
+        renderExcedentesDetail();
+
+        // 12. Restaurar/Dibujar la gráfica principal del dashboard "Avance General de Escaneo"
+        const gaugeCtx = document.getElementById('gaugeChart')?.getContext('2d');
+        if (gaugeCtx) {
+            new Chart(gaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [avanceGeneral, 100 - avanceGeneral],
+                        backgroundColor: ['var(--liverpool-pink)', '#e9ecef'],
+                        borderWidth: 0,
+                        circumference: 180,
+                        rotation: 270
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    aspectRatio: 2,
+                    cutout: '80%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false },
+                        title: {
+                            display: true,
+                            text: 'Avance General de Escaneo',
+                            color: 'var(--liverpool-dark)',
+                            font: { size: 16, weight: 'bold' },
+                            position: 'top'
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'gaugeText-main',
+                    beforeDraw: chart => {
+                        const { ctx, width, height } = chart;
+                        ctx.restore();
+                        ctx.font = `800 ${(height / 8).toFixed(0)}px Poppins`;
+                        ctx.fillStyle = 'var(--liverpool-pink)';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${avanceGeneral.toFixed(1)}%`, width / 2, height - (height * 0.1));
+                        ctx.save();
+                    }
+                }]
+            });
+        }
+
+        // 13. Cerrar el SweetAlert de "Analizando Datos..."
+        Swal.close();
+
+    } catch (error) {
+        console.error("Error al generar el resumen semanal:", error);
+        Swal.fire('Error Inesperado', 'No se pudo completar la operación. Por favor, revisa la consola.', 'error');
+        document.getElementById('resumenContent').innerHTML = '<p class="text-center text-danger fs-5 mt-5">Error al cargar el resumen. Por favor, intenta de nuevo más tarde o contacta a soporte.</p>';
+    }
+}
+
+// ==============================================================================
+// === Lógica para verificar autenticación y ejecutar el resumen al cargar la página ===
+// ==============================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+            window.location.href = "../Login/login.html"; // Redirige si no está autenticado
+            return;
+        }
+        currentUser = user;
+        try {
+            const docSnap = await db.collection("usuarios").doc(user.uid).get();
+            const isAdmin = user.uid === ADMIN_UID;
+
+            if (isAdmin || (docSnap.exists && docSnap.data().status === "aprobado")) {
+                const data = docSnap.data() || {};
+                currentUserStore = isAdmin ? "ALL" : (data.store || "");
+                currentUserRole = isAdmin ? "admin" : (data.role || "vendedor");
+
+                // Inicia el proceso de generación del resumen.
+                await generarResumenSemanal();
+
+                const logoutBtn = document.getElementById("logout-btn");
+                if (logoutBtn) {
+                    logoutBtn.addEventListener("click", () => {
+                        auth.signOut().then(() => window.location.href = "../Login/login.html")
+                            .catch(e => console.error(e));
+                    });
+                }
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Acceso Denegado',
+                    text: 'Tu cuenta no está aprobada. Contacta al administrador.'
+                }).then(() => auth.signOut());
+            }
+        } catch (error) {
+            console.error("Error de autenticación o al obtener datos de usuario:", error);
+            auth.signOut();
+        }
+    });
+});
