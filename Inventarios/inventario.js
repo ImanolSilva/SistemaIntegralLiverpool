@@ -162,7 +162,7 @@ function initWizard() {
         clearTimeout(AppState.scanInputTimeout); // Limpiar cualquier timeout anterior
 
         // Si el valor ya tiene 5 o más caracteres, disparar handleScan inmediatamente
-        if (event.target.value.length >= 5) {
+        if (event.target.value.length >= 10) {
             handleScan();
         } else {
             // Opcional: si quieres un pequeño retraso para escáneres muy rápidos que "pegue" el valor
