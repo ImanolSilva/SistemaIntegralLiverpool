@@ -4277,13 +4277,16 @@ async function handleScanCode(code) {
     }
 }
 // --- FIN DE LA FUNCIÓN ACTUALIZADA: handleScanCode ---
-                function scanInputHandler() {
-                    let val = inputScanCode.value.trim().toUpperCase();
-                    if (val && ((val.length >= 5 && val.length <= 10) || (val.length >= 12))) {
-                        handleScanCode(val);
-                        inputScanCode.value = "";
-                    }
-                }
+function scanInputHandler() {
+    let val = inputScanCode.value.trim().toUpperCase();
+    // --- CAMBIO CLAVE ---
+    // Simplificamos la condición para aceptar cualquier código con 5 o más dígitos.
+    // Esto incluye SKUs, y códigos europeos de 10, 11, 12 o más.
+    if (val && val.length >= 5) {
+        handleScanCode(val);
+        inputScanCode.value = "";
+    }
+}
 
                 inputScanCode.addEventListener("keypress", (e) => {
                     if (e.key === "Enter") {
