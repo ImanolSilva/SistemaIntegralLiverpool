@@ -74,6 +74,8 @@
                 offcanvasInstance.hide();
             }
 
+                await loadSeccionToJefeMap();
+
             // Llama a tu función principal de resumen semanal
             await generarResumenSemanal();
 
@@ -107,6 +109,7 @@
                 /***************************************************
                  * VARIABLES GLOBALES
                  ***************************************************/
+                let seccionToJefeMap = new Map();
                 const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2";
                 let currentUser = null;
                 let currentUserStore = null;
@@ -129,58 +132,58 @@
                     hasFullAccess: false
                 };
 
-                const calculateProStatistics = (data) => {
-                    let tSAP = 0;
-                    // Renombrada para mayor claridad: esto almacenará la suma de los artículos escaneados HASTA su cantidad SAP.
-                    let tSCAN_for_expected = 0;
-                    let falt = 0;
-                    let exc = 0; // Esto acumulará el total de excedentes
+ const calculateProStatistics = (data) => {
+    let tSAP = 0;
+    // Renombrada para mayor claridad: esto almacenará la suma de los artículos escaneados HASTA su cantidad SAP.
+    let tSCAN_for_expected = 0;
+    let falt = 0;
+    let exc = 0; // Esto acumulará el total de excedentes
 
-                    const contF = {}, contE = {}, secF = {}, secE = {};
+    const contF = {}, contE = {}, secF = {}, secE = {};
 
-                    data.forEach(r => {
-                        const sap = Number(r.SAP) || 0;
-                        const scan = Number(r.SCANNER) || 0;
-                        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
-                        const sec = (r.SECCION || 'Sin sección').toString().trim();
+    data.forEach(r => {
+        const sap = Number(r.SAP) || 0;
+        const scan = Number(r.SCANNER) || 0;
+        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
+        const sec = (r.SECCION || 'Sin sección').toString().trim();
 
-                        tSAP += sap;
+        tSAP += sap;
 
-                        // Calcula los artículos correctamente escaneados: solo hasta la cantidad SAP para cada SKU.
-                        tSCAN_for_expected += Math.min(scan, sap);
+        // Calcula los artículos correctamente escaneados: solo hasta la cantidad SAP para cada SKU.
+        tSCAN_for_expected += Math.min(scan, sap);
 
-                        if (scan < sap) {
-                            const diff = sap - scan;
-                            falt += diff;
-                            contF[cont] = (contF[cont] || 0) + diff;
-                            secF[sec] = (secF[sec] || 0) + diff;
-                        } else if (scan > sap) {
-                            const diff = scan - sap;
-                            exc += diff; // Acumula el excedente para el conteo total de excedentes
-                            contE[cont] = (contE[cont] || 0) + diff;
-                            secE[sec] = (secE[sec] || 0) + diff;
-                        }
-                    });
+        if (scan < sap) {
+            const diff = sap - scan;
+            falt += diff;
+            contF[cont] = (contF[cont] || 0) + diff;
+            secF[sec] = (secF[sec] || 0) + diff;
+        } else if (scan > sap) {
+            const diff = scan - sap;
+            exc += diff; // Acumula el excedente para el conteo total de excedentes
+            contE[cont] = (contE[cont] || 0) + diff;
+            secE[sec] = (secE[sec] || 0) + diff;
+        }
+    });
 
-                    // El avance debe calcularse en función de `tSCAN_for_expected` (lo escaneado correctamente)
-                    const av = tSAP ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
+    // El avance debe calcularse en función de `tSCAN_for_expected` (lo escaneado correctamente)
+    const av = tSAP ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
 
-                    const getTopItems = (obj) => Object.entries(obj)
-                        .sort(([, a], [, b]) => b - a);
+    const getTopItems = (obj) => Object.entries(obj)
+        .sort(([, a], [, b]) => b - a);
 
-                    return {
-                        totalSAP: tSAP,
-                        totalSCAN: tSCAN_for_expected, // Este es el valor corregido
-                        faltantes: falt,
-                        excedentes: exc,
-                        avance: av,
-                        totalSKUs: data.length,
-                        topContenedoresFaltantes: getTopItems(contF),
-                        topSeccionesFaltantes: getTopItems(secF),
-                        topContenedoresExcedentes: getTopItems(contE),
-                        topSeccionesExcedentes: getTopItems(secE),
-                    };
-                };
+    return {
+        totalSAP: tSAP,
+        totalSCAN: tSCAN_for_expected, // Este es el valor corregido
+        faltantes: falt,
+        excedentes: exc,
+        avance: av,
+        totalSKUs: data.length,
+        topContenedoresFaltantes: getTopItems(contF),
+        topSeccionesFaltantes: getTopItems(secF),
+        topContenedoresExcedentes: getTopItems(contE),
+        topSeccionesExcedentes: getTopItems(secE),
+    };
+};
 
                 function formatFecha(d) {
                     if (d instanceof Date && !isNaN(d.getTime())) {
@@ -204,129 +207,178 @@
                     }
                     return "";
                 }
-                async function reconstructManifestDataFromFirebase(manifestoId) {
-                    try {
-                        const manifestDoc = await db.collection('manifiestos').doc(manifestoId).get();
-                        if (!manifestDoc.exists) {
-                            throw new Error(`El documento del manifiesto con ID ${manifestoId} no existe.`);
+async function reconstructManifestDataFromFirebase(manifestoId) {
+    try {
+        const manifestDoc = await db.collection('manifiestos').doc(manifestoId).get();
+        if (!manifestDoc.exists) {
+            console.warn(`[reconstruct] Manifiesto ${manifestoId} no existe. Saltando reconstrucción.`);
+            return null; // Return null if manifest doesn't exist
+        }
+
+        const manifestData = manifestDoc.data();
+        const { store: folder, fileName } = manifestData;
+
+        if (!folder || !fileName) {
+            console.warn(`[reconstruct] Manifiesto ${manifestoId} sin info de tienda o nombre de archivo. Saltando reconstrucción.`);
+            return null; // Return null if essential data is missing
+        }
+
+        const url = await storage.ref(`Manifiestos/${folder}/${fileName}`).getDownloadURL();
+        const buffer = await (await fetch(url)).arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const baseData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+        const getProp = (obj, key) => { // Helper function for case-insensitive property access
+            if (!obj) return undefined;
+            const lowerKey = String(key).toLowerCase();
+            const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
+            return objKey ? obj[objKey] : undefined;
+        };
+
+        const dataMap = new Map(); // Stores the reconstructed data
+        baseData.forEach(row => {
+            const sku = String(getProp(row, 'SKU') || '').toUpperCase();
+            const container = String(getProp(row, 'CONTENEDOR') || '').trim().toUpperCase();
+            if (!sku || !container) {
+                // console.warn(`[reconstruct] Skipping base data row due to missing SKU or Container:`, row);
+                return;
+            }
+            const key = `${sku}|${container}`;
+
+            if (dataMap.has(key)) {
+                const existing = dataMap.get(key);
+                existing.SAP = (Number(existing.SAP) || 0) + (Number(getProp(row, 'SAP')) || 0);
+                dataMap.set(key, existing);
+            } else {
+                const cleanRow = { ...row };
+                cleanRow.SAP = Number(getProp(row, 'SAP')) || 0;
+                cleanRow.SCANNER = 0;
+                cleanRow.DANIO_CANTIDAD = 0;
+                cleanRow.DANIO_FOTO_URL = "";
+                cleanRow.LAST_SCANNED_BY = "";
+                cleanRow.ENTREGADO_A = "";
+                cleanRow.FECHA_ESCANEO = null;
+                cleanRow.SECCION = String(getProp(row, 'SECCION') || 'N/A').trim().toUpperCase();
+                dataMap.set(key, cleanRow);
+            }
+        });
+
+        const scansSnapshot = await db.collection('manifiestos').doc(manifestoId).collection('scans').orderBy('scannedAt').get();
+
+        scansSnapshot.docs.forEach(doc => {
+            const scan = doc.data();
+            const skuUpper = String(scan.sku || "").toUpperCase();
+            const containerUpper = String(scan.container || "").trim().toUpperCase();
+
+            if (!skuUpper || !containerUpper) {
+                console.warn(`[reconstruct] Scan record missing SKU or Container, skipping:`, scan);
+                return;
+            }
+
+            const key = `${skuUpper}|${containerUpper}`;
+            let record = dataMap.get(key);
+
+            if (scan.type === 'delete') {
+                dataMap.delete(key);
+                return;
+            }
+
+            // If record doesn't exist in base dataMap (it's a new item added via scan)
+            if (!record) {
+                if (scan.type !== 'add') {
+                    console.warn(`[reconstruct] Attempted to modify non-existent item (type: ${scan.type}): ${key}, skipping.`);
+                    return;
+                }
+
+                // --- INICIO DE LA LÓGICA CLAVE PARA ARTÍCULOS NUEVOS EN RECONSTRUCCIÓN ---
+                // Determina la sección base a partir del scan.section o un valor por defecto.
+                let determinedSection = String(scan.section || "ARTICULO NUEVO").trim().toUpperCase();
+
+                // Si es un artículo nuevo (SAP:0) y la sección actual es genérica o problemática,
+                // intenta inferirla de otros artículos ya procesados en este contenedor.
+                // Esta es la parte modificada para FORZAR la re-inferencia.
+                if ( (Number(scan.sap) || 0) === 0 && ["ARTICULO NUEVO", "N/A", "147"].includes(determinedSection)) {
+                    for (const [existingKey, existingRecord] of dataMap.entries()) {
+                        const existingContainer = String(getProp(existingRecord, 'CONTENEDOR') || '').trim().toUpperCase();
+                        const existingSection = String(getProp(existingRecord, 'SECCION') || '').trim().toUpperCase();
+
+                        if (existingContainer === containerUpper && existingSection && !["ARTICULO NUEVO", "N/A", "147"].includes(existingSection)) {
+                            determinedSection = existingSection; // Found a good section, use it
+                            console.log(`[reconstruct] Inferred section for new item ${skuUpper} in ${containerUpper}: ${determinedSection}`);
+                            break;
                         }
-
-                        const manifestData = manifestDoc.data();
-                        const folder = manifestData.store;
-                        const fileName = manifestData.fileName;
-
-                        if (!folder || !fileName) {
-                            throw new Error(`El documento ${manifestoId} no tiene información de tienda o nombre de archivo.`);
-                        }
-
-                        const url = await storage.ref(`Manifiestos/${folder}/${fileName}`).getDownloadURL();
-                        const buffer = await (await fetch(url)).arrayBuffer();
-                        const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-                        const baseData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-                        let reconstructedData = JSON.parse(JSON.stringify(baseData));
-
-                        reconstructedData.forEach(row => {
-                            row.SCANNER = 0;
-                            row.DANIO_CANTIDAD = 0;
-                            row.DANIO_FOTO_URL = "";
-                            row.LAST_SCANNED_BY = "";
-                            row.ENTREGADO_A = "";
-                            row.FECHA_ESCANEO = "";
-                        });
-
-                        const scansSnapshot = await db.collection('manifiestos').doc(manifestoId).collection('scans').orderBy('scannedAt').get();
-
-                        const newItems = new Map();
-                        const deletedSkus = new Set();
-
-                        scansSnapshot.docs.forEach(doc => {
-                            const scan = doc.data();
-                            const skuUpper = String(scan.sku || "").toUpperCase();
-
-                            // --- INICIO DE LA CORRECCIÓN CLAVE ---
-                            // La clave única de una fila es la combinación de SKU y CONTENEDOR.
-                            // Antes, solo buscaba por SKU. Ahora busca por ambos.
-                            const containerUpper = String(scan.container || "").trim().toUpperCase();
-
-                            if (scan.type === 'delete') {
-                                // Para eliminar, buscamos la fila específica que se quiere borrar
-                                let recordToDelete = reconstructedData.find(r =>
-                                    String(r.SKU || "").toUpperCase() === skuUpper &&
-                                    String(r.CONTENEDOR || "").trim().toUpperCase() === containerUpper
-                                );
-                                // Si la encontramos (es un artículo nuevo añadido y luego borrado), la marcamos.
-                                if (recordToDelete && (Number(recordToDelete.SAP) || 0) === 0) {
-                                    deletedSkus.add(`${skuUpper}|${containerUpper}`);
-                                }
-                                return;
-                            }
-
-                            // Busca la fila exacta que coincide con el SKU Y el Contenedor del escaneo.
-                            let record = reconstructedData.find(r =>
-                                String(r.SKU || "").toUpperCase() === skuUpper &&
-                                String(r.CONTENEDOR || "").trim().toUpperCase() === containerUpper
-                            );
-                            // --- FIN DE LA CORRECCIÓN CLAVE ---
-
-                            if (record) {
-                                if (deletedSkus.has(`${skuUpper}|${containerUpper}`)) return;
-
-                                switch (scan.type) {
-                                    case 'subtract':
-                                        record.SCANNER = (Number(record.SCANNER) || 0) - (Number(scan.quantity) || 1);
-                                        break;
-                                    case 'damage':
-                                        record.DANIO_CANTIDAD = (Number(record.DANIO_CANTIDAD) || 0) + (Number(scan.quantity) || 1);
-                                        if (scan.photoURL) record.DANIO_FOTO_URL = scan.photoURL;
-                                        break;
-                                    default:
-                                        record.SCANNER = (Number(record.SCANNER) || 0) + (Number(scan.quantity) || 1);
-                                }
-
-                                record.LAST_SCANNED_BY = scan.user || "Desconocido";
-                                record.ENTREGADO_A = scan.employee || record.ENTREGADO_A;
-                                if (scan.scannedAt) record.FECHA_ESCANEO = scan.scannedAt.toDate();
-
-                            } else if (scan.type === 'add') {
-                                const newItemKey = `${skuUpper}|${containerUpper}`;
-                                if (deletedSkus.has(newItemKey)) return;
-
-                                const refBaseRow = reconstructedData.length > 0 ? reconstructedData[0] : {};
-                                let newItem = newItems.get(newItemKey);
-
-                                if (!newItem) {
-                                    newItem = { ...refBaseRow, SKU: scan.sku, SAP: 0, SCANNER: 0, DANIO_CANTIDAD: 0 };
-                                }
-
-                                newItem.SCANNER += (Number(scan.quantity) || 1);
-                                newItem.DESCRIPCION = scan.description || "ARTÍCULO NUEVO";
-                                newItem.CONTENEDOR = scan.container || refBaseRow.CONTENEDOR || "N/A";
-                                newItem.LAST_SCANNED_BY = scan.user || "Desconocido";
-                                newItem.ENTREGADO_A = scan.employee || newItem.ENTREGADO_A;
-                                if (scan.scannedAt) newItem.FECHA_ESCANEO = scan.scannedAt.toDate();
-
-                                newItems.set(newItemKey, newItem);
-                            }
-                        });
-
-                        // Filtramos los artículos borrados
-                        reconstructedData = reconstructedData.filter(r => {
-                            const key = `${String(r.SKU || "").toUpperCase()}|${String(r.CONTENEDOR || "").trim().toUpperCase()}`;
-                            return !deletedSkus.has(key);
-                        });
-
-                        newItems.forEach(item => reconstructedData.push(item));
-
-                        excelDataGlobal[manifestoId] = { data: reconstructedData, ...manifestData };
-
-                        return { data: reconstructedData, ...manifestData };
-
-                    } catch (error) {
-                        console.error(`Error al reconstruir datos para el manifiesto ${manifestoId}:`, error);
-                        throw new Error("No se pudieron reconstruir los datos del manifiesto desde Firebase.");
                     }
                 }
+                // --- FIN DE LA LÓGICA CLAVE ---
+
+                const refBaseRow = baseData.length > 0 ? baseData[0] : {}; // Use first row as template
+                record = {
+                    'MANIFIESTO': getProp(refBaseRow, 'MANIFIESTO') || 'N/A',
+                    'SKU': skuUpper,
+                    'CONTENEDOR': containerUpper,
+                    'DESCRIPCION': scan.description || "ARTÍCULO NUEVO (Añadido)",
+                    'SECCION': determinedSection, // Use the determined section
+                    'SAP': 0, // New items are always SAP 0
+                    'SCANNER': 0,
+                    'DANIO_CANTIDAD': 0,
+                    'DANIO_FOTO_URL': "",
+                    'LAST_SCANNED_BY': "",
+                    'ENTREGADO_A': "",
+                    'FECHA_ESCANEO': null
+                };
+                dataMap.set(key, record);
+            }
+
+            // Apply scan changes to the record
+            switch (scan.type) {
+                case 'add':
+                    record.SCANNER = (Number(record.SCANNER) || 0) + (Number(scan.quantity) || 1);
+                    // Also update section if scan.section is better than current record.SECCION
+                    // or if record.SECCION is problematic ("147") and scan.section is good.
+                    const scanSection = String(scan.section || '').trim().toUpperCase();
+                    if (scanSection && !["ARTICULO NUEVO", "N/A", "147"].includes(scanSection) && record.SECCION !== scanSection) {
+                         record.SECCION = scanSection;
+                         console.log(`[reconstruct] Updated existing record section for ${record.SKU} in ${record.CONTENEDOR} from scan: ${scanSection}`);
+                    } else if (scanSection && ["ARTICULO NUEVO", "N/A", "147"].includes(record.SECCION) && !["ARTICULO NUEVO", "N/A", "147"].includes(scanSection)) {
+                        // If record current section is problematic (e.g. "147") but scan has a good section, update it.
+                        record.SECCION = scanSection;
+                        console.log(`[reconstruct] Corrected problematic section for ${record.SKU} in ${record.CONTENEDOR}: ${record.SECCION}`);
+                    }
+                    break;
+                case 'subtract':
+                    record.SCANNER = (record.SCANNER || 0) - (Number(scan.quantity) || 1);
+                    break;
+                case 'damage':
+                    record.DANIO_CANTIDAD = (record.DANIO_CANTIDAD || 0) + (Number(scan.quantity) || 1);
+                    if (scan.photoURL) record.DANIO_FOTO_URL = scan.photoURL;
+                    break;
+                case 'delete_photo':
+                    record.DANIO_FOTO_URL = "";
+                    break;
+            }
+
+            // Update metadata for tracking
+            record.LAST_SCANNED_BY = scan.user || "Desconocido";
+            record.ENTREGADO_A = scan.employee || record.ENTREGADO_A || "";
+            if (scan.scannedAt) {
+                record.FECHA_ESCANEO = scan.scannedAt.toDate();
+            }
+        });
+
+        const finalData = Array.from(dataMap.values()).filter(record => {
+            if ((Number(record.SAP) || 0) > 0) return true; // Keep all original manifest items
+            return (Number(record.SCANNER) || 0) > 0; // For new items (SAP 0), only keep if scanner > 0
+        });
+
+        excelDataGlobal[manifestoId] = { data: finalData, ...manifestData };
+        return { data: finalData, ...manifestData };
+
+    } catch (error) {
+        console.error(`Error al reconstruir datos para el manifiesto ${manifestoId}:`, error);
+        throw new Error(`No se pudieron reconstruir los datos del manifiesto ${manifestoId}.`);
+    }
+}
+// --- FIN DE LA FUNCIÓN ACTUALIZADA: reconstructManifestDataFromFirebase ---
                 /***************************************************
                  * REFERENCIAS DEL DOM
                  ***************************************************/
@@ -379,7 +431,8 @@
 
                             const userName = data.name || (isAdmin ? 'Admin' : 'Usuario');
                             userInfoEl.textContent = `Usuario: ${userName} (Tienda: ${currentUserStore}, Rol: ${currentUserRole})`;
-
+            // ¡AÑADE ESTA LÍNEA AQUÍ! Esto asegura que el mapa se cargue al inicio.
+            await loadSeccionToJefeMap();
                             switch (currentUserRole) {
                                 case 'vendedor':
                                     permissions.canScan = true;
@@ -1459,119 +1512,75 @@
                         });
                     }
                 };
-                /**
-/**
- * FUNCIÓN GENERATEPDFREPORT - VERSIÓN SIN ICONOS ULTRA PROFESIONAL
- * Genera un reporte PDF con diseño corporativo profesional, dashboard visual y análisis por jefaturas
+ /**
+ * FUNCIÓN GENERATEPDFREPORT - VERSIÓN CORREGIDA Y OPTIMIZADA
+ * Recibe 'manifest' (el objeto completo del manifiesto con .data y .createdAt) como argumento.
  */
-window.generatePdfReport = async function(folder, name) {
+window.generatePdfReport = async function(manifest, folder, name) {
     try {
-        // El manifestoId es el name del archivo
-        const manifestoId = name;
-        
-        // Cargar datos del manifiesto desde Firebase
-        const manifestData = await reconstructManifestDataFromFirebase(manifestoId);
-        if (!manifestData || !manifestData.data) {
-            throw new Error("No se encontró el manifiesto especificado");
+        const manifestoId = name; // El nombre del archivo es el ID del manifiesto
+
+        // Validación crucial: asegura que manifest y manifest.data existan y sea un array
+        if (!manifest || !manifest.data || !Array.isArray(manifest.data)) {
+            throw new Error("Datos del manifiesto no válidos para generar el PDF. Asegúrate de pasar el objeto 'manifest' completo.");
         }
 
-        // --- Cargar información de jefes desde Secciones.xlsx ---
-        const seccionToJefeMap = new Map();
-        try {
-            const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
-            const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
-            const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+        // Calcular estadísticas usando los datos recibidos. ¡ESTO SOLUCIONA EL ERROR DE FOREACH!
+        const stats = calculateProStatistics(manifest.data); // Usamos manifest.data directamente
 
-            const findSheetName = (workbook) => {
-                const possibleNames = ["jefatura sil", "jefaturaa"];
-                return workbook.SheetNames.find(sheet => possibleNames.includes(sheet.trim().toLowerCase())) || workbook.SheetNames[0];
-            };
-            const sheetName = findSheetName(seccionesWB);
-            if (!sheetName) throw new Error(`No se encontró una hoja de cálculo en Secciones.xlsx.`);
-
-            const worksheet = seccionesWB.Sheets[sheetName];
-            const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-            if (data.length < 1) throw new Error(`La hoja "${sheetName}" está vacía.`);
-
-            let headerRowIndex = -1, seccionIndex = -1, jefaturaIndex = -1;
-            for (let i = 0; i < Math.min(5, data.length); i++) {
-                const headers = data[i].map(h => String(h || '').trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
-                const tempSeccionIndex = headers.indexOf('seccion');
-                const tempJefaturaIndex = headers.indexOf('jefatura');
-                if (tempSeccionIndex !== -1 && tempJefaturaIndex !== -1) {
-                    headerRowIndex = i; seccionIndex = tempSeccionIndex; jefaturaIndex = tempJefaturaIndex;
-                    break;
-                }
-            }
-
-            if (headerRowIndex === -1) throw new Error(`No se encontraron las columnas "Seccion" y "Jefatura".`);
-
-            for (let i = headerRowIndex + 1; i < data.length; i++) {
-                const row = data[i];
-                const seccion = String(row[seccionIndex] || '').trim().toUpperCase();
-                const jefe = String(row[jefaturaIndex] || 'Sin Asignar').trim();
-                if (seccion) seccionToJefeMap.set(seccion, jefe);
-            }
-        } catch (error) {
-            console.warn("Error al cargar información de jefes:", error);
-        }
-
-        // Calcular estadísticas
-        const stats = calculateProStatistics(manifestData.data);
-
-        // Función helper para convertir los arrays de estadísticas al formato esperado
+        // Función de ayuda para convertir los arrays de estadísticas al formato esperado
         const formatTopItems = (topArray, type) => {
             if (!Array.isArray(topArray)) return [];
             return topArray.map(([name, count]) => ({
                 [type === 'container' ? 'container' : 'section']: name,
-                missing: count,
+                missing: count, // Usando 'missing' como conteo general para faltantes/excedentes por consistencia
                 percentage: stats.totalSAP > 0 ? (count / stats.totalSAP) * 100 : 0
             }));
         };
 
-        // Convertir las estadísticas al formato esperado
-        const topMissingContainers = formatTopItems(stats.topContenedoresFaltantes || [], 'container');
-        const allMissingSections = formatTopItems(stats.topSeccionesFaltantes || [], 'section');
-        const topExcessContainers = formatTopItems(stats.topContenedoresExcedentes || [], 'container');
+        const topMissingContainers = formatTopItems(stats.topContenedoresFaltantes, 'container');
+        const allMissingSections = formatTopItems(stats.topSeccionesFaltantes, 'section');
+        const topExcessContainers = formatTopItems(stats.topContenedoresExcedentes, 'container');
 
-        // Calcular estadísticas por jefe
-        const jefaturaStats = new Map();
-        manifestData.data.forEach(row => {
-            const seccion = String(row.SECCION || '').trim().toUpperCase();
-            const jefe = seccionToJefeMap.get(seccion) || 'Sin Asignar';
-            const sap = Number(row.SAP || 0);
-            const scan = Number(row.SCANNER || 0);
-            const diferencia = scan - sap;
+// Calcular estadísticas por jefe
+const jefaturaStats = new Map();
+manifest.data.forEach(row => { // Aquí usamos manifest.data que ya está reconstruido
+    const seccion = String(row.SECCION || '').trim().toUpperCase();
+    // seccionToJefeMap ya está disponible globalmente y cargado
+    const jefe = seccionToJefeMap.get(seccion) || 'Sin Asignar'; // ¡Aquí se usa el mapa!
+    const sap = Number(row.SAP || 0);
+    const scan = Number(row.SCANNER || 0);
+    const diferencia = scan - sap;
 
-            if (!jefaturaStats.has(jefe)) {
-                jefaturaStats.set(jefe, {
-                    totalSAP: 0,
-                    totalSCAN: 0,
-                    faltantes: 0,
-                    excedentes: 0,
-                    secciones: new Set()
-                });
-            }
-
-            const jefeData = jefaturaStats.get(jefe);
-            jefeData.totalSAP += sap;
-            jefeData.totalSCAN += scan;
-            if (diferencia < 0) jefeData.faltantes += Math.abs(diferencia);
-            if (diferencia > 0) jefeData.excedentes += diferencia;
-            jefeData.secciones.add(seccion);
+    if (!jefaturaStats.has(jefe)) {
+        jefaturaStats.set(jefe, {
+            totalSAP: 0,
+            totalSCAN: 0,
+            faltantes: 0,
+            excedentes: 0,
+            secciones: new Set()
         });
+    }
 
-        // Obtener fecha y hora actual
+    const jefeData = jefaturaStats.get(jefe);
+    jefeData.totalSAP += sap;
+    jefeData.totalSCAN += scan;
+    if (diferencia < 0) jefeData.faltantes += Math.abs(diferencia);
+    if (diferencia > 0) jefeData.excedentes += diferencia;
+    jefeData.secciones.add(seccion);
+});
+
+        // Obtener fecha y hora actual para el reporte
         const now = new Date();
-        const fechaCompleta = now.toLocaleDateString('es-MX', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        const fechaCompleta = now.toLocaleDateString('es-MX', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         });
-        const horaCompleta = now.toLocaleTimeString('es-MX', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
+        const horaCompleta = now.toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit'
         });
 
         // Crear el PDF usando pdfMake con diseño ULTRA PROFESIONAL SIN ICONOS
@@ -1584,62 +1593,66 @@ window.generatePdfReport = async function(folder, name) {
                 subject: 'Dashboard Ejecutivo y Análisis Estratégico de Inventario',
                 keywords: 'dashboard, ejecutivo, manifiesto, inventario, análisis, liverpool, jefaturas, premium'
             },
-            
+
             // Header Premium
             header: function(currentPage, pageCount) {
                 return {
                     margin: [35, 15, 35, 0],
                     table: {
-                        widths: ['*'],
+                        widths: ['*', 'auto'], // Cambiado a auto para la parte de la página/fecha
                         body: [
                             [
                                 {
-                                    columns: [
+                                    width: '*',
+                                    stack: [
                                         {
-                                            width: '*',
-                                            stack: [
-                                                { 
-                                                    text: 'LIVERPOOL', 
-                                                    style: 'headerBrandMain',
-                                                    margin: [0, 0, 0, 2]
-                                                },
-                                                { 
-                                                    text: 'DASHBOARD EJECUTIVO PREMIUM', 
-                                                    style: 'headerBrandSub'
-                                                }
-                                            ]
+                                            text: 'LIVERPOOL',
+                                            style: 'headerBrandMain',
+                                            margin: [0, 0, 0, 2]
                                         },
                                         {
-                                            width: 'auto',
-                                            stack: [
-                                                { 
-                                                    text: `Página ${currentPage} de ${pageCount}`, 
-                                                    style: 'pageNumber',
-                                                    alignment: 'right'
-                                                },
-                                                { 
-                                                    text: fechaCompleta, 
-                                                    style: 'headerDate',
-                                                    alignment: 'right'
-                                                }
-                                            ]
+                                            text: 'DASHBOARD EJECUTIVO PREMIUM',
+                                            style: 'headerBrandSub'
                                         }
-                                    ],
-                                    fillColor: '#FFFFFF',
-                                    margin: [15, 10, 15, 10]
+                                    ]
+                                },
+                                {
+                                    width: 'auto',
+                                    stack: [
+                                        {
+                                            text: `Página ${currentPage} de ${pageCount}`,
+                                            style: 'pageNumber',
+                                            alignment: 'right'
+                                        },
+                                        {
+                                            text: fechaCompleta,
+                                            style: 'headerDate',
+                                            alignment: 'right'
+                                        }
+                                    ]
                                 }
-                            ]
-                        ]
+                            ],
+                        ],
                     },
-                    layout: {
+                    layout: { // Esto es para el layout del header, no de todo el doc
                         hLineWidth: function() { return 3; },
-                        vLineWidth: function() { return 3; },
+                        vLineWidth: function() { return 0; }, // No hay líneas verticales en el header
                         hLineColor: function() { return '#E6007E'; },
-                        vLineColor: function() { return '#E6007E'; }
-                    }
+                        paddingLeft: function(i, node) { return (i === 0) ? 0 : 8; }, // Padding si es necesario
+                        paddingRight: function(i, node) { return (i === node.table.widths.length - 1) ? 0 : 8; },
+                        paddingTop: function(i, node) { return 8; },
+                        paddingBottom: function(i, node) { return 8; },
+                        // Border bottom for the entire header table
+                        hLineProperties: function(i, node) {
+                            if (i === node.table.body.length) { // Si es la última línea
+                                return { lineWidth: 3, lineColor: '#E6007E' };
+                            }
+                            return {};
+                        },
+                    },
                 };
             },
-            
+
             // Footer Premium
             footer: function(currentPage, pageCount) {
                 return {
@@ -1648,21 +1661,32 @@ window.generatePdfReport = async function(folder, name) {
                         widths: ['*'],
                         body: [
                             [
-                                { 
+                                {
                                     text: `Sistema Integral de Gestión Liverpool | Generado el ${fechaCompleta} a las ${horaCompleta} | Confidencial`,
                                     style: 'footerPremium',
                                     alignment: 'center',
-                                    fillColor: '#F8F9FA',
+                                    // Eliminamos el fillColor si el fondo ya es transparente o claro
+                                    // fillColor: '#F8F9FA', // Puede causar bordes si el layout lo aplica a la celda
                                     margin: [10, 8, 10, 8]
                                 }
                             ]
                         ]
                     },
-                    layout: {
+                    layout: { // Esto es para el layout del footer, no de todo el doc
                         hLineWidth: function() { return 2; },
-                        vLineWidth: function() { return 2; },
+                        vLineWidth: function() { return 0; }, // No hay líneas verticales en el footer
                         hLineColor: function() { return '#E6007E'; },
-                        vLineColor: function() { return '#E6007E'; }
+                        paddingLeft: function(i, node) { return (i === 0) ? 0 : 8; },
+                        paddingRight: function(i, node) { return (i === node.table.widths.length - 1) ? 0 : 8; },
+                        paddingTop: function(i, node) { return 8; },
+                        paddingBottom: function(i, node) { return 8; },
+                        // Border top for the entire footer table
+                        hLineProperties: function(i, node) {
+                            if (i === 0) { // Si es la primera línea (arriba del footer)
+                                return { lineWidth: 2, lineColor: '#E6007E' };
+                            }
+                            return {};
+                        },
                     }
                 };
             },
@@ -1745,21 +1769,21 @@ window.generatePdfReport = async function(folder, name) {
                                     [
                                         {
                                             stack: [
-                                                { 
-                                                    text: 'TOTAL', 
+                                                {
+                                                    text: 'TOTAL',
                                                     style: 'metricLabel',
                                                     color: '#2196F3',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 8]
                                                 },
-                                                { 
-                                                    text: stats.totalSKUs.toLocaleString(), 
+                                                {
+                                                    text: stats.totalSKUs.toLocaleString(),
                                                     style: 'metricNumber',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 5]
                                                 },
-                                                { 
-                                                    text: 'SKUs', 
+                                                {
+                                                    text: 'SKUs',
                                                     style: 'metricSubLabel',
                                                     alignment: 'center'
                                                 }
@@ -1786,21 +1810,21 @@ window.generatePdfReport = async function(folder, name) {
                                     [
                                         {
                                             stack: [
-                                                { 
-                                                    text: 'ESPERADO', 
+                                                {
+                                                    text: 'ESPERADO',
                                                     style: 'metricLabel',
                                                     color: '#9C27B0',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 8]
                                                 },
-                                                { 
-                                                    text: stats.totalSAP.toLocaleString(), 
+                                                {
+                                                    text: stats.totalSAP.toLocaleString(),
                                                     style: 'metricNumber',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 5]
                                                 },
-                                                { 
-                                                    text: 'UNIDADES', 
+                                                {
+                                                    text: 'UNIDADES',
                                                     style: 'metricSubLabel',
                                                     alignment: 'center'
                                                 }
@@ -1827,21 +1851,21 @@ window.generatePdfReport = async function(folder, name) {
                                     [
                                         {
                                             stack: [
-                                                { 
-                                                    text: 'ESCANEADO', 
+                                                {
+                                                    text: 'ESCANEADO',
                                                     style: 'metricLabel',
                                                     color: '#4CAF50',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 8]
                                                 },
-                                                { 
-                                                    text: stats.totalSCAN.toLocaleString(), 
+                                                {
+                                                    text: stats.totalSCAN.toLocaleString(),
                                                     style: 'metricNumber',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 5]
                                                 },
-                                                { 
-                                                    text: 'UNIDADES', 
+                                                {
+                                                    text: 'UNIDADES',
                                                     style: 'metricSubLabel',
                                                     alignment: 'center'
                                                 }
@@ -1868,21 +1892,21 @@ window.generatePdfReport = async function(folder, name) {
                                     [
                                         {
                                             stack: [
-                                                { 
-                                                    text: 'PROGRESO', 
+                                                {
+                                                    text: 'PROGRESO',
                                                     style: 'metricLabel',
                                                     color: '#FF9800',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 8]
                                                 },
-                                                { 
-                                                    text: `${stats.avance}%`, 
+                                                {
+                                                    text: `${stats.avance}%`,
                                                     style: 'metricNumber',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 5]
                                                 },
-                                                { 
-                                                    text: 'COMPLETADO', 
+                                                {
+                                                    text: 'COMPLETADO',
                                                     style: 'metricSubLabel',
                                                     alignment: 'center'
                                                 }
@@ -1920,22 +1944,22 @@ window.generatePdfReport = async function(folder, name) {
                                     [
                                         {
                                             stack: [
-                                                { 
-                                                    text: 'FALTANTES', 
+                                                {
+                                                    text: 'FALTANTES',
                                                     style: 'indicatorTitle',
                                                     color: '#DC3545',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 10]
                                                 },
-                                                { 
-                                                    text: stats.faltantes.toLocaleString(), 
+                                                {
+                                                    text: stats.faltantes.toLocaleString(),
                                                     style: 'indicatorNumber',
                                                     color: '#DC3545',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 5]
                                                 },
-                                                { 
-                                                    text: `${((stats.faltantes / stats.totalSAP) * 100).toFixed(2)}% del total`, 
+                                                {
+                                                    text: `${((stats.faltantes / (stats.totalSAP || 1)) * 100).toFixed(2)}% del total`,
                                                     style: 'indicatorPercent',
                                                     alignment: 'center'
                                                 }
@@ -1962,22 +1986,22 @@ window.generatePdfReport = async function(folder, name) {
                                     [
                                         {
                                             stack: [
-                                                { 
-                                                    text: 'EXCEDENTES', 
+                                                {
+                                                    text: 'EXCEDENTES',
                                                     style: 'indicatorTitle',
                                                     color: '#FFC107',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 10]
                                                 },
-                                                { 
-                                                    text: stats.excedentes.toLocaleString(), 
+                                                {
+                                                    text: stats.excedentes.toLocaleString(),
                                                     style: 'indicatorNumber',
                                                     color: '#FFC107',
                                                     alignment: 'center',
                                                     margin: [0, 0, 0, 5]
                                                 },
-                                                { 
-                                                    text: `${((stats.excedentes / stats.totalSAP) * 100).toFixed(2)}% del total`, 
+                                                {
+                                                    text: `${((stats.excedentes / (stats.totalSAP || 1)) * 100).toFixed(2)}% del total`,
                                                     style: 'indicatorPercent',
                                                     alignment: 'center'
                                                 }
@@ -2173,8 +2197,8 @@ window.generatePdfReport = async function(folder, name) {
                                 {
                                     stack: [
                                         { text: 'DISTRIBUCIÓN DE DISCREPANCIAS', style: 'summaryTitle', margin: [0, 0, 0, 10] },
-                                        { text: `Faltantes: ${stats.faltantes.toLocaleString()} (${((stats.faltantes / stats.totalSAP) * 100).toFixed(2)}%)`, style: 'summaryItem', color: '#DC3545' },
-                                        { text: `Excedentes: ${stats.excedentes.toLocaleString()} (${((stats.excedentes / stats.totalSAP) * 100).toFixed(2)}%)`, style: 'summaryItem', color: '#FFC107' },
+                                        { text: `Faltantes: ${stats.faltantes.toLocaleString()} (${((stats.faltantes / (stats.totalSAP || 1)) * 100).toFixed(2)}%)`, style: 'summaryItem', color: '#DC3545' },
+                                        { text: `Excedentes: ${stats.excedentes.toLocaleString()} (${((stats.excedentes / (stats.totalSAP || 1)) * 100).toFixed(2)}%)`, style: 'summaryItem', color: '#FFC107' },
                                         { text: `Contenedores con Faltantes: ${topMissingContainers.length}`, style: 'summaryItem' },
                                         { text: `Secciones con Faltantes: ${allMissingSections.length}`, style: 'summaryItem' },
                                         { text: `Contenedores con Excedentes: ${topExcessContainers.length}`, style: 'summaryItem' }
@@ -2208,21 +2232,21 @@ window.generatePdfReport = async function(folder, name) {
                                 {
                                     stack: [
                                         { text: 'ANÁLISIS EJECUTIVO', style: 'conclusionTitle', margin: [0, 0, 0, 15] },
-                                        { 
-                                            text: stats.avance >= 95 ? 
+                                        {
+                                            text: stats.avance >= 95 ?
                                                 'EXCELENTE: El inventario presenta una precisión excepcional. Se recomienda mantener los procesos actuales.' :
-                                                stats.avance >= 85 ? 
-                                                'BUENO: El inventario muestra una precisión aceptable con oportunidades de mejora en áreas específicas.' :
-                                                stats.avance >= 70 ? 
-                                                'REGULAR: Se requiere atención inmediata en las discrepancias identificadas para mejorar la precisión.' :
-                                                'CRÍTICO: Se necesita una revisión completa del proceso de inventario y acciones correctivas urgentes.',
+                                                stats.avance >= 85 ?
+                                                    'BUENO: El inventario muestra una precisión aceptable con oportunidades de mejora en áreas específicas.' :
+                                                    stats.avance >= 70 ?
+                                                        'REGULAR: Se requiere atención inmediata en las discrepancias identificadas para mejorar la precisión.' :
+                                                        'CRÍTICO: Se necesita una revisión completa del proceso de inventario y acciones correctivas urgentes.',
                                             style: 'conclusionText',
                                             margin: [0, 0, 0, 15]
                                         },
                                         { text: 'RECOMENDACIONES ESTRATÉGICAS', style: 'conclusionTitle', margin: [0, 0, 0, 15] },
-                                        { 
+                                        {
                                             ul: [
-                                                stats.faltantes > stats.excedentes ? 
+                                                stats.faltantes > stats.excedentes ?
                                                     'Priorizar la búsqueda de productos faltantes en las secciones identificadas' :
                                                     'Revisar procesos de recepción para reducir excedentes',
                                                 'Implementar controles adicionales en los contenedores con mayor discrepancia',
@@ -2333,6 +2357,48 @@ window.generatePdfReport = async function(folder, name) {
         return false;
     }
 };
+async function loadSeccionToJefeMap() {
+    try {
+        const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
+        const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
+        const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+
+        const findSheetName = (workbook) => {
+            const possibleNames = ["jefatura sil", "jefaturaa", "secciones"]; // Se añadió "secciones" para mayor robustez
+            return workbook.SheetNames.find(sheet => possibleNames.includes(sheet.trim().toLowerCase())) || workbook.SheetNames[0];
+        };
+        const sheetName = findSheetName(seccionesWB);
+        if (!sheetName) throw new Error(`No se encontró una hoja de cálculo en Secciones.xlsx.`);
+
+        const worksheet = seccionesWB.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+        if (data.length < 1) throw new Error(`La hoja "${sheetName}" está vacía.`);
+
+        let headerRowIndex = -1, seccionIndex = -1, jefaturaIndex = -1;
+        for (let i = 0; i < Math.min(5, data.length); i++) {
+            const headers = data[i].map(h => String(h || '').trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+            const tempSeccionIndex = headers.indexOf('seccion');
+            const tempJefaturaIndex = headers.indexOf('jefatura');
+            if (tempSeccionIndex !== -1 && tempJefaturaIndex !== -1) {
+                headerRowIndex = i; seccionIndex = tempSeccionIndex; jefaturaIndex = tempJefaturaIndex;
+                break;
+            }
+        }
+
+        if (headerRowIndex === -1) throw new Error(`No se encontraron las columnas "Seccion" y "Jefatura" en Secciones.xlsx.`);
+
+        for (let i = headerRowIndex + 1; i < data.length; i++) {
+            const row = data[i];
+            const seccion = String(row[seccionIndex] || '').trim().toUpperCase();
+            const jefe = String(row[jefaturaIndex] || 'Sin Asignar').trim();
+            if (seccion) seccionToJefeMap.set(seccion, jefe);
+        }
+        console.log("SeccionToJefeMap cargado:", seccionToJefeMap);
+    } catch (error) {
+        console.error("Error al cargar SeccionToJefeMap:", error);
+        Swal.fire('Error de Carga', 'No se pudo cargar el archivo de secciones/jefaturas. Las funciones de reporte pueden no ser precisas.', 'error');
+    }
+}
 /**
  * ✅ SOLUCIÓN FINAL (V.5.3) - ASUNTO CON FECHA DE SUBIDA
  * Integra el mensaje específico del usuario, un resumen claro y añade la fecha al asunto del correo.
@@ -2346,10 +2412,12 @@ window.generarReportesYCorreo = async (folder, name) => {
     });
 
     try {
-        // --- Lógica inicial para obtener datos y generar archivos (sin cambios) ---
+        // --- Lógica inicial para obtener datos y generar archivos ---
+        // reconstruimos el manifiesto para obtener los datos actualizados y el objeto completo
         const manifest = await reconstructManifestDataFromFirebase(name);
-        const stats = calculateProStatistics(manifest.data);
-        
+        const stats = calculateProStatistics(manifest.data); // calculateProStatistics ya espera un array de datos
+
+        // Obtenemos y formateamos la fecha de carga del manifiesto
         const uploadDate = manifest.createdAt ? new Date(manifest.createdAt.toDate()) : new Date();
         const formattedDate = uploadDate.toLocaleDateString('es-MX', {
             day: '2-digit',
@@ -2357,26 +2425,33 @@ window.generarReportesYCorreo = async (folder, name) => {
             year: 'numeric'
         });
 
+        // Generamos el archivo Excel
         await window.downloadFile(folder, name);
-        await window.generatePdfReport(folder, name);
+
+        // ✅ LÍNEA CORREGIDA: Pasa el objeto 'manifest' completo a generatePdfReport
+        await window.generatePdfReport(manifest, folder, name); // Aquí pasamos 'manifest' directamente
 
         Swal.close();
-        await window.verDashboardArchivo(folder, name);
+        await window.verDashboardArchivo(folder, name); // Esto vuelve a abrir el modal del dashboard
 
+        // Damos un pequeño respiro para que el DOM se actualice antes de la captura
         await new Promise(resolve => setTimeout(resolve, 2000));
 
         const dashboardModal = document.querySelector('.swal2-popup.dashboard-modal');
-        if (!dashboardModal) throw new Error("No se pudo encontrar el modal del dashboard.");
+        if (!dashboardModal) throw new Error("No se pudo encontrar el modal del dashboard para la captura.");
 
         const contentToCapture = dashboardModal.querySelector('.analisis-dashboard-pro');
-        if (!contentToCapture) throw new Error("No se pudo encontrar el contenido del dashboard.");
+        if (!contentToCapture) throw new Error("No se pudo encontrar el contenido del dashboard para la captura.");
 
-        // --- Lógica de captura de imagen (sin cambios) ---
+        // --- Lógica de captura de imagen (sin cambios importantes) ---
         const statCards = contentToCapture.querySelectorAll('.stat-card');
         const originalCardStyles = new Map();
         const solidColors = {
-            total: '#E6007E', expected: '#6f42c1', scanned: '#198754',
-            missing: '#dc3545', excess: '#ffc107'
+            total: '#E6007E',
+            expected: '#6f42c1',
+            scanned: '#198754',
+            missing: '#dc3545',
+            excess: '#ffc107'
         };
         statCards.forEach(card => {
             originalCardStyles.set(card, {
@@ -2394,8 +2469,12 @@ window.generarReportesYCorreo = async (folder, name) => {
             if (titleEl) titleEl.style.cssText += `color:${solidColor}!important;`;
         });
         const canvas = await html2canvas(contentToCapture, {
-            scale: 3, backgroundColor: '#FFFFFF', useCORS: true, logging: false,
-            scrollX: 0, scrollY: -window.scrollY
+            scale: 3,
+            backgroundColor: '#FFFFFF',
+            useCORS: true,
+            logging: false,
+            scrollX: 0,
+            scrollY: -window.scrollY
         });
         statCards.forEach(card => {
             const original = originalCardStyles.get(card);
@@ -2415,12 +2494,9 @@ window.generarReportesYCorreo = async (folder, name) => {
         link.click();
         document.body.removeChild(link);
 
-        Swal.close();
+        Swal.close(); // Cierra el modal del dashboard después de la captura
 
-        // ==================================================================
         // --- INICIO DE SECCIÓN DE CORREO ACTUALIZADA ---
-        // ==================================================================
-
         const nombreBaseArchivo = name.replace(/\.xlsx$/i, '');
 
         const correos = [
@@ -2433,8 +2509,8 @@ window.generarReportesYCorreo = async (folder, name) => {
 
         // Asunto actualizado para incluir la fecha de subida
         const asunto = `Análisis de Manifiesto: ${nombreBaseArchivo} - ${formattedDate}`;
-        
-        // Cuerpo del correo (sin cambios respecto a la versión anterior)
+
+        // Cuerpo del correo
         const cuerpo = `
 Buenas tardes, jefes:
 
@@ -2469,583 +2545,586 @@ RESUMEN DE CIFRAS
             confirmButtonText: '¡Excelente!'
         });
 
+    // 2. ✅ LÍNEA CORREGIDA: Pasa el objeto 'manifest' completo a generatePdfReport
+    await window.generatePdfReport(manifest, folder, name); // ¡Aquí le pasamos 'manifest' directamente!
+
+
     } catch (error) {
         console.error("Error en el proceso de reporte y correo:", error);
         Swal.fire('¡Error!', 'Ocurrió un problema durante el proceso. Revisa la consola para más detalles.', 'error');
     }
 };
+ /**
+ * ✅ VERSIÓN FINAL (17.0) - ¡SOLUCIÓN FINAL Y ROBUSTA PARA CAMPOS VACÍOS!
+ * Maneja DAÑO_CANTIDAD y DAÑO_FOTO_URL para que queden vacíos si no hay información.
+ * - MANIFIESTO, SKU, EUROPEO, ENTREGADO_A: Numérico entero SIN separador de miles (formato Excel '0').
+ * - CONTENEDOR: Siempre TEXTO (sin conversiones numéricas).
+ * - SAP, SCANNER, DIFERENCIA: Numérico con separador de miles (formato Excel '#,##0').
+ * - DAÑO_CANTIDAD: Numérico sin comas (formato '0'), o vacío si es 0/null/undefined/cadena vacía.
+ * - DAÑO_FOTO_URL: Texto, o vacío si es null/undefined/cadena vacía.
+ */
+window.downloadFile = async function (folder, name) {
+    const manifestoId = name;
+    if (!manifestoId) return Swal.fire('Error', 'No se ha seleccionado manifiesto.', 'error');
 
-                /**
-                 * ✅ VERSIÓN FINAL (17.0) - ¡SOLUCIÓN FINAL Y ROBUSTA PARA CAMPOS VACÍOS!
-                 * Maneja DAÑO_CANTIDAD y DAÑO_FOTO_URL para que queden vacíos si no hay información.
-                 * - MANIFIESTO, SKU, EUROPEO, ENTREGADO_A: Numérico entero SIN separador de miles (formato Excel '0').
-                 * - CONTENEDOR: Siempre TEXTO (sin conversiones numéricas).
-                 * - SAP, SCANNER, DIFERENCIA: Numérico con separador de miles (formato Excel '#,##0').
-                 * - DAÑO_CANTIDAD: Numérico sin comas (formato '0'), o vacío si es 0/null/undefined/cadena vacía.
-                 * - DAÑO_FOTO_URL: Texto, o vacío si es null/undefined/cadena vacía.
-                 */
-                window.downloadFile = async function (folder, name) {
-                    const manifestoId = name;
-                    if (!manifestoId) return Swal.fire('Error', 'No se ha seleccionado manifiesto.', 'error');
+    // --- VERIFICACIÓN CRÍTICA: ¿xlsx-js-style está cargado? ---
+    try {
+        const test_wb = XLSX.utils.book_new();
+        const test_ws = XLSX.utils.aoa_to_sheet([["Test"]]);
+        const cell = test_ws['A1'];
+        cell.s = { fill: { fgColor: { rgb: "FF0000" } } };
+    } catch (e) {
+        console.error("Error al verificar xlsx-js-style:", e);
+        return Swal.fire(
+            'Error de Configuración',
+            'Parece que la librería "xlsx-js-style" no está cargada correctamente o en la versión adecuada. ' +
+            'Asegúrate de que `xlsx.full.min.js` se cargue primero y luego `xlsx.bundle.js` de "xlsx-js-style".',
+            'error'
+        );
+    }
+    // --- FIN VERIFICACIÓN CRÍTICA ---
 
-                    // --- VERIFICACIÓN CRÍTICA: ¿xlsx-js-style está cargado? ---
-                    try {
-                        const test_wb = XLSX.utils.book_new();
-                        const test_ws = XLSX.utils.aoa_to_sheet([["Test"]]);
-                        const cell = test_ws['A1'];
-                        cell.s = { fill: { fgColor: { rgb: "FF0000" } } };
-                    } catch (e) {
-                        console.error("Error al verificar xlsx-js-style:", e);
-                        return Swal.fire(
-                            'Error de Configuración',
-                            'Parece que la librería "xlsx-js-style" no está cargada correctamente o en la versión adecuada. ' +
-                            'Asegúrate de que `xlsx.full.min.js` se cargue primero y luego `xlsx.bundle.js` de "xlsx-js-style".',
-                            'error'
-                        );
+    Swal.fire({
+        title: 'Generando Reporte Profesional...',
+        html: 'Creando dashboard y hojas de análisis. Por favor, espera.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // --- Paso 1: Cargar y procesar el archivo de Jefaturas ---
+        const seccionToJefeMap = new Map();
+        try {
+            const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
+            const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
+            const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+
+            const findSheetName = (workbook) => {
+                const possibleNames = ["jefatura sil", "jefaturaa"];
+                return workbook.SheetNames.find(sheet => possibleNames.includes(sheet.trim().toLowerCase())) || workbook.SheetNames[0];
+            };
+            const sheetName = findSheetName(seccionesWB);
+            if (!sheetName) throw new Error(`No se encontró una hoja de cálculo en Secciones.xlsx.`);
+
+            const worksheet = seccionesWB.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+            if (data.length < 1) throw new Error(`La hoja "${sheetName}" está vacía.`);
+
+            let headerRowIndex = -1, seccionIndex = -1, jefaturaIndex = -1;
+            for (let i = 0; i < Math.min(5, data.length); i++) {
+                const headers = data[i].map(h => String(h || '').trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
+                const tempSeccionIndex = headers.indexOf('seccion');
+                const tempJefaturaIndex = headers.indexOf('jefatura');
+                if (tempSeccionIndex !== -1 && tempJefaturaIndex !== -1) {
+                    headerRowIndex = i; seccionIndex = tempSeccionIndex; jefaturaIndex = tempJefaturaIndex;
+                    break;
+                }
+            }
+
+            if (headerRowIndex === -1) throw new Error(`No se encontraron las columnas "Seccion" y "Jefatura".`);
+
+            for (let i = headerRowIndex + 1; i < data.length; i++) {
+                const row = data[i];
+                const seccion = String(row[seccionIndex] || '').trim().toUpperCase();
+                const jefe = String(row[jefaturaIndex] || 'Sin Asignar').trim();
+                if (seccion) seccionToJefeMap.set(seccion, jefe);
+            }
+        } catch (error) {
+            throw new Error("Error al leer Secciones.xlsx: " + error.message);
+        }
+
+        // --- Paso 2: Obtener y procesar datos del manifiesto ---
+        const manifest = await reconstructManifestDataFromFirebase(manifestoId);
+
+        // --- DEFINICIÓN CLAVE DE CÓMO SE PROCESAN Y CATEGORIZAN LAS COLUMNAS ---
+        // Columnas que deben ser NUMEROS con separador de miles (ej. 1,234)
+        const numericWithCommaFormatKeys = ['SAP', 'SCANNER', 'DIFERENCIA']; // Se añade DIFERENCIA aquí
+        // Columnas que deben ser NUMEROS largos SIN separador de miles (ej. 5007636731).
+        // Se incluyen aquí 'DAÑO_CANTIDAD' para tratarlo como número.
+        const numericNoCommaFormatKeys = ['MANIFIESTO', 'SKU', 'EUROPEO', 'ENTREGADO_A', 'DAÑO_CANTIDAD'];
+        // Columnas que SIEMPRE deben ser TEXTO (ej. Q0084429, URLs).
+        // Se incluye aquí 'DAÑO_FOTO_URL'.
+        const textFormatKeys = ['CONTENEDOR', 'SECCION', 'JEFATURA', 'DAÑO_FOTO_URL'];
+
+        const augmentedData = manifest.data.map(row => {
+            const newRow = {};
+
+            // Mapear los nombres de las columnas a sus valores en el row, independientemente del casing
+            const findValueByKey = (obj, keyName) => {
+                const foundKey = Object.keys(obj).find(k => k.trim().toUpperCase() === keyName.toUpperCase());
+                return foundKey ? obj[foundKey] : undefined;
+            };
+
+            for (const originalKey in row) {
+                const upperKey = originalKey.trim().toUpperCase();
+                let value = row[originalKey];
+
+                // === LÓGICA PRINCIPAL PARA DEJAR CAMPOS VACÍOS ===
+                // Si el valor es null, undefined, o un string vacío/solo espacios
+                // O si es DAÑO_CANTIDAD y su valor es 0 (que se convertiría a 00/01/1900)
+                if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '') ||
+                    (upperKey === 'DAÑO_CANTIDAD' && (value === 0 || value === '0'))) { // Condición específica para DAÑO_CANTIDAD
+                    newRow[originalKey] = null; // Establecer a null para que quede vacío en Excel
+                    continue; // Saltar al siguiente campo
+                }
+                // === FIN LÓGICA PRINCIPAL PARA DEJAR CAMPOS VACÍOS ===
+
+
+                if (textFormatKeys.includes(upperKey)) {
+                    newRow[originalKey] = String(value); // Asegurar que es string si tiene algún valor
+                    continue;
+                }
+
+                if (typeof value === 'string') {
+                    // Para columnas que deben ser números, limpiar y convertir
+                    const cleanedValue = value.replace(/,/g, ''); // Eliminar todas las comas del string original
+                    const numValue = Number(cleanedValue);
+
+                    if (isNaN(numValue)) {
+                        // Si después de limpiar comas, NO es un número válido, mantenerlo como string
+                        newRow[originalKey] = String(value);
+                    } else {
+                        // Si es un número válido, convertirlo
+                        newRow[originalKey] = numValue;
                     }
-                    // --- FIN VERIFICACIÓN CRÍTICA ---
+                } else {
+                    // Si ya es un número o cualquier otro tipo, mantenerlo
+                    newRow[originalKey] = value;
+                }
+            }
 
-                    Swal.fire({
-                        title: 'Generando Reporte Profesional...',
-                        html: 'Creando dashboard y hojas de análisis. Por favor, espera.',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading()
-                    });
+            // Añadir la jefatura como antes
+            const seccionKey = Object.keys(newRow).find(k => k.trim().toUpperCase() === 'SECCION');
+            const seccionValue = seccionKey ? newRow[seccionKey] : '';
+            const seccion = String(seccionValue || '').trim().toUpperCase();
+            const jefe = seccionToJefeMap.get(seccion) || 'Sin Jefe Asignar';
+            newRow.JEFATURA = jefe;
 
-                    try {
-                        // --- Paso 1: Cargar y procesar el archivo de Jefaturas ---
-                        const seccionToJefeMap = new Map();
-                        try {
-                            const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
-                            const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
-                            const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
+            // Añadir la columna DIFERENCIA
+            const sapValue = Number(findValueByKey(newRow, 'SAP') || 0);
+            const scannerValue = Number(findValueByKey(newRow, 'SCANNER') || 0);
+            newRow.DIFERENCIA = scannerValue - sapValue;
 
-                            const findSheetName = (workbook) => {
-                                const possibleNames = ["jefatura sil", "jefaturaa"];
-                                return workbook.SheetNames.find(sheet => possibleNames.includes(sheet.trim().toLowerCase())) || workbook.SheetNames[0];
-                            };
-                            const sheetName = findSheetName(seccionesWB);
-                            if (!sheetName) throw new Error(`No se encontró una hoja de cálculo en Secciones.xlsx.`);
+            return newRow;
+        });
 
-                            const worksheet = seccionesWB.Sheets[sheetName];
-                            const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
-                            if (data.length < 1) throw new Error(`La hoja "${sheetName}" está vacía.`);
-
-                            let headerRowIndex = -1, seccionIndex = -1, jefaturaIndex = -1;
-                            for (let i = 0; i < Math.min(5, data.length); i++) {
-                                const headers = data[i].map(h => String(h || '').trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase());
-                                const tempSeccionIndex = headers.indexOf('seccion');
-                                const tempJefaturaIndex = headers.indexOf('jefatura');
-                                if (tempSeccionIndex !== -1 && tempJefaturaIndex !== -1) {
-                                    headerRowIndex = i; seccionIndex = tempSeccionIndex; jefaturaIndex = tempJefaturaIndex;
-                                    break;
-                                }
-                            }
-
-                            if (headerRowIndex === -1) throw new Error(`No se encontraron las columnas "Seccion" y "Jefatura".`);
-
-                            for (let i = headerRowIndex + 1; i < data.length; i++) {
-                                const row = data[i];
-                                const seccion = String(row[seccionIndex] || '').trim().toUpperCase();
-                                const jefe = String(row[jefaturaIndex] || 'Sin Asignar').trim();
-                                if (seccion) seccionToJefeMap.set(seccion, jefe);
-                            }
-                        } catch (error) {
-                            throw new Error("Error al leer Secciones.xlsx: " + error.message);
-                        }
-
-                        // --- Paso 2: Obtener y procesar datos del manifiesto ---
-                        const manifest = await reconstructManifestDataFromFirebase(manifestoId);
-
-                        // --- DEFINICIÓN CLAVE DE CÓMO SE PROCESAN Y CATEGORIZAN LAS COLUMNAS ---
-                        // Columnas que deben ser NUMEROS con separador de miles (ej. 1,234)
-                        const numericWithCommaFormatKeys = ['SAP', 'SCANNER', 'DIFERENCIA']; // Se añade DIFERENCIA aquí
-                        // Columnas que deben ser NUMEROS largos SIN separador de miles (ej. 5007636731).
-                        // Se incluyen aquí 'DAÑO_CANTIDAD' para tratarlo como número.
-                        const numericNoCommaFormatKeys = ['MANIFIESTO', 'SKU', 'EUROPEO', 'ENTREGADO_A', 'DAÑO_CANTIDAD'];
-                        // Columnas que SIEMPRE deben ser TEXTO (ej. Q0084429, URLs).
-                        // Se incluye aquí 'DAÑO_FOTO_URL'.
-                        const textFormatKeys = ['CONTENEDOR', 'SECCION', 'JEFATURA', 'DAÑO_FOTO_URL'];
-
-                        const augmentedData = manifest.data.map(row => {
-                            const newRow = {};
-
-                            // Mapear los nombres de las columnas a sus valores en el row, independientemente del casing
-                            const findValueByKey = (obj, keyName) => {
-                                const foundKey = Object.keys(obj).find(k => k.trim().toUpperCase() === keyName.toUpperCase());
-                                return foundKey ? obj[foundKey] : undefined;
-                            };
-
-                            for (const originalKey in row) {
-                                const upperKey = originalKey.trim().toUpperCase();
-                                let value = row[originalKey];
-
-                                // === LÓGICA PRINCIPAL PARA DEJAR CAMPOS VACÍOS ===
-                                // Si el valor es null, undefined, o un string vacío/solo espacios
-                                // O si es DAÑO_CANTIDAD y su valor es 0 (que se convertiría a 00/01/1900)
-                                if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '') ||
-                                    (upperKey === 'DAÑO_CANTIDAD' && (value === 0 || value === '0'))) { // Condición específica para DAÑO_CANTIDAD
-                                    newRow[originalKey] = null; // Establecer a null para que quede vacío en Excel
-                                    continue; // Saltar al siguiente campo
-                                }
-                                // === FIN LÓGICA PRINCIPAL PARA DEJAR CAMPOS VACÍOS ===
+        // Asegurarse de que JEFATURA esté en la primera posición para la vista en Excel (esto es por el .sort)
+        augmentedData.sort((a, b) => {
+            const jefaturaA = a.JEFATURA || ''; // Manejar si JEFATURA es null
+            const jefaturaB = b.JEFATURA || ''; // Manejar si JEFATURA es null
+            const skuA = String(a.SKU || ''); // Manejar si SKU es null
+            const skuB = String(b.SKU || ''); // Manejar si SKU es null
+            return jefaturaA.localeCompare(jefaturaB) || skuA.localeCompare(skuB);
+        });
 
 
-                                if (textFormatKeys.includes(upperKey)) {
-                                    newRow[originalKey] = String(value); // Asegurar que es string si tiene algún valor
-                                    continue;
-                                }
+        // --- Paso 3: Crear el libro de Excel y definir estilos ---
+        const wb = XLSX.utils.book_new();
+        const commonBorderStyle = { style: "thin", color: { rgb: "C0C0C0" } }; // Borde gris claro
 
-                                if (typeof value === 'string') {
-                                    // Para columnas que deben ser números, limpiar y convertir
-                                    const cleanedValue = value.replace(/,/g, ''); // Eliminar todas las comas del string original
-                                    const numValue = Number(cleanedValue);
+        const styles = {
+            mainHeader: {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+                fill: { fgColor: { rgb: "333333" } }, // Fondo gris oscuro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            analysisHeader: {
+                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+                fill: { fgColor: { rgb: "0056b3" } }, // Fondo azul
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dataRowEven: {
+                fill: { fgColor: { rgb: "F0F0F0" } }, // Gris claro para filas pares
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dataRowOdd: {
+                fill: { fgColor: { rgb: "FFFFFF" } }, // Blanco para filas impares
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dashTitle: { font: { sz: 18, bold: true, color: { rgb: "E6007E" } } },
+            dashSubtitle: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } } },
+            dashHeader: { font: { sz: 14, bold: true, color: { rgb: "000000" } } },
+            metricLabel: { font: { bold: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "right" } },
+            metricValue: { font: { sz: 12, bold: true }, alignment: { horizontal: "left" } },
+            metricPositive: { font: { sz: 12, bold: true, color: { rgb: "28a745" } }, alignment: { horizontal: "left" } },
+            metricNegative: { font: { sz: 12, bold: true, color: { rgb: "dc3545" } }, alignment: { horizontal: "left" } },
 
-                                    if (isNaN(numValue)) {
-                                        // Si después de limpiar comas, NO es un número válido, mantenerlo como string
-                                        newRow[originalKey] = String(value);
-                                    } else {
-                                        // Si es un número válido, convertirlo
-                                        newRow[originalKey] = numValue;
-                                    }
-                                } else {
-                                    // Si ya es un número o cualquier otro tipo, mantenerlo
-                                    newRow[originalKey] = value;
-                                }
-                            }
+            // Nuevos estilos para la columna DIFERENCIA en "Reporte por Jefatura"
+            diffOk: { // Verde para 0
+                font: { bold: true, color: { rgb: "28a745" } }, // Color verde
+                fill: { fgColor: { rgb: "D4EDDA" } }, // Fondo verde claro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            diffNegative: { // Rojo para faltantes
+                font: { bold: true, color: { rgb: "DC3545" } }, // Color rojo
+                fill: { fgColor: { rgb: "F8D7DA" } }, // Fondo rojo claro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            diffPositive: { // Amarillo para excedentes
+                font: { bold: true, color: { rgb: "856404" } }, // Color amarillo oscuro (para contraste)
+                fill: { fgColor: { rgb: "FFF3CD" } }, // Fondo amarillo claro
+                alignment: { horizontal: "center", vertical: "center" },
+                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
+            },
+            dashDate: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } } // Style for the date
+        };
 
-                            // Añadir la jefatura como antes
-                            const seccionKey = Object.keys(newRow).find(k => k.trim().toUpperCase() === 'SECCION');
-                            const seccionValue = seccionKey ? newRow[seccionKey] : '';
-                            const seccion = String(seccionValue || '').trim().toUpperCase();
-                            const jefe = seccionToJefeMap.get(seccion) || 'Sin Jefe Asignado';
-                            newRow.JEFATURA = jefe;
+        // --- Función de ayuda para aplicar estilos a una hoja ---
+        const applyTableStyles = (ws, headerStyle, dataEvenStyle, dataOddStyle, numHeaderRows = 1) => {
+            if (!ws['!ref']) return;
 
-                            // Añadir la columna DIFERENCIA
-                            const sapValue = Number(findValueByKey(newRow, 'SAP') || 0);
-                            const scannerValue = Number(findValueByKey(newRow, 'SCANNER') || 0);
-                            newRow.DIFERENCIA = scannerValue - sapValue;
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const numCols = range.e.c - range.s.c + 1;
 
-                            return newRow;
-                        });
+            // Aplicar estilos de encabezado
+            for (let r = 0; r < numHeaderRows; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                    if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
+                    ws[cellRef].s = headerStyle;
+                }
+            }
 
-                        // Asegurarse de que JEFATURA esté en la primera posición para la vista en Excel (esto es por el .sort)
-                        augmentedData.sort((a, b) => {
-                            const jefaturaA = a.JEFATURA || ''; // Manejar si JEFATURA es null
-                            const jefaturaB = b.JEFATURA || ''; // Manejar si JEFATURA es null
-                            const skuA = String(a.SKU || ''); // Manejar si SKU es null
-                            const skuB = String(b.SKU || ''); // Manejar si SKU es null
-                            return jefaturaA.localeCompare(jefaturaB) || skuA.localeCompare(skuB);
-                        });
+            // Aplicar estilos de fila de datos (colores alternos y bordes)
+            for (let r = numHeaderRows; r <= range.e.r; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
+                    // No crear celda si el valor es null para dejarla vacía
+                    if (ws[cellRef] === undefined || ws[cellRef].v === null) {
+                        continue; // Si el valor es null/undefined, la celda ya está vacía, no aplicar estilos
+                    }
 
+                    // Solo aplicar estilo de fila si no es una celda de diferencia con estilo especial
+                    // We check if the cell already has one of our custom styles (diffOk, diffNegative, diffPositive)
+                    const hasCustomDiffStyle = ws[cellRef].s && (ws[cellRef].s === styles.diffOk || ws[cellRef].s === styles.diffNegative || ws[cellRef].s === styles.diffPositive);
 
-                        // --- Paso 3: Crear el libro de Excel y definir estilos ---
-                        const wb = XLSX.utils.book_new();
-                        const commonBorderStyle = { style: "thin", color: { rgb: "C0C0C0" } }; // Borde gris claro
-
-                        const styles = {
-                            mainHeader: {
-                                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
-                                fill: { fgColor: { rgb: "333333" } }, // Fondo gris oscuro
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            analysisHeader: {
-                                font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-                                fill: { fgColor: { rgb: "0056b3" } }, // Fondo azul
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            dataRowEven: {
-                                fill: { fgColor: { rgb: "F0F0F0" } }, // Gris claro para filas pares
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            dataRowOdd: {
-                                fill: { fgColor: { rgb: "FFFFFF" } }, // Blanco para filas impares
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            dashTitle: { font: { sz: 18, bold: true, color: { rgb: "E6007E" } } },
-                            dashSubtitle: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } } },
-                            dashHeader: { font: { sz: 14, bold: true, color: { rgb: "000000" } } },
-                            metricLabel: { font: { bold: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "right" } },
-                            metricValue: { font: { sz: 12, bold: true }, alignment: { horizontal: "left" } },
-                            metricPositive: { font: { sz: 12, bold: true, color: { rgb: "28a745" } }, alignment: { horizontal: "left" } },
-                            metricNegative: { font: { sz: 12, bold: true, color: { rgb: "dc3545" } }, alignment: { horizontal: "left" } },
-
-                            // Nuevos estilos para la columna DIFERENCIA en "Reporte por Jefatura"
-                            diffOk: { // Verde para 0
-                                font: { bold: true, color: { rgb: "28a745" } }, // Color verde
-                                fill: { fgColor: { rgb: "D4EDDA" } }, // Fondo verde claro
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            diffNegative: { // Rojo para faltantes
-                                font: { bold: true, color: { rgb: "DC3545" } }, // Color rojo
-                                fill: { fgColor: { rgb: "F8D7DA" } }, // Fondo rojo claro
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            diffPositive: { // Amarillo para excedentes
-                                font: { bold: true, color: { rgb: "856404" } }, // Color amarillo oscuro (para contraste)
-                                fill: { fgColor: { rgb: "FFF3CD" } }, // Fondo amarillo claro
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: { top: commonBorderStyle, bottom: commonBorderStyle, left: commonBorderStyle, right: commonBorderStyle }
-                            },
-                            dashDate: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } } // Style for the date
-                        };
-
-                        // --- Función de ayuda para aplicar estilos a una hoja ---
-                        const applyTableStyles = (ws, headerStyle, dataEvenStyle, dataOddStyle, numHeaderRows = 1) => {
-                            if (!ws['!ref']) return;
-
-                            const range = XLSX.utils.decode_range(ws['!ref']);
-                            const numCols = range.e.c - range.s.c + 1;
-
-                            // Aplicar estilos de encabezado
-                            for (let r = 0; r < numHeaderRows; r++) {
-                                for (let c = 0; c < numCols; c++) {
-                                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
-                                    if (!ws[cellRef]) ws[cellRef] = { v: '', t: 's' };
-                                    ws[cellRef].s = headerStyle;
-                                }
-                            }
-
-                            // Aplicar estilos de fila de datos (colores alternos y bordes)
-                            for (let r = numHeaderRows; r <= range.e.r; r++) {
-                                for (let c = 0; c < numCols; c++) {
-                                    const cellRef = XLSX.utils.encode_cell({ c: c, r: r });
-                                    // No crear celda si el valor es null para dejarla vacía
-                                    if (ws[cellRef] === undefined || ws[cellRef].v === null) {
-                                        continue; // Si el valor es null/undefined, la celda ya está vacía, no aplicar estilos
-                                    }
-
-                                    // Solo aplicar estilo de fila si no es una celda de diferencia con estilo especial
-                                    // We check if the cell already has one of our custom styles (diffOk, diffNegative, diffPositive)
-                                    const hasCustomDiffStyle = ws[cellRef].s && (ws[cellRef].s === styles.diffOk || ws[cellRef].s === styles.diffNegative || ws[cellRef].s === styles.diffPositive);
-
-                                    if (!ws[cellRef].s || (ws[cellRef].s !== headerStyle && !hasCustomDiffStyle)) {
-                                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
-                                    } else if (!ws[cellRef].s && !hasCustomDiffStyle) { // Fallback if for some reason no style is present
-                                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
-                                    }
-                                }
-                            }
-
-                            // Autoajustar ancho de columnas
-                            ws['!cols'] = [];
-                            for (let C = 0; C < numCols; ++C) {
-                                let max_width = 0;
-                                for (let R = 0; R <= range.e.r; ++R) {
-                                    const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
-                                    if (cell && cell.v != null) {
-                                        const cell_text = String(cell.v);
-                                        const lines = cell_text.split(/\r\n|\r|\n/);
-                                        const longest_line = lines.reduce((max, line) => Math.max(max, line.length), 0);
-                                        max_width = Math.max(max_width, longest_line);
-                                    }
-                                }
-                                ws['!cols'][C] = { wch: Math.min(60, Math.max(8, max_width + 2)) };
-                            }
-
-                            // Inmovilizar paneles (primera fila)
-                            ws['!freeze'] = {
-                                xSplit: "0",
-                                ySplit: "1",
-                                topLeftCell: "A2",
-                                activePane: "bottomLeft",
-                                state: "frozen"
-                            };
-                        };
-
-                        // --- Hoja 4: Dashboard (moved to be processed first) ---
-                        const stats = calculateProStatistics(augmentedData);
-
-                        // Accessing manifest.createdAt for the upload date
-                        // Format: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
-                        const uploadDateString = manifest.createdAt;
-                        let formattedUploadDate = 'Fecha no disponible';
-
-                        if (uploadDateString) {
-                            try {
-                                // Parse the string and format it.
-                                // The provided string format is quite specific.
-                                // It's safer to attempt parsing and then formatting.
-                                // Example: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
-                                // Let's try a robust way to parse it, handling potential variations.
-                                // For a specific "DD de MMMM de YYYY, HH:mm:ss a.m./p.m. UTC-X" format, direct parsing might be tricky.
-                                // A more universal approach is to extract components or rely on robust Date parsing.
-                                // Given the format "16 de julio de 2025, 4:48:32 p.m. UTC-6",
-                                // we'll try to create a Date object and then format it to a readable string.
-
-                                // For simplicity, if the string format is always consistent and recognized by Date.parse,
-                                // we can do this:
-                                const dateParts = uploadDateString.match(/(\d+) de (.+) de (\d{4}), (\d+):(\d+):(\d+) (a\.m\.|p\.m\.) UTC([+-]\d+)/i);
-                                if (dateParts) {
-                                    const day = parseInt(dateParts[1]);
-                                    const monthName = dateParts[2].toLowerCase();
-                                    const year = parseInt(dateParts[3]);
-                                    let hour = parseInt(dateParts[4]);
-                                    const minute = parseInt(dateParts[5]);
-                                    const second = parseInt(dateParts[6]);
-                                    const ampm = dateParts[7];
-                                    const utcOffset = dateParts[8]; // e.g., -6
-
-                                    const monthNames = {
-                                        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
-                                        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-                                    };
-                                    const month = monthNames[monthName];
-
-                                    if (ampm === 'p.m.' && hour !== 12) {
-                                        hour += 12;
-                                    } else if (ampm === 'a.m.' && hour === 12) {
-                                        hour = 0; // 12 AM is 00:00
-                                    }
-
-                                    // Construct a date string that `new Date()` can parse reliably, e.g., "YYYY-MM-DDTHH:mm:ss"
-                                    // Adjust hour for UTC offset if needed, but for display, local time is fine.
-                                    // For reliable UTC conversion, you might need a library or more complex logic.
-                                    // For now, let's form a date string that new Date() can mostly handle.
-                                    const dateObj = new Date(year, month, day, hour, minute, second);
-                                    // Add the UTC offset (e.g. for UTC-6, add 6 hours to get to UTC)
-                                    // This is if you want to store/display in UTC. If you want the local time, Date object handles it.
-                                    // dateObj.setHours(dateObj.getHours() - parseInt(utcOffset)); // If you want to convert to UTC from given local time
-
-                                    formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                        hour12: true // To show AM/PM
-                                    });
-
-                                } else {
-                                    // Fallback if the specific regex doesn't match, try direct Date parsing
-                                    const dateObj = new Date(uploadDateString);
-                                    if (!isNaN(dateObj)) { // Check if date is valid
-                                        formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                            second: '2-digit',
-                                            hour12: true // To show AM/PM
-                                        });
-                                    }
-                                }
-                            } catch (error) {
-                                console.warn("Could not parse upload date string:", uploadDateString, error);
-                                formattedUploadDate = 'Fecha no disponible (Error al procesar)';
-                            }
-                        }
-
-
-                        let dashboardData = [
-                            [{ v: "⭐️ Dashboard de Manifiesto", s: styles.dashTitle }],
-                            [{ v: `Archivo: ${manifestoId}`, s: styles.dashSubtitle }],
-                            [{ v: `Fecha de Carga: ${formattedUploadDate}`, s: styles.dashDate }], // Added upload date
-                            [], // Empty row for spacing
-                            [{ v: "📊 MÉTRICAS GENERALES", s: styles.dashHeader }],
-                            [{ v: "📥 Total Piezas (SAP):", s: styles.metricLabel }, { v: stats.totalSAP, s: styles.metricValue, z: '#,##0' }],
-                            [{ v: "✅ Total Piezas Escaneadas:", s: styles.metricLabel }, { v: stats.totalSCAN, s: styles.metricValue, z: '#,##0' }],
-                            [{ v: "⚠️ Diferencia Total:", s: styles.metricLabel }, { v: stats.totalSCAN - stats.totalSAP, s: (stats.totalSCAN - stats.totalSAP < 0 ? styles.metricNegative : styles.metricPositive), z: '#,##0' }],
-                            [{ v: "🎯 Progreso General:", s: styles.metricLabel }, { v: stats.avance / 100, s: styles.metricPositive, z: '0.00%' }],
-                            [], // Empty row for spacing
-                            [{ v: "🚨 PUNTOS CRÍTICOS (FALTANTES)", s: styles.dashHeader }],
-                            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
-                            ...stats.topContenedoresFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
-                            [], // Empty row for spacing
-                            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
-                            ...stats.topSeccionesFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
-                            [], // Empty row for spacing
-                            [{ v: "📈 PUNTOS DE OPORTUNIDAD (EXCEDENTES)", s: styles.dashHeader }],
-                            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
-                            ...stats.topContenedoresExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
-                            [], // Empty row for spacing
-                            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
-                            ...stats.topSeccionesExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
-                        ];
-                        const wsDash = XLSX.utils.aoa_to_sheet(dashboardData);
-                        wsDash['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }];
-                        // Update merges to account for the new date row and shifted content
-                        const baseRowShift = 1; // Due to adding one extra line (Fecha de Carga)
-                        wsDash['!merges'] = [
-                            { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
-                            { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
-                            { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } }, // Merge for the date row
-                            { s: { r: 3 + baseRowShift, c: 0 }, e: { r: 3 + baseRowShift, c: 2 } }, // Shifted 'MÉTRICAS GENERALES'
-                            { s: { r: 9 + baseRowShift, c: 0 }, e: { r: 9 + baseRowShift, c: 2 } }, // Shifted 'PUNTOS CRÍTICOS'
-                            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 2 } }, // Shifted 'Secciones:' header
-                            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 2 } } // Shifted 'PUNTOS DE OPORTUNIDAD'
-                        ];
-
-                        XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard"); // Add dashboard first
-
-                        // --- Hoja 1: Reporte por Jefatura ---
-                        const wsMain = XLSX.utils.json_to_sheet(augmentedData);
-                        if (augmentedData.length > 0) {
-                            // Asegúrate de que los encabezados se generen correctamente incluyendo 'DIFERENCIA'
-                            const headers = Object.keys(augmentedData[0]);
-                            XLSX.utils.sheet_add_aoa(wsMain, [headers], { origin: "A1" });
-
-                            const headerKeysMain = headers; // Ya tenemos los encabezados en el orden correcto
-                            const headerKeysUpper = headerKeysMain.map(key => key.toUpperCase());
-
-                            const diffColIndex = headerKeysUpper.indexOf('DIFERENCIA'); // Obtener el índice de la columna DIFERENCIA
-
-                            for (let r = 1; r <= augmentedData.length; r++) { // Empezar desde la fila 1 (después del encabezado)
-                                // Aplicar formato para números con comas (SAP, SCANNER)
-                                numericWithCommaFormatKeys.forEach(colName => {
-                                    if (colName === 'DIFERENCIA') return; // Se manejará aparte
-                                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
-                                    if (colIndex !== -1) {
-                                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
-                                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') {
-                                            wsMain[cellRef].z = '#,##0'; // Formato con separador de miles
-                                        }
-                                    }
-                                });
-
-                                // Aplicar formato para números sin comas (MANIFIESTO, SKU, EUROPEO, ENTREGADO_A, DAÑO_CANTIDAD)
-                                numericNoCommaFormatKeys.forEach(colName => {
-                                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
-                                    if (colIndex !== -1) {
-                                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
-                                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') { // Asegurarse de que es tipo número
-                                            wsMain[cellRef].z = '0'; // Formato entero sin separador de miles
-                                        }
-                                    }
-                                });
-
-                                // Asegurar que las columnas de texto permanezcan como tal y sin formato numérico
-                                textFormatKeys.forEach(colName => {
-                                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
-                                    if (colIndex !== -1) {
-                                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
-                                        if (wsMain[cellRef]) { // Solo si la celda existe (no es null/undefined)
-                                            wsMain[cellRef].t = 's'; // Forzar tipo string
-                                            delete wsMain[cellRef].z; // Eliminar cualquier formato numérico
-                                        }
-                                    }
-                                });
-
-                                // Lógica de color y texto para la columna DIFERENCIA
-                                if (diffColIndex !== -1) {
-                                    const cellRef = XLSX.utils.encode_cell({ c: diffColIndex, r: r });
-                                    const cell = wsMain[cellRef];
-
-                                    if (cell && cell.t === 'n') { // Si es una celda numérica
-                                        const diffValue = cell.v;
-                                        if (diffValue === 0) {
-                                            cell.s = styles.diffOk;
-                                            cell.v = "OK"; // Cambiar valor a "OK"
-                                            cell.t = 's'; // Cambiar tipo a string
-                                            delete cell.z; // Eliminar formato numérico
-                                        } else if (diffValue < 0) {
-                                            cell.s = styles.diffNegative;
-                                            cell.v = `FALTANTE: ${Math.abs(diffValue)}`; // Cambiar valor a "FALTANTE: X"
-                                            cell.t = 's'; // Cambiar tipo a string
-                                            delete cell.z; // Eliminar formato numérico
-                                        } else { // diffValue > 0
-                                            cell.s = styles.diffPositive;
-                                            cell.v = `EXCEDENTE: ${diffValue}`; // Cambiar valor a "EXCEDENTE: X"
-                                            cell.t = 's'; // Cambiar tipo a string
-                                            delete cell.z; // Eliminar formato numérico
-                                        }
-                                    } else if (cell && (cell.v === null || cell.v === undefined || cell.v === '')) {
-                                        // If cell is empty or null, keep it without value and without specific diff style
-                                        // applyTableStyles will handle borders and alternating row color
-                                        continue;
-                                    }
-                                }
-                            }
-
-                            applyTableStyles(wsMain, styles.mainHeader, styles.dataRowEven, styles.dataRowOdd);
-                            wsMain['!autofilter'] = { ref: wsMain['!ref'] };
-                        }
-                        XLSX.utils.book_append_sheet(wb, wsMain, "Reporte por Jefatura");
-
-                        // --- Análisis por Contenedor y Sección ---
-                        const analysisHeadersCont = ["Contenedor", "Jefatura(s)", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
-                        const analysisHeadersSect = ["Sección", "Jefatura", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
-                        const containerAnalysis = {}, sectionAnalysis = {};
-                        augmentedData.forEach(row => {
-                            const findKey = (obj, key) => Object.keys(obj).find(k => k.toUpperCase() === key.toUpperCase());
-                            const cont = row[findKey(row, 'CONTENEDOR')];
-                            const sect = row[findKey(row, 'SECCION')] || "N/A";
-                            const sap = Number(row[findKey(row, 'SAP')] || 0);
-                            const scanner = Number(row[findKey(row, 'SCANNER')] || 0);
-                            const jefe = row.JEFATURA;
-                            if (!containerAnalysis[cont]) containerAnalysis[cont] = { SAP: 0, SCANNER: 0, Jefes: new Set() };
-                            containerAnalysis[cont].SAP += sap;
-                            containerAnalysis[cont].SCANNER += scanner;
-                            if (jefe !== 'Sin Jefe Asignado') containerAnalysis[cont].Jefes.add(jefe);
-                            if (!sectionAnalysis[sect]) sectionAnalysis[sect] = { SAP: 0, SCANNER: 0 };
-                            sectionAnalysis[sect].SAP += sap;
-                            sectionAnalysis[sect].SCANNER += scanner;
-                        });
-
-                        // --- Hoja 2: Análisis por Contenedor ---
-                        const wsContData = Object.entries(containerAnalysis).map(([key, val]) => ({ "Contenedor": key, "Jefatura(s)": [...val.Jefes].join(', '), "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
-                        const wsCont = XLSX.utils.json_to_sheet(wsContData, { header: analysisHeadersCont });
-                        const numColsCont = analysisHeadersCont.length;
-                        for (let r = 1; r <= wsContData.length; r++) {
-                            // Formatear columnas numéricas con comas (Piezas SAP, Piezas Escaneadas, Diferencia)
-                            const numericColsWithCommas_analysis = [2, 3, 4]; // Columnas Piezas SAP, Escaneadas, Diferencia
-                            numericColsWithCommas_analysis.forEach(colIndex => {
-                                if (numColsCont > colIndex) {
-                                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
-                                    if (wsCont[cellRef] && wsCont[cellRef].t === 'n') {
-                                        wsCont[cellRef].z = '#,##0';
-                                    }
-                                }
-                            });
-                            // Asegurar que 'Contenedor' sea texto
-                            const contColIndex = analysisHeadersCont.indexOf('Contenedor');
-                            if (contColIndex !== -1) {
-                                const cellRef = XLSX.utils.encode_cell({ c: contColIndex, r: r });
-                                if (wsCont[cellRef]) {
-                                    wsCont[cellRef].t = 's'; // Asegurar que sea texto
-                                    delete wsCont[cellRef].z; // Eliminar cualquier formato numérico
-                                }
-                            }
-                        }
-                        applyTableStyles(wsCont, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
-                        wsCont['!autofilter'] = { ref: wsCont['!ref'] };
-                        XLSX.utils.book_append_sheet(wb, wsCont, "Análisis por Cont.");
-
-                        // --- Hoja 3: Análisis por Sección ---
-                        const wsSectData = Object.entries(sectionAnalysis).map(([key, val]) => ({ "Sección": key, "Jefatura": seccionToJefeMap.get(key.toUpperCase()) || "Sin Jefe Asignado", "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
-                        const wsSect = XLSX.utils.json_to_sheet(wsSectData, { header: analysisHeadersSect });
-                        const numColsSect = analysisHeadersSect.length;
-                        for (let r = 1; r <= wsSectData.length; r++) {
-                            // Formatear columnas numéricas con comas
-                            const numericColsWithCommas_analysis = [2, 3, 4]; // Piezas SAP, Piezas Escaneadas, Diferencia
-                            numericColsWithCommas_analysis.forEach(colIndex => {
-                                if (numColsSect > colIndex) {
-                                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
-                                    if (wsSect[cellRef] && wsSect[cellRef].t === 'n') {
-                                        wsSect[cellRef].z = '#,##0';
-                                    }
-                                }
-                            });
-                        }
-                        applyTableStyles(wsSect, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
-                        wsSect['!autofilter'] = { ref: wsSect['!ref'] };
-                        XLSX.utils.book_append_sheet(wb, wsSect, "Análisis por Secc.");
-
-                        // --- Descargar el libro ---
-                        XLSX.writeFile(wb, `Reporte_Completo_${manifestoId}.xlsx`);
-                        Swal.close();
-
-                    } catch (error) {
-                        console.error("Error al generar reporte:", error);
-                        Swal.fire('Error Inesperado', error.message, 'error');
+                    if (!ws[cellRef].s || (ws[cellRef].s !== headerStyle && !hasCustomDiffStyle)) {
+                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
+                    } else if (!ws[cellRef].s && !hasCustomDiffStyle) { // Fallback if for some reason no style is present
+                        ws[cellRef].s = (r % 2 === 0) ? dataEvenStyle : dataOddStyle;
                     }
                 }
+            }
+
+            // Autoajustar ancho de columnas
+            ws['!cols'] = [];
+            for (let C = 0; C < numCols; ++C) {
+                let max_width = 0;
+                for (let R = 0; R <= range.e.r; ++R) {
+                    const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
+                    if (cell && cell.v != null) {
+                        const cell_text = String(cell.v);
+                        const lines = cell_text.split(/\r\n|\r|\n/);
+                        const longest_line = lines.reduce((max, line) => Math.max(max, line.length), 0);
+                        max_width = Math.max(max_width, longest_line);
+                    }
+                }
+                ws['!cols'][C] = { wch: Math.min(60, Math.max(8, max_width + 2)) };
+            }
+
+            // Inmovilizar paneles (primera fila)
+            ws['!freeze'] = {
+                xSplit: "0",
+                ySplit: "1",
+                topLeftCell: "A2",
+                activePane: "bottomLeft",
+                state: "frozen"
+            };
+        };
+
+        // --- Hoja 4: Dashboard (moved to be processed first) ---
+        const stats = calculateProStatistics(augmentedData);
+
+        // Accessing manifest.createdAt for the upload date
+        // Format: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
+        const uploadDateString = manifest.createdAt;
+        let formattedUploadDate = 'Fecha no disponible';
+
+        if (uploadDateString) {
+            try {
+                // Parse the string and format it.
+                // The provided string format is quite specific.
+                // It's safer to attempt parsing and then formatting.
+                // Example: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
+                // Let's try a robust way to parse it, handling potential variations.
+                // For a specific "DD de MMMM de YYYY, HH:mm:ss a.m./p.m. UTC-X" format, direct parsing might be tricky.
+                // A more universal approach is to extract components or rely on robust Date parsing.
+                // Given the format "16 de julio de 2025, 4:48:32 p.m. UTC-6",
+                // we'll try to create a Date object and then format it to a readable string.
+
+                // For simplicity, if the string format is always consistent and recognized by Date.parse,
+                // we can do this:
+                const dateParts = uploadDateString.match(/(\d+) de (.+) de (\d{4}), (\d+):(\d+):(\d+) (a\.m\.|p\.m\.) UTC([+-]\d+)/i);
+                if (dateParts) {
+                    const day = parseInt(dateParts[1]);
+                    const monthName = dateParts[2].toLowerCase();
+                    const year = parseInt(dateParts[3]);
+                    let hour = parseInt(dateParts[4]);
+                    const minute = parseInt(dateParts[5]);
+                    const second = parseInt(dateParts[6]);
+                    const ampm = dateParts[7];
+                    const utcOffset = dateParts[8]; // e.g., -6
+
+                    const monthNames = {
+                        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+                        'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+                    };
+                    const month = monthNames[monthName];
+
+                    if (ampm === 'p.m.' && hour !== 12) {
+                        hour += 12;
+                    } else if (ampm === 'a.m.' && hour === 12) {
+                        hour = 0; // 12 AM is 00:00
+                    }
+
+                    // Construct a date string that `new Date()` can parse reliably, e.g., "YYYY-MM-DDTHH:mm:ss"
+                    // Adjust hour for UTC offset if needed, but for display, local time is fine.
+                    // For reliable UTC conversion, you might need a library or more complex logic.
+                    // For now, let's form a date string that new Date() can mostly handle.
+                    const dateObj = new Date(year, month, day, hour, minute, second);
+                    // Add the UTC offset (e.g. for UTC-6, add 6 hours to get to UTC)
+                    // This is if you want to store/display in UTC. If you want the local time, Date object handles it.
+                    // dateObj.setHours(dateObj.getHours() - parseInt(utcOffset)); // If you want to convert to UTC from given local time
+
+                    formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true // To show AM/PM
+                    });
+
+                } else {
+                    // Fallback if the specific regex doesn't match, try direct Date parsing
+                    const dateObj = new Date(uploadDateString);
+                    if (!isNaN(dateObj)) { // Check if date is valid
+                        formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true // To show AM/PM
+                        });
+                    }
+                }
+            } catch (error) {
+                console.warn("Could not parse upload date string:", uploadDateString, error);
+                formattedUploadDate = 'Fecha no disponible (Error al procesar)';
+            }
+        }
+
+
+        let dashboardData = [
+            [{ v: "⭐️ Dashboard de Manifiesto", s: styles.dashTitle }],
+            [{ v: `Archivo: ${manifestoId}`, s: styles.dashSubtitle }],
+            [{ v: `Fecha de Carga: ${formattedUploadDate}`, s: styles.dashDate }], // Added upload date
+            [], // Empty row for spacing
+            [{ v: "📊 MÉTRICAS GENERALES", s: styles.dashHeader }],
+            [{ v: "📥 Total Piezas (SAP):", s: styles.metricLabel }, { v: stats.totalSAP, s: styles.metricValue, z: '#,##0' }],
+            [{ v: "✅ Total Piezas Escaneadas:", s: styles.metricLabel }, { v: stats.totalSCAN, s: styles.metricValue, z: '#,##0' }],
+            [{ v: "⚠️ Diferencia Total:", s: styles.metricLabel }, { v: stats.totalSCAN - stats.totalSAP, s: (stats.totalSCAN - stats.totalSAP < 0 ? styles.metricNegative : styles.metricPositive), z: '#,##0' }],
+            [{ v: "🎯 Progreso General:", s: styles.metricLabel }, { v: stats.avance / 100, s: styles.metricPositive, z: '0.00%' }],
+            [], // Empty row for spacing
+            [{ v: "🚨 PUNTOS CRÍTICOS (FALTANTES)", s: styles.dashHeader }],
+            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topContenedoresFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
+            [], // Empty row for spacing
+            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topSeccionesFaltantes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricNegative, t: 'n', z: '#,##0' }]),
+            [], // Empty row for spacing
+            [{ v: "📈 PUNTOS DE OPORTUNIDAD (EXCEDENTES)", s: styles.dashHeader }],
+            [{ v: "📦 Contenedores:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topContenedoresExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
+            [], // Empty row for spacing
+            [{ v: "📂 Secciones:", s: styles.metricLabel }, { v: "Piezas", s: styles.metricLabel }],
+            ...stats.topSeccionesExcedentes.map(item => [null, { v: `${item[0]}:`, s: { alignment: { horizontal: "right" } } }, { v: item[1], s: styles.metricPositive, t: 'n', z: '#,##0' }]),
+        ];
+        const wsDash = XLSX.utils.aoa_to_sheet(dashboardData);
+        wsDash['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }];
+        // Update merges to account for the new date row and shifted content
+        const baseRowShift = 1; // Due to adding one extra line (Fecha de Carga)
+        wsDash['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } }, // Merge for the date row
+            { s: { r: 3 + baseRowShift, c: 0 }, e: { r: 3 + baseRowShift, c: 2 } }, // Shifted 'MÉTRICAS GENERALES'
+            { s: { r: 9 + baseRowShift, c: 0 }, e: { r: 9 + baseRowShift, c: 2 } }, // Shifted 'PUNTOS CRÍTICOS'
+            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 2 } }, // Shifted 'Secciones:' header
+            { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 2 } } // Shifted 'PUNTOS DE OPORTUNIDAD'
+        ];
+
+        XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard"); // Add dashboard first
+
+        // --- Hoja 1: Reporte por Jefatura ---
+        const wsMain = XLSX.utils.json_to_sheet(augmentedData);
+        if (augmentedData.length > 0) {
+            // Asegúrate de que los encabezados se generen correctamente incluyendo 'DIFERENCIA'
+            const headers = Object.keys(augmentedData[0]);
+            XLSX.utils.sheet_add_aoa(wsMain, [headers], { origin: "A1" });
+
+            const headerKeysMain = headers; // Ya tenemos los encabezados en el orden correcto
+            const headerKeysUpper = headerKeysMain.map(key => key.toUpperCase());
+
+            const diffColIndex = headerKeysUpper.indexOf('DIFERENCIA'); // Obtener el índice de la columna DIFERENCIA
+
+            for (let r = 1; r <= augmentedData.length; r++) { // Empezar desde la fila 1 (después del encabezado)
+                // Aplicar formato para números con comas (SAP, SCANNER)
+                numericWithCommaFormatKeys.forEach(colName => {
+                    if (colName === 'DIFERENCIA') return; // Se manejará aparte
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') {
+                            wsMain[cellRef].z = '#,##0'; // Formato con separador de miles
+                        }
+                    }
+                });
+
+                // Aplicar formato para números sin comas (MANIFIESTO, SKU, EUROPEO, ENTREGADO_A, DAÑO_CANTIDAD)
+                numericNoCommaFormatKeys.forEach(colName => {
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef] && wsMain[cellRef].t === 'n') { // Asegurarse de que es tipo número
+                            wsMain[cellRef].z = '0'; // Formato entero sin separador de miles
+                        }
+                    }
+                });
+
+                // Asegurar que las columnas de texto permanezcan como tal y sin formato numérico
+                textFormatKeys.forEach(colName => {
+                    const colIndex = headerKeysUpper.indexOf(colName.toUpperCase());
+                    if (colIndex !== -1) {
+                        const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                        if (wsMain[cellRef]) { // Solo si la celda existe (no es null/undefined)
+                            wsMain[cellRef].t = 's'; // Forzar tipo string
+                            delete wsMain[cellRef].z; // Eliminar cualquier formato numérico
+                        }
+                    }
+                });
+
+                // Lógica de color y texto para la columna DIFERENCIA
+                if (diffColIndex !== -1) {
+                    const cellRef = XLSX.utils.encode_cell({ c: diffColIndex, r: r });
+                    const cell = wsMain[cellRef];
+
+                    if (cell && cell.t === 'n') { // Si es una celda numérica
+                        const diffValue = cell.v;
+                        if (diffValue === 0) {
+                            cell.s = styles.diffOk;
+                            cell.v = "OK"; // Cambiar valor a "OK"
+                            cell.t = 's'; // Cambiar tipo a string
+                            delete cell.z; // Eliminar formato numérico
+                        } else if (diffValue < 0) {
+                            cell.s = styles.diffNegative;
+                            cell.v = `FALTANTE: ${Math.abs(diffValue)}`; // Cambiar valor a "FALTANTE: X"
+                            cell.t = 's'; // Cambiar tipo a string
+                            delete cell.z; // Eliminar formato numérico
+                        } else { // diffValue > 0
+                            cell.s = styles.diffPositive;
+                            cell.v = `EXCEDENTE: ${diffValue}`; // Cambiar valor a "EXCEDENTE: X"
+                            cell.t = 's'; // Cambiar tipo a string
+                            delete cell.z; // Eliminar formato numérico
+                        }
+                    } else if (cell && (cell.v === null || cell.v === undefined || cell.v === '')) {
+                        // If cell is empty or null, keep it without value and without specific diff style
+                        // applyTableStyles will handle borders and alternating row color
+                        continue;
+                    }
+                }
+            }
+
+            applyTableStyles(wsMain, styles.mainHeader, styles.dataRowEven, styles.dataRowOdd);
+            wsMain['!autofilter'] = { ref: wsMain['!ref'] };
+        }
+        XLSX.utils.book_append_sheet(wb, wsMain, "Reporte por Jefatura");
+
+        // --- Análisis por Contenedor y Sección ---
+        const analysisHeadersCont = ["Contenedor", "Jefatura(s)", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
+        const analysisHeadersSect = ["Sección", "Jefatura", "Piezas SAP", "Piezas Escaneadas", "Diferencia"];
+        const containerAnalysis = {}, sectionAnalysis = {};
+        augmentedData.forEach(row => {
+            const findKey = (obj, key) => Object.keys(obj).find(k => k.toUpperCase() === key.toUpperCase());
+            const cont = row[findKey(row, 'CONTENEDOR')];
+            const sect = row[findKey(row, 'SECCION')] || "N/A";
+            const sap = Number(row[findKey(row, 'SAP')] || 0);
+            const scanner = Number(row[findKey(row, 'SCANNER')] || 0);
+            const jefe = row.JEFATURA;
+            if (!containerAnalysis[cont]) containerAnalysis[cont] = { SAP: 0, SCANNER: 0, Jefes: new Set() };
+            containerAnalysis[cont].SAP += sap;
+            containerAnalysis[cont].SCANNER += scanner;
+            if (jefe !== 'Sin Jefe Asignado') containerAnalysis[cont].Jefes.add(jefe);
+            if (!sectionAnalysis[sect]) sectionAnalysis[sect] = { SAP: 0, SCANNER: 0 };
+            sectionAnalysis[sect].SAP += sap;
+            sectionAnalysis[sect].SCANNER += scanner;
+        });
+
+        // --- Hoja 2: Análisis por Contenedor ---
+        const wsContData = Object.entries(containerAnalysis).map(([key, val]) => ({ "Contenedor": key, "Jefatura(s)": [...val.Jefes].join(', '), "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
+        const wsCont = XLSX.utils.json_to_sheet(wsContData, { header: analysisHeadersCont });
+        const numColsCont = analysisHeadersCont.length;
+        for (let r = 1; r <= wsContData.length; r++) {
+            // Formatear columnas numéricas con comas (Piezas SAP, Piezas Escaneadas, Diferencia)
+            const numericColsWithCommas_analysis = [2, 3, 4]; // Columnas Piezas SAP, Escaneadas, Diferencia
+            numericColsWithCommas_analysis.forEach(colIndex => {
+                if (numColsCont > colIndex) {
+                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                    if (wsCont[cellRef] && wsCont[cellRef].t === 'n') {
+                        wsCont[cellRef].z = '#,##0';
+                    }
+                }
+            });
+            // Asegurar que 'Contenedor' sea texto
+            const contColIndex = analysisHeadersCont.indexOf('Contenedor');
+            if (contColIndex !== -1) {
+                const cellRef = XLSX.utils.encode_cell({ c: contColIndex, r: r });
+                if (wsCont[cellRef]) {
+                    wsCont[cellRef].t = 's'; // Asegurar que sea texto
+                    delete wsCont[cellRef].z; // Eliminar cualquier formato numérico
+                }
+            }
+        }
+        applyTableStyles(wsCont, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
+        wsCont['!autofilter'] = { ref: wsCont['!ref'] };
+        XLSX.utils.book_append_sheet(wb, wsCont, "Análisis por Cont.");
+
+        // --- Hoja 3: Análisis por Sección ---
+        const wsSectData = Object.entries(sectionAnalysis).map(([key, val]) => ({ "Sección": key, "Jefatura": seccionToJefeMap.get(key.toUpperCase()) || "Sin Jefe Asignado", "Piezas SAP": val.SAP, "Piezas Escaneadas": val.SCANNER, "Diferencia": val.SCANNER - val.SAP }));
+        const wsSect = XLSX.utils.json_to_sheet(wsSectData, { header: analysisHeadersSect });
+        const numColsSect = analysisHeadersSect.length;
+        for (let r = 1; r <= wsSectData.length; r++) {
+            // Formatear columnas numéricas con comas
+            const numericColsWithCommas_analysis = [2, 3, 4]; // Piezas SAP, Piezas Escaneadas, Diferencia
+            numericColsWithCommas_analysis.forEach(colIndex => {
+                if (numColsSect > colIndex) {
+                    const cellRef = XLSX.utils.encode_cell({ c: colIndex, r: r });
+                    if (wsSect[cellRef] && wsSect[cellRef].t === 'n') {
+                        wsSect[cellRef].z = '#,##0';
+                    }
+                }
+            });
+        }
+        applyTableStyles(wsSect, styles.analysisHeader, styles.dataRowEven, styles.dataRowOdd);
+        wsSect['!autofilter'] = { ref: wsSect['!ref'] };
+        XLSX.utils.book_append_sheet(wb, wsSect, "Análisis por Secc.");
+
+        // --- Descargar el libro ---
+        XLSX.writeFile(wb, `Reporte_Completo_${manifestoId}.xlsx`);
+        Swal.close();
+
+    } catch (error) {
+        console.error("Error al generar reporte:", error);
+        Swal.fire('Error Inesperado', error.message, 'error');
+    }
+}
                 function formatFecha(d) {
                     const dd = String(d.getDate()).padStart(2, "0");
                     const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -3902,131 +3981,65 @@ RESUMEN DE CIFRAS
                     realOpenFileManifiesto(currentFileName, cont);
                 }
 
-                async function realOpenFileManifiesto(fileName, cont) {
-                    Swal.fire({
-                        title: 'Cargando y reconstruyendo...',
-                        allowOutsideClick: false,
-                        didOpen: () => Swal.showLoading()
-                    });
-                    try {
-                        if (!excelDataGlobal[fileName]?.data) {
-                            let store = currentUserStore;
-                            if (currentUserStore === 'ALL') {
-                                const manifestDoc = await db.collection('manifiestos').doc(fileName).get();
-                                store = manifestDoc.data()?.store;
-                            }
-                            if (!store) throw new Error(`No se pudo determinar la tienda para el archivo ${fileName}`);
-                            const url = await storage.ref(`Manifiestos/${store}/${fileName}`).getDownloadURL();
-                            const buffer = await (await fetch(url)).arrayBuffer();
-                            const wb = XLSX.read(buffer, {
-                                type: "array",
-                                cellDates: true
-                            });
-                            excelDataGlobal[fileName] = {
-                                data: XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
-                            };
-                        }
+                // ✅ CORRECCIÓN PARA LA PANTALLA DE ESCANEO
+// Reemplaza tu función `realOpenFileManifiesto` con esta versión simplificada y correcta.
+async function realOpenFileManifiesto(fileName, cont) {
+    Swal.fire({
+        title: 'Abriendo contenedor...',
+        html: `Sincronizando todos los escaneos para <strong>${fileName}</strong>.`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+    
+    try {
+        // 1. Llama a la única función motor para obtener los datos COMPLETOS y CORRECTOS del manifiesto.
+        const manifest = await reconstructManifestDataFromFirebase(fileName);
+        const allManifestData = manifest.data;
+        
+        // 2. Simplemente filtra los registros para el contenedor que quieres ver.
+        // ¡Aquí ya vienen incluidos los artículos nuevos y excedentes!
+        currentContainerRecords = allManifestData.filter(r => 
+            String(r.CONTENEDOR || "").trim().toUpperCase() === cont.toUpperCase()
+        );
 
-                        const dataObj = excelDataGlobal[fileName];
-                        const docSnap = await db.collection("manifiestos").doc(fileName).get();
-                        dataObj.closedContainers = docSnap.exists ? (docSnap.data().closedContainers || {}) : {};
-                        dataObj.lastUser = docSnap.exists ? (docSnap.data().lastUser || "Desconocido") : "Desconocido";
+        // 3. Guarda el estado actual
+        currentContenedor = cont;
+        currentFileName = fileName;
 
-                        dataObj.data.forEach(row => {
-                            row.SCANNER = 0;
-                        });
+        // 4. Actualiza la interfaz de usuario con los datos correctos
+        const dataObj = excelDataGlobal[fileName];
+        const isClosed = dataObj.closedContainers?.[cont] || false;
+        
+        document.getElementById("uploadAndSearchSection").style.display = "none";
+        document.getElementById("containerResultsSection").style.display = "block";
+        document.getElementById("scanEntrySection").style.display = "block";
 
-                        const scansSnapshot = await db.collection('manifiestos').doc(fileName).collection('scans').where('container', '==', cont).orderBy('scannedAt').get();
-                        const newItems = new Map();
-                        const deletedSkus = new Set();
-                        scansSnapshot.docs.forEach(doc => {
-                            if (doc.data().type === 'delete') deletedSkus.add(doc.data().sku);
-                        });
+        document.getElementById("selectedFileToWork").textContent = fileName;
+        document.getElementById("lastUserUpdate").textContent = `Último cambio por: ${dataObj.lastUser || 'N/A'}`;
+        document.getElementById("containerHeader").querySelector('span').textContent = `Detalles de ${cont}`;
+        
+        const btnCerrar = document.getElementById("btnCerrarContenedor");
+        btnCerrar.querySelector('span').textContent = isClosed ? 'Reabrir' : 'Cerrar';
+        btnCerrar.querySelector('i.material-icons').textContent = isClosed ? 'lock_open' : 'lock';
+        
+        const inputScan = document.getElementById("inputScanCode");
+        inputScan.disabled = isClosed;
 
-                        scansSnapshot.forEach(doc => {
-                            const scan = doc.data();
-                            if (deletedSkus.has(scan.sku)) return;
-                            let record = dataObj.data.find(r => r.SKU === scan.sku && r.CONTENEDOR === scan.container);
-                            if (record) {
-                                scan.type === 'subtract' ? record.SCANNER-- : record.SCANNER++;
-                                record.LAST_SCANNED_BY = scan.user;
-                                if (scan.scannedAt) record.FECHA_ESCANEO = scan.scannedAt.toDate();
-                            } else if (scan.type === 'add') {
-                                if (newItems.has(scan.sku)) {
-                                    newItems.get(scan.sku).SCANNER++;
-                                } else {
-                                    const ref = dataObj.data[0] || {};
-                                    newItems.set(scan.sku, {
-                                        FECHA: ref.FECHA,
-                                        SECCION: ref.SECCION,
-                                        MANIFIESTO: ref.MANIFIESTO,
-                                        CONTENEDOR: cont,
-                                        DESCRIPCION: "ARTÍCULO NUEVO (RECUPERADO)",
-                                        SKU: scan.sku,
-                                        SAP: 0,
-                                        SCANNER: 1,
-                                        LAST_SCANNED_BY: scan.user,
-                                        FECHA_ESCANEO: scan.scannedAt?.toDate()
-                                    });
-                                }
-                            }
-                        });
+        // 5. Dibuja las tarjetas en la pantalla. AHORA SÍ INCLUIRÁ TODO.
+        mostrarDetallesContenedor(currentContainerRecords, isClosed);
+        
+        inputScan.focus();
+        Swal.close();
 
-                        dataObj.data = dataObj.data.filter(r => !deletedSkus.has(r.SKU));
-                        newItems.forEach(item => dataObj.data.push(item));
-
-                        currentContenedor = cont;
-                        currentFileName = fileName;
-                        currentContainerRecords = dataObj.data.filter(r => String(r.CONTENEDOR || "").trim().toUpperCase() === cont);
-
-                        const uploadAndSearchSection = document.getElementById("uploadAndSearchSection");
-                        if (uploadAndSearchSection) uploadAndSearchSection.style.display = "none";
-
-                        const containerResultsSection = document.getElementById("containerResultsSection");
-                        if (containerResultsSection) containerResultsSection.style.display = "block";
-
-                        const scanEntrySection = document.getElementById("scanEntrySection");
-                        if (scanEntrySection) scanEntrySection.style.display = "block";
-
-                        const isClosed = dataObj.closedContainers?.[cont];
-
-                        const selectedFileToWorkEl = document.getElementById("selectedFileToWork");
-                        const lastUserUpdateEl = document.getElementById("lastUserUpdate");
-                        const btnCerrarContenedor = document.getElementById("btnCerrarContenedor");
-                        const inputScanCode = document.getElementById("inputScanCode");
-                        const containerHeaderEl = document.getElementById("containerHeader");
-
-
-                        if (selectedFileToWorkEl) selectedFileToWorkEl.textContent = fileName;
-                        if (lastUserUpdateEl) lastUserUpdateEl.textContent = `Último cambio por: ${dataObj.lastUser}`;
-
-                        if (btnCerrarContenedor) {
-                            const btnSpan = btnCerrarContenedor.querySelector('span');
-                            if (btnSpan) btnSpan.textContent = isClosed ? 'Reabrir' : 'Cerrar';
-                            const btnIcon = btnCerrarContenedor.querySelector('i.material-icons');
-                            if (btnIcon) btnIcon.textContent = isClosed ? 'lock_open' : 'lock';
-                        }
-
-                        if (inputScanCode) inputScanCode.disabled = !!isClosed;
-
-                        if (containerHeaderEl) {
-                            const headerSpan = containerHeaderEl.querySelector('span');
-                            if (headerSpan) headerSpan.textContent = `Detalles de ${cont}`;
-                        }
-
-                        mostrarDetallesContenedor(currentContainerRecords, isClosed); // <-- Pasa la variable isClosed
-                        if (inputScanCode) inputScanCode.focus();
-                        Swal.close();
-
-                    } catch (error) {
-                        console.error("Error openendo manifiesto:", error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error de Carga',
-                            text: 'No se pudo cargar la información.'
-                        });
-                    }
-                }
+    } catch (error) {
+        console.error("Error abriendo el manifiesto:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Carga',
+            text: `No se pudo cargar la información para el contenedor. ${error.message}`
+        });
+    }
+}
 
                 function showScanSuccessToast(sku, newCount) {
                     Swal.fire({
@@ -4120,102 +4133,149 @@ RESUMEN DE CIFRAS
 
                     await reuploadFileWithScannerChanges(selectedFileToWorkEl.textContent);
                 }
+// --- COMIENZO DE LA FUNCIÓN ACTUALIZADA: handleScanCode ---
+async function handleScanCode(code) {
+    if (!currentEmployeeNumber) {
+        showScanErrorToast('Falta # de Empleado');
+        inputScanCode.value = "";
+        inputScanCode.focus();
+        return;
+    }
+    if (!currentContenedor) {
+        showScanErrorToast('Sin Contenedor');
+        inputScanCode.value = "";
+        inputScanCode.focus();
+        return;
+    }
 
-                async function handleScanCode(code) {
-                    if (!currentEmployeeNumber) return showScanErrorToast('Falta # de Empleado');
-                    if (!currentContenedor) return showScanErrorToast('Sin Contenedor');
-                    const fn = currentFileName;
-                    const dataObj = excelDataGlobal[fn];
-                    if (!dataObj || dataObj.closedContainers?.[currentContenedor]) return showScanErrorToast('Contenedor cerrado');
+    const fn = currentFileName;
+    const dataObj = excelDataGlobal[fn]; // Current manifest data in memory
 
-                    const codeUpper = code.trim().toUpperCase();
-                    let targetRow = null;
+    if (!dataObj || dataObj.closedContainers?.[currentContenedor]) {
+        showScanErrorToast('Contenedor cerrado');
+        inputScanCode.value = "";
+        inputScanCode.focus();
+        return;
+    }
 
-                    // --- INICIO DE LA LÓGICA CORREGIDA ---
+    const codeUpper = code.trim().toUpperCase();
+    let targetRow = null;
 
-                    // 1. Encontrar TODAS las filas que coincidan con el SKU o código europeo en el contenedor actual.
-                    const matchingRows = currentContainerRecords.filter(r =>
-                        String(r.SKU || "").toUpperCase() === codeUpper ||
-                        String(r.EUROPEO || "").toUpperCase() === codeUpper
-                    );
+    // 1. Find ALL rows that match the SKU or European code in the current container (in-memory data)
+    const matchingRows = currentContainerRecords.filter(r =>
+        String(r.SKU || "").toUpperCase() === codeUpper ||
+        String(r.EUROPEO || "").toUpperCase() === codeUpper
+    );
 
-                    if (matchingRows.length > 0) {
-                        // 2. Hay coincidencias. Ahora buscamos de forma inteligente.
-                        // Prioridad 1: Encontrar una fila que aún no esté completa (SCANNER < SAP).
-                        targetRow = matchingRows.find(r => (Number(r.SCANNER) || 0) < (Number(r.SAP) || 0));
+    if (matchingRows.length > 0) {
+        targetRow = matchingRows.find(r => (Number(r.SCANNER) || 0) < (Number(r.SAP) || 0));
+        if (!targetRow) {
+            targetRow = matchingRows[0]; // If all are complete, just increment the first match
+        }
+        targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) + 1;
 
-                        // Prioridad 2: Si todas las filas coincidentes ya están completas (o en exceso),
-                        // asignamos el nuevo escaneo a la primera de ellas para marcarlo como un excedente real.
-                        if (!targetRow) {
-                            targetRow = matchingRows[0];
-                        }
+    } else {
+        // 3. No matching row found. Prompt to add as a new item.
+        const { isConfirmed } = await showAddItemConfirmation(codeUpper);
+        if (!isConfirmed) {
+            inputScanCode.value = "";
+            inputScanCode.focus();
+            return;
+        }
 
-                        // Se encontró una fila (ya sea con faltantes o para registrar un exceso)
-                        targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) + 1;
+        // --- INICIO DE LA LÓGICA CLAVE PARA ARTÍCULOS NUEVOS AL ESCANEAR ---
+        let sectionForNewItem = "ARTICULO NUEVO"; // Default value
 
-                    } else {
-                        // 3. No se encontró ninguna fila. Procedemos a preguntar si se quiere añadir como nuevo artículo.
-                        const { isConfirmed } = await showAddItemConfirmation(codeUpper);
-                        if (!isConfirmed) {
-                            inputScanCode.value = "";
-                            inputScanCode.focus();
-                            return;
-                        }
-                        const ref = currentContainerRecords[0] || {};
-                        targetRow = {
-                            FECHA: ref.FECHA || new Date(),
-                            SECCION: ref.SECCION || "N/A",
-                            MANIFIESTO: ref.MANIFIESTO || "N/A",
-                            CONTENEDOR: currentContenedor,
-                            DESCRIPCION: "ARTÍCULO NUEVO",
-                            SKU: codeUpper,
-                            SAP: 0,
-                            SCANNER: 1,
-                            ENTREGADO_A: currentEmployeeNumber
-                        };
-                        dataObj.data.push(targetRow);
-                        currentContainerRecords.push(targetRow);
-                        Swal.fire('¡Agregado!', `El artículo ${targetRow.SKU} se añadió al contenedor.`, 'success');
-                    }
+        // Collect all valid sections from existing items in the current container
+        const validSectionsInContainer = new Set();
+        currentContainerRecords.forEach(r => {
+            const sec = String(r.SECCION || "").trim().toUpperCase();
+            if (sec && !["ARTICULO NUEVO", "N/A", "147"].includes(sec)) {
+                validSectionsInContainer.add(sec);
+            }
+        });
 
-                    // --- FIN DE LA LÓGICA CORREGIDA ---
+        if (validSectionsInContainer.size > 0) {
+            // Pick the first valid section found
+            sectionForNewItem = validSectionsInContainer.values().next().value;
+            console.log(`[handleScanCode] Inferred section for new item ${codeUpper} in ${currentContenedor}: ${sectionForNewItem}`);
+        } else {
+            console.log(`[handleScanCode] No valid section found for container ${currentContenedor}, using default: ${sectionForNewItem}`);
+        }
+        // --- FIN DE LA LÓGICA CLAVE ---
 
+        // Get MANIFIESTO from an existing item or a general reference if currentContainerRecords is empty
+        const getPropLocal = (obj, key) => { // Local helper to ensure it's available here
+            if (!obj) return undefined;
+            const lowerKey = String(key).toLowerCase();
+            const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
+            return objKey ? obj[objKey] : undefined;
+        };
+        const refForManifiesto = currentContainerRecords[0] || (excelDataGlobal[fn]?.data?.length > 0 ? excelDataGlobal[fn].data[0] : {}); 
+        
+        targetRow = {
+            FECHA: new Date(),
+            SECCION: sectionForNewItem, // <--- ASSIGN THE INFERRED SECTION HERE
+            MANIFIESTO: String(getPropLocal(refForManifiesto, 'MANIFIESTO') || "N/A"),
+            CONTENEDOR: currentContenedor,
+            DESCRIPCION: "ARTÍCULO NUEVO",
+            SKU: codeUpper,
+            SAP: 0,
+            SCANNER: 1,
+            ENTREGADO_A: currentEmployeeNumber
+        };
+        dataObj.data.push(targetRow); // Add to global data
+        currentContainerRecords.push(targetRow); // Add to current container's view
+        Swal.fire('¡Agregado!', `El artículo ${targetRow.SKU} se añadió al contenedor con sección ${targetRow.SECCION}.`, 'success');
+    }
 
-                    // El resto de la función permanece igual: actualiza los datos y guarda en la base de datos.
-                    Object.assign(targetRow, {
-                        LAST_SCANNED_BY: currentUser.email,
-                        FECHA_ESCANEO: new Date(),
-                        ENTREGADO_A: currentEmployeeNumber
-                    });
+    // Update metadata for tracking this specific scan
+    Object.assign(targetRow, {
+        LAST_SCANNED_BY: currentUser.email,
+        FECHA_ESCANEO: new Date(),
+        ENTREGADO_A: currentEmployeeNumber
+    });
 
-                    mostrarDetallesContenedor(currentContainerRecords);
-                    showScanSuccessToast(targetRow.SKU, targetRow.SCANNER);
+    const isContainerClosed = excelDataGlobal[fn]?.closedContainers?.[currentContenedor] || false;
+    mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
 
-                    inputScanCode.value = "";
-                    inputScanCode.focus();
+    showScanSuccessToast(targetRow.SKU, targetRow.SCANNER);
 
-                    try {
-                        await db.collection('manifiestos').doc(fn).collection('scans').add({
-                            sku: targetRow.SKU,
-                            type: 'add',
-                            quantity: 1,
-                            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            employee: currentEmployeeNumber,
-                            user: currentUser.email,
-                            container: currentContenedor
-                        });
-                        await db.collection('manifiestos').doc(fn).set({
-                            lastUser: currentUser.email,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        }, { merge: true });
-                    } catch (error) {
-                        console.error("Error guardando escaneo en Firestore:", error);
-                        showScanErrorToast('Error de Red', 'El escaneo no se guardó. Reinténtalo.');
-                        targetRow.SCANNER -= 1; // Revertir el cambio local si falla la subida
-                        mostrarDetallesContenedor(currentContainerRecords);
-                    }
-                }
+    inputScanCode.value = "";
+    inputScanCode.focus();
 
+    try {
+        // Log the scan event to Firestore for reconstruction
+        await db.collection('manifiestos').doc(fn).collection('scans').add({
+            sku: targetRow.SKU,
+            type: 'add',
+            quantity: 1,
+            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            employee: currentEmployeeNumber,
+            user: currentUser.email,
+            container: currentContenedor,
+            description: targetRow.DESCRIPCION, 
+            section: targetRow.SECCION // <--- CRUCIAL: SEND THE CORRECT SECTION TO FIRESTORE SCAN RECORD
+        });
+
+        // Update the manifest's general metadata (last user, updated time)
+        await db.collection('manifiestos').doc(fn).set({
+            lastUser: currentUser.email,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } catch (error) {
+        console.error("Error guardando escaneo en Firestore:", error);
+        showScanErrorToast('Error de Red', 'El escaneo no se guardó. Reinténtalo.');
+        // Revert local change if Firebase update fails for consistency
+        targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) - 1; 
+        if (targetRow.SCANNER === 0 && targetRow.SAP === 0) {
+            currentContainerRecords = currentContainerRecords.filter(r => r !== targetRow);
+            dataObj.data = dataObj.data.filter(r => r !== targetRow);
+        }
+        mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+    }
+}
+// --- FIN DE LA FUNCIÓN ACTUALIZADA: handleScanCode ---
                 function scanInputHandler() {
                     let val = inputScanCode.value.trim().toUpperCase();
                     if (val && ((val.length >= 5 && val.length <= 10) || (val.length >= 12))) {
@@ -4278,202 +4338,244 @@ RESUMEN DE CIFRAS
                     });
                 }
 
-                function mostrarDetallesContenedor(registros, isClosed = false) {
-                    if (!registros) {
-                        containerDetailsEl.innerHTML = "";
-                        return;
-                    }
-                    registros.sort((a, b) => (a.SAP === 0) - (b.SAP === 0) || String(a.SKU || "").localeCompare(String(b.SKU || "")));
+function mostrarDetallesContenedor(registros, isClosed = false) {
+    if (!registros) {
+        containerDetailsEl.innerHTML = "";
+        return;
+    }
+    // Ordena los registros para mostrar los nuevos (SAP=0) al final
+    registros.sort((a, b) => (a.SAP === 0) - (b.SAP === 0) || String(a.SKU || "").localeCompare(String(b.SKU || "")));
 
-                    const cardsHTML = `<div class="details-list-container">
-            ${registros.map(r => {
-                        const sku = String(r.SKU || "").toUpperCase();
-                        const SAP = Number(r.SAP) || 0;
-                        const SCANNER = Number(r.SCANNER) || 0;
-                        const esNuevo = SAP === 0;
-                        let statusClass = '', diffText = '';
+    const cardsHTML = `<div class="details-list-container">
+        ${registros.map(r => {
+            const sku = String(r.SKU || "").toUpperCase();
+            const europeo = String(r.EUROPEO || "");
+            const SAP = Number(r.SAP) || 0;
+            const SCANNER = Number(r.SCANNER) || 0;
+            const esNuevo = SAP === 0;
+            let statusClass = '', diffText = '';
 
-                        if (SCANNER === SAP) { statusClass = 'is-ok'; diffText = 'OK'; }
-                        else if (SCANNER < SAP) { statusClass = 'is-missing'; diffText = `FALTA ${SAP - SCANNER}`; }
-                        else { statusClass = 'is-excess'; diffText = `SOBRA ${SCANNER - SAP}`; }
+            if (SCANNER === SAP) { statusClass = 'is-ok'; diffText = 'OK'; }
+            else if (SCANNER < SAP) { statusClass = 'is-missing'; diffText = `FALTA ${SAP - SCANNER}`; }
+            else { statusClass = 'is-excess'; diffText = `SOBRA ${SCANNER - SAP}`; }
 
-                        let cardStatusClass = esNuevo ? 'is-new' : `status-${statusClass.substring(3)}`;
+            let cardStatusClass = esNuevo ? 'is-new' : `status-${statusClass.substring(3)}`;
 
-                        const disabledAttr = isClosed ? 'disabled' : '';
+            const disabledAttr = isClosed ? 'disabled' : '';
 
-                        return `<div class="item-card ${cardStatusClass}" id="row-${sku}">
-                    <div class="item-card-main">
-                        <div class="sku-container">
-                            <i class="bi bi-upc-scan sku-icon"></i>
+            return `<div class="item-card ${cardStatusClass}" id="row-${sku}">
+                <div class="item-card-main">
+                    <div class="sku-container">
+                        <i class="bi bi-upc-scan sku-icon"></i>
+                        <div>
                             <span class="sku">${sku}</span>
+                            ${europeo ? `<span class="europeo-code"><i class="bi bi-globe-europe-africa"></i> ${europeo}</span>` : ''}
                         </div>
-                        <span class="descripcion">${r.DESCRIPCION || "Sin descripción"}</span>
                     </div>
-                    <div class="item-card-stats">
-                        <div class="stat-item"><div class="label">SAP</div><div class="value">${SAP}</div></div>
-                        <div class="stat-item"><div class="label">SCAN</div><div id="scanner-cell-${sku}" class="value">${SCANNER}</div></div>
-                        <div class="stat-item"><div class="label">DIF.</div><div id="diff-cell-${sku}"><span class="diff-badge ${statusClass}">${diffText}</span></div></div>
-                    </div>
-                    <div class="item-card-actions">
-                        <button class="btn-action btn-danio" data-sku="${sku}" title="Reportar daño" ${disabledAttr}><i class="bi bi-cone-striped"></i></button>
-                        ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-foto" data-url="${r.DANIO_FOTO_URL}" title="Ver foto"><i class="bi bi-image-fill"></i></button>` : ''}
-                        ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-eliminar-foto" data-sku="${sku}" data-url="${r.DANIO_FOTO_URL}" title="Eliminar foto de daño" ${disabledAttr}><i class="bi bi-trash2-fill"></i></button>` : ''}
-                        <button class="btn-action btn-restar" data-sku="${sku}" title="Restar 1 pieza" ${disabledAttr}><i class="bi bi-dash-circle-fill"></i></button>
-                        ${esNuevo ? `<button class="btn-action btn-eliminar" data-sku="${sku}" title="Eliminar artículo añadido" ${disabledAttr}><i class="bi bi-x-octagon-fill"></i></button>` : ''}
-                    </div>
-                    <div class="item-card-details">
-                        <div class="detail-item" title="Sección"><i class="bi bi-folder2-open" style="color: #6f42c1;"></i><span>${r.SECCION || 'N/A'}</span></div>
-                        <div class="detail-item" title="Manifiesto"><i class="bi bi-file-earmark-text" style="color: #fd7e14;"></i><span>${r.MANIFIESTO || 'N/A'}</span></div>
-                        <div class="detail-item" title="Fecha de Último Escaneo"><i class="bi bi-calendar-check" style="color: #0d6efd;"></i><span>${r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : 'Sin escanear'}</span></div>
-                        <div class="detail-item" title="Último escaneo por"><i class="bi bi-person-check-fill" style="color: #198754;"></i><span>${r.LAST_SCANNED_BY || 'N/A'}</span></div>
-                        <div class="detail-item" title="Entregado a empleado"><i class="bi bi-person-vcard" style="color: #E6007E;"></i><span>${r.ENTREGADO_A || 'N/A'}</span></div>
-                        <div class="detail-item" title="Piezas con condición"><i class="bi bi-tools" style="color: #ffc107;"></i><span>${r.DANIO_CANTIDAD || '0'}</span></div>
-                    </div>
-                </div>`;
-                    }).join('')}
-        </div>
-        <style>
-            .sku-container {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                margin-bottom: 0.25rem;
+                    <span class="descripcion">${r.DESCRIPCION || "Sin descripción"}</span>
+                </div>
+                <div class="item-card-stats">
+                    <div class="stat-item"><div class="label">SAP</div><div class="value">${SAP}</div></div>
+                    <div class="stat-item"><div class="label">SCAN</div><div id="scanner-cell-${sku}" class="value">${SCANNER}</div></div>
+                    <div class="stat-item"><div class="label">DIF.</div><div id="diff-cell-${sku}"><span class="diff-badge ${statusClass}">${diffText}</span></div></div>
+                </div>
+                <div class="item-card-actions">
+                    <button class="btn-action btn-danio" data-sku="${sku}" title="Reportar daño" ${disabledAttr}><i class="bi bi-cone-striped"></i></button>
+                    ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-foto" data-url="${r.DANIO_FOTO_URL}" title="Ver foto"><i class="bi bi-image-fill"></i></button>` : ''}
+                    ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-eliminar-foto" data-sku="${sku}" data-url="${r.DANIO_FOTO_URL}" title="Eliminar foto de daño" ${disabledAttr}><i class="bi bi-trash2-fill"></i></button>` : ''}
+                    <button class="btn-action btn-restar" data-sku="${sku}" title="Restar 1 pieza" ${disabledAttr}><i class="bi bi-dash-circle-fill"></i></button>
+                    ${esNuevo ? `<button class="btn-action btn-eliminar" data-sku="${sku}" title="Eliminar artículo añadido" ${disabledAttr}><i class="bi bi-x-octagon-fill"></i></button>` : ''}
+                </div>
+                <div class="item-card-details">
+                    <div class="detail-item" title="Sección"><i class="bi bi-folder2-open" style="color: #6f42c1;"></i><span>${r.SECCION || 'N/A'}</span></div>
+                    <div class="detail-item" title="Manifiesto"><i class="bi bi-file-earmark-text" style="color: #fd7e14;"></i><span>${r.MANIFIESTO || 'N/A'}</span></div>
+                    <div class="detail-item" title="Fecha de Último Escaneo"><i class="bi bi-calendar-check" style="color: #0d6efd;"></i><span>${r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : 'Sin escanear'}</span></div>
+                    <div class="detail-item" title="Último escaneo por"><i class="bi bi-person-check-fill" style="color: #198754;"></i><span>${r.LAST_SCANNED_BY || 'N/A'}</span></div>
+                    <div class="detail-item" title="Entregado a empleado"><i class="bi bi-person-vcard" style="color: #E6007E;"></i><span>${r.ENTREGADO_A || 'N/A'}</span></div>
+                    <div class="detail-item" title="Piezas con condición"><i class="bi bi-tools" style="color: #ffc107;"></i><span>${r.DANIO_CANTIDAD || '0'}</span></div>
+                </div>
+            </div>`;
+        }).join('')}
+    </div>
+    <style>
+        .sku-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        .sku-icon {
+            font-size: 1.5rem;
+            color: var(--rosa-principal);
+            opacity: 0.7;
+            margin-top: 0.2rem;
+        }
+        .item-card-main .sku {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--texto-principal);
+            letter-spacing: 0.5px;
+            display: block;
+            line-height: 1.2;
+        }
+        .europeo-code {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .item-card-main .descripcion {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-style: italic;
+            padding-left: 2rem; /* Align with SKU text */
+        }
+        .details-list-container .btn-action i {
+            font-size: 1.2rem;
+        }
+        .details-list-container .btn-action.btn-eliminar-foto { background-color: #6c757d; }
+        .details-list-container .btn-action.btn-restar { background-color: #ff7f50; }
+        .details-list-container .btn-action.btn-eliminar { background-color: #dc3545; }
+        .item-card-details .bi { font-size: 1.1rem; }
+    </style>
+    `;
+
+    containerDetailsEl.innerHTML = cardsHTML;
+
+    // Limpia el manejador de eventos anterior para evitar duplicados
+    if (containerDetailsEl.eventHandler) {
+        containerDetailsEl.removeEventListener('click', containerDetailsEl.eventHandler);
+    }
+
+    // Define y adjunta el nuevo manejador de eventos
+    const eventHandler = async (event) => {
+        const target = event.target.closest('button');
+        if (!target) return;
+
+        const sku = target.dataset.sku;
+        const fn = currentFileName;
+
+        if (target.classList.contains('btn-restar')) {
+            const rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === sku);
+            if (!rowObj || (rowObj.SCANNER || 0) <= 0) return;
+            
+            rowObj.SCANNER--;
+            mostrarDetallesContenedor(currentContainerRecords, isClosed);
+            
+            try {
+                await db.collection('manifiestos').doc(fn).collection('scans').add({
+                    sku: rowObj.SKU,
+                    type: 'subtract',
+                    scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    employee: currentEmployeeNumber,
+                    user: currentUser.email,
+                    container: currentContenedor
+                });
+            } catch (error) {
+                showScanErrorToast('Error de Red', 'No se pudo guardar la resta.');
+                rowObj.SCANNER++; // Revertir el cambio si falla
+                mostrarDetallesContenedor(currentContainerRecords, isClosed);
             }
-            .sku-icon {
-                font-size: 1.5rem;
-                color: var(--rosa-principal);
-                opacity: 0.7;
-            }
-            .item-card-main .sku {
-                font-size: 1.4rem;
-                font-weight: 700;
-                color: var(--texto-principal);
-                letter-spacing: 0.5px;
-            }
-            .item-card-main .descripcion {
-                font-size: 0.9rem;
-                color: #6c757d;
-                font-style: italic;
-            }
-            .details-list-container .btn-action i {
-                font-size: 1.2rem;
-            }
-            .details-list-container .btn-action.btn-eliminar-foto { background-color: #6c757d; }
-            .details-list-container .btn-action.btn-restar { background-color: #ff7f50; }
-            .details-list-container .btn-action.btn-eliminar { background-color: #dc3545; }
-            .item-card-details .bi { font-size: 1.1rem; }
-        </style>
-        `;
+        } else if (target.classList.contains('btn-eliminar')) {
+            const { isConfirmed } = await Swal.fire({
+                title: '¿Estás seguro?',
+                html: `Se eliminará permanentemente el artículo <strong>${sku}</strong> de este contenedor.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonText: 'Cancelar',
+                confirmButtonText: 'Sí, ¡Eliminar!'
+            });
 
-                    containerDetailsEl.innerHTML = cardsHTML;
+            if (isConfirmed) {
+                // --- INICIO DE LA CORRECCIÓN ---
+                const rowToRemove = currentContainerRecords.find(r => 
+                    String(r.SKU || "").toUpperCase() === sku && (Number(r.SAP) || 0) === 0
+                );
 
-                    if (containerDetailsEl.eventHandler) containerDetailsEl.removeEventListener('click', containerDetailsEl.eventHandler);
+                if (!rowToRemove) return;
 
-                    const eventHandler = async (event) => {
-                        const target = event.target.closest('button');
-                        if (!target) return;
-                        const sku = target.dataset.sku;
-                        const fn = currentFileName;
-
-                        if (target.classList.contains('btn-restar')) {
-                            const rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === sku);
-                            if (!rowObj || (rowObj.SCANNER || 0) <= 0) return;
-                            rowObj.SCANNER--;
-                            mostrarDetallesContenedor(currentContainerRecords, isClosed);
-                            try {
-                                await db.collection('manifiestos').doc(fn).collection('scans').add({
-                                    sku: rowObj.SKU,
-                                    type: 'subtract',
-                                    scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                    employee: currentEmployeeNumber,
-                                    user: currentUser.email,
-                                    container: currentContenedor
-                                });
-                            } catch (error) {
-                                showScanErrorToast('Error de Red', 'No se pudo guardar la resta.');
-                                rowObj.SCANNER++;
-                                mostrarDetallesContenedor(currentContainerRecords, isClosed);
-                            }
-                        } else if (target.classList.contains('btn-eliminar')) {
-                            const {
-                                isConfirmed
-                            } = await Swal.fire({
-                                title: '¿Estás seguro?',
-                                html: `Se eliminará permanentemente el artículo <strong>${sku}</strong>.`,
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#d33',
-                                confirmButtonText: 'Sí, ¡Eliminar!'
-                            });
-                            if (isConfirmed) {
-                                currentContainerRecords = currentContainerRecords.filter(r => !(String(r.SKU || "").toUpperCase() === sku && r.SAP === 0));
-                                mostrarDetallesContenedor(currentContainerRecords, isClosed);
-
-                                try {
-                                    await db.collection('manifiestos').doc(fn).collection('scans').add({
-                                        sku: sku,
-                                        type: 'delete',
-                                        scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                        employee: currentEmployeeNumber,
-                                        user: currentUser.email,
-                                        container: currentContenedor
-                                    });
-                                    Swal.fire('¡Eliminado!', `El artículo ${sku} ha sido marcado para eliminación.`, 'success');
-                                } catch (error) {
-                                    showScanErrorToast('Error de Red', 'No se pudo eliminar. Intenta de nuevo.');
-                                    realOpenFileManifiesto(fn, currentContenedor);
-                                }
-                            }
-                        } else if (target.classList.contains('btn-danio')) {
-                            currentDanioSKU = sku;
-                            danioCantidadInput.value = "1";
-                            danioFotoInput.value = "";
-                            modalDanios.show();
-                        } else if (target.classList.contains('btn-foto')) {
-                            window.open(target.dataset.url, "_blank");
-                        } else if (target.classList.contains('btn-eliminar-foto')) {
-                            const photoUrl = target.dataset.url;
-                            const { isConfirmed } = await Swal.fire({
-                                title: '¿Eliminar Foto?',
-                                text: "Esta acción eliminará la foto de la nube permanentemente. No se puede deshacer.",
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#dc3545',
-                                confirmButtonText: 'Sí, eliminarla',
-                                cancelButtonText: 'Cancelar'
-                            });
-
-                            if (isConfirmed) {
-                                Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                                try {
-                                    const photoRef = storage.refFromURL(photoUrl);
-                                    await photoRef.delete();
-
-                                    const rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === sku);
-                                    if (rowObj) {
-                                        rowObj.DANIO_FOTO_URL = "";
-                                        // También se podría registrar esta acción en Firestore si fuera necesario
-                                        await db.collection('manifiestos').doc(fn).collection('scans').add({
-                                            sku: sku,
-                                            type: 'delete_photo',
-                                            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                            user: currentUser.email,
-                                            container: currentContenedor
-                                        });
-                                    }
-
-                                    mostrarDetallesContenedor(currentContainerRecords, isClosed);
-                                    Swal.fire('¡Eliminada!', 'La foto ha sido eliminada con éxito.', 'success');
-                                } catch (error) {
-                                    console.error("Error al eliminar la foto:", error);
-                                    Swal.fire('Error', 'No se pudo eliminar la foto. Es posible que ya no exista o haya un problema de red.', 'error');
-                                }
-                            }
-                        }
-                    };
-                    containerDetailsEl.eventHandler = eventHandler;
-                    containerDetailsEl.addEventListener('click', containerDetailsEl.eventHandler);
+                const originalGlobalData = [...excelDataGlobal[fn].data];
+                const originalContainerRecords = [...currentContainerRecords];
+                
+                currentContainerRecords = currentContainerRecords.filter(r => r !== rowToRemove);
+                excelDataGlobal[fn].data = excelDataGlobal[fn].data.filter(r => r !== rowToRemove);
+                
+                mostrarDetallesContenedor(currentContainerRecords, isClosed);
+                
+                try {
+                    await db.collection('manifiestos').doc(fn).collection('scans').add({
+                        sku: sku,
+                        type: 'delete',
+                        scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        employee: currentEmployeeNumber,
+                        user: currentUser.email,
+                        container: currentContenedor
+                    });
+                    Swal.fire('¡Eliminado!', `El artículo ${sku} ha sido marcado para eliminación.`, 'success');
+                } catch (error) {
+                    console.error("Error al eliminar en Firestore:", error);
+                    showScanErrorToast('Error de Red', 'No se pudo eliminar. Se restauró el artículo.');
+                    
+                    excelDataGlobal[fn].data = originalGlobalData;
+                    currentContainerRecords = originalContainerRecords;
+                    
+                    mostrarDetallesContenedor(currentContainerRecords, isClosed);
                 }
+                // --- FIN DE LA CORRECCIÓN ---
+            }
+        } else if (target.classList.contains('btn-danio')) {
+            currentDanioSKU = sku;
+            danioCantidadInput.value = "1";
+            danioFotoInput.value = "";
+            modalDanios.show();
+        } else if (target.classList.contains('btn-foto')) {
+            window.open(target.dataset.url, "_blank");
+        } else if (target.classList.contains('btn-eliminar-foto')) {
+            const photoUrl = target.dataset.url;
+            const { isConfirmed } = await Swal.fire({
+                title: '¿Eliminar Foto?',
+                text: "Esta acción eliminará la foto de la nube permanentemente. No se puede deshacer.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Sí, eliminarla',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (isConfirmed) {
+                Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    const photoRef = storage.refFromURL(photoUrl);
+                    await photoRef.delete();
+
+                    const rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === sku);
+                    if (rowObj) {
+                        rowObj.DANIO_FOTO_URL = "";
+                        await db.collection('manifiestos').doc(fn).collection('scans').add({
+                            sku: sku,
+                            type: 'delete_photo',
+                            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            user: currentUser.email,
+                            container: currentContenedor
+                        });
+                    }
+
+                    mostrarDetallesContenedor(currentContainerRecords, isClosed);
+                    Swal.fire('¡Eliminada!', 'La foto ha sido eliminada con éxito.', 'success');
+                } catch (error) {
+                    console.error("Error al eliminar la foto:", error);
+                    Swal.fire('Error', 'No se pudo eliminar la foto. Es posible que ya no exista o haya un problema de red.', 'error');
+                }
+            }
+        }
+    };
+    
+    containerDetailsEl.eventHandler = eventHandler;
+    containerDetailsEl.addEventListener('click', containerDetailsEl.eventHandler);
+}
                 /***********************************************************
                  * MODAL DE CONDICIONES DE LA MCIA
                  ***********************************************************/
