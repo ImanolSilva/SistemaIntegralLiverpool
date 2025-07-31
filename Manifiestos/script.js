@@ -516,12 +516,13 @@ async function reconstructManifestDataFromFirebase(manifestoId) {
                     }
                 });
 
-                fileInput.addEventListener('change', () => {
-                    const file = fileInput.files[0];
-                    if (!file) return;
-                    selectedFileNameEl.textContent = file.name;
-                    uploadFileBtn.disabled = false;
-                });
+fileInput.addEventListener('change', () => {
+    console.log("El evento de cambio de archivo se disparó"); // <--- AÑADE ESTA LÍNEA
+    const file = fileInput.files[0];
+    if (!file) return;
+    selectedFileNameEl.textContent = file.name;
+    uploadFileBtn.disabled = false;
+});
 
                 uploadFileBtn.addEventListener('click', async () => {
                     const file = fileInput.files[0];
@@ -4156,7 +4157,7 @@ async function handleScanCode(code) {
         inputScanCode.value = "";
         inputScanCode.focus();
         return;
-    }
+    }currentUserRole
 
     const codeUpper = code.trim().toUpperCase();
     let targetRow = null;

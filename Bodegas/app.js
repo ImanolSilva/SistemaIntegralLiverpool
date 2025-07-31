@@ -117,7 +117,100 @@ async function initializeAppData() {
         summaryBtn.disabled = true;
     }
 }
+/***************************************************
+ * LÓGICA PARA SUBIR ARCHIVOS MAESTROS
+ ***************************************************/
 
+// Función para manejar la lógica de subida para uno o más archivos
+const handleFiles = (files) => {
+    // Convierte el FileList a un array para poder iterar sobre él
+    const filesArray = Array.from(files);
+
+    if (filesArray.length === 0) {
+        return; // No hacer nada si no hay archivos
+    }
+
+    logToScreen(`Iniciando subida de ${filesArray.length} archivo(s)...`);
+
+    // Muestra una notificación de carga
+    Swal.fire({
+        title: 'Subiendo Archivos...',
+        text: 'Por favor, espera.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    const uploadPromises = filesArray.map(file => {
+        // Define la ruta en Firebase Storage donde se guardará el archivo
+        const storageRef = storage.ref(`${MASTER_FILES_PATH}${file.name}`);
+        
+        // Sube el archivo
+        return storageRef.put(file)
+            .then(() => {
+                logToScreen(`✅ Archivo "${file.name}" subido con éxito.`);
+            })
+            .catch(error => {
+                logToScreen(`🔥 Error al subir "${file.name}": ${error.message}`);
+                console.error(`Error en la subida de ${file.name}:`, error);
+                // Retornamos el error para manejarlo después
+                return Promise.reject(error);
+            });
+    });
+
+    // Espera a que todas las promesas de subida se completen
+    Promise.allSettled(uploadPromises)
+        .then(async (results) => {
+            const successfulUploads = results.filter(r => r.status === 'fulfilled').length;
+            const failedUploads = results.length - successfulUploads;
+
+            // Refresca la lista de archivos en la aplicación para incluir los nuevos
+            await listContainerFiles();
+            
+            Swal.close();
+
+            if (failedUploads > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Subida Parcial',
+                    text: `${successfulUploads} archivo(s) subidos con éxito, pero ${failedUploads} fallaron.`
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Subida Completa!',
+                    text: `Se subieron ${successfulUploads} archivo(s) correctamente.`
+                });
+            }
+        });
+};
+
+// Evento para cuando se hace clic y se selecciona un archivo
+fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+});
+
+// Eventos para arrastrar y soltar (drag and drop)
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault(); // Previene el comportamiento por defecto del navegador
+    dropZone.classList.add('drag-over');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('drag-over');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault(); // Previene que el navegador abra el archivo
+    dropZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+});
+
+// Permite hacer clic en el drop-zone para abrir el selector de archivos
+dropZone.addEventListener('click', () => {
+    fileInput.click();
+});
 async function loadValidBodegas() {
     try {
         const url = await storage.ref(BODEGAS_RELACION_PATH).getDownloadURL();
