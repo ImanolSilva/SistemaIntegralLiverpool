@@ -16,7 +16,7 @@ const auth = firebase.auth();
 const storage = firebase.app().storage("gs://loginliverpool.firebasestorage.app");
 
 // === GLOBAL VARIABLES FOR SUMMARY ===
-const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2, 3PWbUNLeaRYbVamF7QLHvwufeoy1, m910mvAxDjSRmG40QyQu0pFiTZ52";
+const ADMIN_UID = "OaieQ6cGi7TnW0nbxvlk2oyLaER2";
 let currentUser = null;
 let currentUserStore = null;
 let currentUserRole = null;

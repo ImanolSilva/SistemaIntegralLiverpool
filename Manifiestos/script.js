@@ -3510,162 +3510,164 @@ window.downloadFile = async function (folder, name) {
                     </div>`;
                 }
 
-                async function buscarContenedor(ref) {
-                    const searchTerm = ref.trim().toUpperCase();
-                    if (!searchTerm) return;
+async function buscarReferencia(ref) {
+    const searchTerm = ref.trim().toUpperCase();
+    if (!searchTerm) return;
 
-                    let candidates = await checkFileForReference(null, searchTerm, true);
-                    if (!candidates || candidates.length === 0) return showNotFoundAlert("contenedor");
-
-                    const foundChoices = [];
-                    const uniqueCheck = new Set();
-
-                    candidates.forEach(candidate => {
-                        const fileName = candidate.fileName;
-                        const uniqueContainersInFile = new Set(candidate.matchedRecords.map(r => String(r.CONTENEDOR || "").trim().toUpperCase()));
-
-                        uniqueContainersInFile.forEach(containerName => {
-                            if (containerName.includes(searchTerm)) {
-                                const choiceKey = `${containerName}|${fileName}`;
-                                if (!uniqueCheck.has(choiceKey)) {
-                                    const recordsForThisContainer = excelDataGlobal[fileName].data.filter(rec => String(rec.CONTENEDOR || "").trim().toUpperCase() === containerName);
-                                    const totalSKUs = recordsForThisContainer.length;
-                                    const totalSAP = recordsForThisContainer.reduce((sum, rec) => sum + (Number(rec.SAP) || 0), 0);
-
-                                    foundChoices.push({
-                                        containerName,
-                                        fileName,
-                                        totalSKUs,
-                                        totalSAP
-                                    });
-                                    uniqueCheck.add(choiceKey);
-                                }
-                            }
-                        });
-                    });
-
-                    if (foundChoices.length === 0) return showNotFoundAlert("contenedor");
-
-                    if (foundChoices.length === 1) {
-                        Swal.close();
-                        const choice = foundChoices[0];
-                        realOpenFileManifiesto(choice.fileName, choice.containerName);
-                        return;
-                    }
-
-                    const choiceHTML = foundChoices.map(choice => {
-                        const isClosedData = excelDataGlobal[choice.fileName] && excelDataGlobal[choice.fileName].closedContainers && excelDataGlobal[choice.fileName].closedContainers[choice.containerName];
-                        let statusHTML = '';
-                        if (isClosedData) {
-                            statusHTML = `<span class="status-badge is-closed" title="Cerrado por ${isClosedData}">CERRADO</span>`;
-                        }
-
-                        return `
-                            <div class="result-item-card">
-                                <div class="item-info">
-                                    <div class="item-title">
-                                        <i class="material-icons text-primary">inventory_2</i>
-                                        ${choice.containerName} ${statusHTML}
-                                    </div>
-                                    <div class="item-meta">
-                                        <span><strong>Archivo:</strong> ${choice.fileName}</span><br>
-                                        <span><strong>SKUs:</strong> ${choice.totalSKUs} | <strong>Piezas SAP:</strong> ${choice.totalSAP}</span>
-                                    </div>
-                                </div>
-                                <button class="btn btn-primary btn-sm btn-choose" onclick="window.openContainerFromFile('${choice.containerName}', '${choice.fileName}')">
-                                    <i class="material-icons">touch_app</i> Elegir
-                                </button>
-                            </div>`;
-                    }).join('');
-
-                    Swal.fire({
-                        title: "Múltiples Coincidencias de Contenedor",
-                        html: `<p>Se encontró "<strong>${searchTerm}</strong>" en varios lugares. Elige el correcto:</p><div class="results-list-container">${choiceHTML}</div>`,
-                        showConfirmButton: false,
-                        width: "700px",
-                    });
+    // --- INICIO DEL NUEVO MODAL DE BÚSQUEDA ---
+    let loadingIntervalId = null; // Variable para controlar el intervalo de las frases
+    Swal.fire({
+        html: `
+            <div class="epic-loading-container">
+                <div class="radar-scanner">
+                    <div class="radar-icon-wrapper">
+                        <i class="bi bi-binoculars-fill"></i>
+                    </div>
+                </div>
+                <h2 class="epic-loading-title">Iniciando Protocolo de Búsqueda...</h2>
+                <p id="motivational-phrase" class="epic-loading-phrase"></p>
+                <div class="progress-bar-simulation">
+                    <div class="progress-bar-inner"></div>
+                </div>
+            </div>
+            <style>
+                .epic-loading-container {
+                    font-family: 'Poppins', sans-serif; padding: 2rem 1rem; text-align: center; overflow: hidden;
                 }
-
-                async function buscarSKUenArchivos(sku) {
-                    try {
-                        let candidates = await checkFileForReference(null, sku, false);
-                        if (!candidates || candidates.length === 0) {
-                            return showNotFoundAlert("SKU");
-                        }
-
-                        const foundChoices = [];
-                        const uniqueCheck = new Set();
-
-                        candidates.forEach(candidate => {
-                            const fileName = candidate.fileName;
-                            candidate.matchedRecords.forEach(record => {
-                                const containerName = String(record.CONTENEDOR || "").trim().toUpperCase();
-                                if (!containerName) return;
-
-                                const choiceKey = `${containerName}|${fileName}`;
-                                if (!uniqueCheck.has(choiceKey)) {
-                                    foundChoices.push({
-                                        containerName,
-                                        fileName,
-                                        record
-                                    });
-                                    uniqueCheck.add(choiceKey);
-                                }
-                            });
-                        });
-
-                        if (foundChoices.length === 0) {
-                            return showNotFoundAlert("SKU en algún contenedor válido");
-                        }
-
-                        if (foundChoices.length === 1) {
-                            Swal.close();
-                            const choice = foundChoices[0];
-                            realOpenFileManifiesto(choice.fileName, choice.containerName);
-                            return;
-                        }
-
-                        const choiceHTML = foundChoices.map(choice => {
-                            const sap = choice.record.SAP || 0;
-                            const desc = choice.record.DESCRIPCION || '(sin descripción)';
-                            const isClosed = excelDataGlobal[choice.fileName]?.closedContainers?.[choice.containerName];
-                            return `
-                                <div class="result-item-card">
-                                    <div class="item-info">
-                                        <div class="item-title">
-                                            <i class="material-icons text-primary">inventory_2</i>
-                                            ${choice.containerName}
-                                            ${isClosed ? `<span class="status-badge is-closed">CERRADO</span>` : ''}
-                                        </div>
-                                        <div class="item-meta">
-                                            <span><strong>Archivo:</strong> ${choice.fileName}</span><br>
-                                            <span><strong>Descripción:</strong> ${desc} | <strong>SAP:</strong> ${sap} pz.</span>
-                                        </div>
-                                    </div>
-                                    <button class="btn btn-primary btn-sm btn-choose"
-                                            onclick="window.openContainerFromFile('${choice.containerName}', '${choice.fileName}')">
-                                        <i class="material-icons">touch_app</i> Elegir
-                                    </button>
-                                </div>`;
-                        }).join('');
-
-                        Swal.fire({
-                            title: "SKU en Múltiples Ubicaciones",
-                            html: `<p>Se encontró el SKU <strong>${sku}</strong> en varios lugares. Por favor, elige el correcto:</p>
-                                   <div class="results-list-container">${choiceHTML}</div>`,
-                            showConfirmButton: false,
-                            width: "700px",
-                        });
-
-                    } catch (err) {
-                        console.error("Error en buscarSKUenArchivos:", err);
-                        Swal.fire({
-                            icon: "error",
-                            title: "Error Inesperado",
-                            text: "Ocurrió un problema al buscar el SKU."
-                        });
-                    }
+                .radar-scanner {
+                    position: relative; width: 120px; height: 120px; margin: 0 auto 1.5rem; border-radius: 50%;
+                    background: radial-gradient(circle, rgba(230, 0, 126, 0.05) 0%, rgba(230, 0, 126, 0.15) 60%, transparent 70%);
+                    display: flex; align-items: center; justify-content: center;
                 }
+                .radar-scanner::before, .radar-scanner::after {
+                    content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border-radius: 50%;
+                    transform: translate(-50%, -50%);
+                }
+                .radar-scanner::before {
+                    background: conic-gradient(from 0deg, transparent 0%, var(--rosa-principal) 20%, transparent 25%);
+                    animation: radar-sweep 2.5s linear infinite;
+                }
+                .radar-scanner::after {
+                    border: 2px solid rgba(230, 0, 126, 0.2); width: calc(100% + 10px); height: calc(100% + 10px);
+                    animation: radar-pulse 2.5s ease-out infinite;
+                }
+                @keyframes radar-sweep {
+                    from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); }
+                }
+                @keyframes radar-pulse {
+                    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
+                }
+                .radar-icon-wrapper {
+                    width: 80px; height: 80px; border-radius: 50%; background: var(--blanco);
+                    display: flex; align-items: center; justify-content: center;
+                    box-shadow: 0 5px 20px rgba(0,0,0,0.1); z-index: 2;
+                }
+                .radar-icon-wrapper .bi-binoculars-fill { font-size: 2.5rem; color: var(--rosa-principal); }
+                .epic-loading-title { font-size: 1.5rem; font-weight: 700; color: var(--texto-principal); margin-bottom: 0.5rem; }
+                .epic-loading-phrase {
+                    font-size: 1rem; color: #6c757d; height: 24px; display: flex; align-items: center; justify-content: center;
+                    transition: opacity 0.4s ease-in-out; opacity: 1;
+                }
+                .epic-loading-phrase.fade-out { opacity: 0; }
+                .progress-bar-simulation {
+                    width: 80%; max-width: 300px; height: 8px; background-color: #e9ecef; border-radius: 8px;
+                    margin: 1.5rem auto 0; overflow: hidden;
+                }
+                .progress-bar-inner {
+                    width: 100%; height: 100%; background: linear-gradient(90deg, transparent, var(--rosa-principal), transparent);
+                    background-size: 200% 100%; animation: progress-sim 2s linear infinite;
+                }
+                @keyframes progress-sim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+            </style>
+        `,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        customClass: { popup: 'p-0 border-0 shadow-lg rounded-3' },
+        didOpen: () => {
+            const phraseElement = document.getElementById('motivational-phrase');
+            if (phraseElement) {
+                let phraseIndex = 0;
+                phraseElement.textContent = motivationalPhrases[phraseIndex];
+                loadingIntervalId = setInterval(() => {
+                    phraseElement.classList.add('fade-out');
+                    setTimeout(() => {
+                        phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
+                        phraseElement.textContent = motivationalPhrases[phraseIndex];
+                        phraseElement.classList.remove('fade-out');
+                    }, 400);
+                }, 2500);
+            }
+        },
+        willClose: () => {
+            clearInterval(loadingIntervalId); // Detenemos el cambio de frases al cerrar
+        }
+    });
+    // --- FIN DEL NUEVO MODAL DE BÚSQUEDA ---
+
+    let candidates = await checkFileForReference(null, searchTerm);
+    if (!candidates || candidates.length === 0) {
+        return showNotFoundAlert("referencia");
+    }
+
+    // El resto de la lógica para mostrar resultados permanece igual...
+    const foundChoices = [];
+    const uniqueCheck = new Set();
+    candidates.forEach(candidate => {
+        const fileName = candidate.fileName;
+        candidate.matchedRecords.forEach(record => {
+            const containerName = String(record.CONTENEDOR || "").trim().toUpperCase();
+            if (!containerName) return;
+            const choiceKey = `${containerName}|${fileName}`;
+            if (!uniqueCheck.has(choiceKey)) {
+                const recordsForThisContainer = excelDataGlobal[fileName].data.filter(rec => String(rec.CONTENEDOR || "").trim().toUpperCase() === containerName);
+                const totalSKUs = recordsForThisContainer.length;
+                const totalSAP = recordsForThisContainer.reduce((sum, rec) => sum + (Number(rec.SAP) || 0), 0);
+                foundChoices.push({ containerName, fileName, totalSKUs, totalSAP });
+                uniqueCheck.add(choiceKey);
+            }
+        });
+    });
+
+    if (foundChoices.length === 0) {
+        return showNotFoundAlert("referencia en un contenedor válido");
+    }
+
+    if (foundChoices.length === 1) {
+        Swal.close();
+        const choice = foundChoices[0];
+        realOpenFileManifiesto(choice.fileName, choice.containerName);
+        return;
+    }
+
+    const choiceHTML = foundChoices.map(choice => {
+        const isClosed = excelDataGlobal[choice.fileName]?.closedContainers?.[choice.containerName];
+        return `
+            <div class="result-item-card">
+                <div class="item-info">
+                    <div class="item-title">
+                        <i class="material-icons text-primary">inventory_2</i>
+                        ${choice.containerName}
+                        ${isClosed ? `<span class="status-badge is-closed">CERRADO</span>` : ''}
+                    </div>
+                    <div class="item-meta">
+                        <span><strong>Archivo:</strong> ${choice.fileName}</span><br>
+                        <span><strong>SKUs:</strong> ${choice.totalSKUs} | <strong>Piezas SAP:</strong> ${choice.totalSAP}</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-sm btn-choose" onclick="window.openContainerFromFile('${choice.containerName}', '${choice.fileName}')">
+                    <i class="material-icons">touch_app</i> Elegir
+                </button>
+            </div>`;
+    }).join('');
+
+    Swal.fire({
+        title: "Múltiples Coincidencias Encontradas",
+        html: `<p>Se encontró "<strong>${searchTerm}</strong>" en los siguientes contenedores. Elige el correcto:</p><div class="results-list-container">${choiceHTML}</div>`,
+        showConfirmButton: false,
+        width: "700px",
+    });
+}
+                            
 
                 window.openContainerFromFile = (containerName, fileName) => {
                     Swal.close();
@@ -3683,9 +3685,12 @@ window.downloadFile = async function (folder, name) {
                     }
                 };
 
-                const handleSearch = (value) => {
-                    let val = value.trim().toUpperCase();
-                    if (val.length < 5) return;
+const handleSearch = (value) => {
+    let val = value.trim().toUpperCase();
+    if (val.length < 5) return;
+
+    // Ya no intentamos adivinar el tipo de código, simplemente llamamos a la búsqueda universal.
+    buscarReferencia(val);
 
                     Swal.fire({
                         html: `
@@ -3838,13 +3843,9 @@ window.downloadFile = async function (folder, name) {
                         }
                     });
 
-                    if (/^[A-Z]/.test(val) || /^[0-9]+[A-Z]+/.test(val)) {
-                        buscarContenedor(val);
-                    } else {
-                        buscarSKUenArchivos(val);
-                    }
-                    inputBusqueda.value = "";
-                };
+      // Ahora solo llama a nuestra única y potente función de búsqueda.
+    buscarReferencia(val);
+};
 
                 inputBusqueda.addEventListener("keyup", (event) => {
                     if (event.key === 'Enter') {
@@ -3918,63 +3919,87 @@ window.downloadFile = async function (folder, name) {
                     }
                 }
 
-                async function checkFileForReference(folderName, code) {
-                    if (!allFilesList || allFilesList.length === 0) {
-                        allFilesList = [];
-                        const storeFolder = currentUserStore === "ALL" ? "" : currentUserStore;
+ async function checkFileForReference(folderName, code) {
+    // La lógica para cargar los archivos (si no están cargados) permanece igual.
+    if (!allFilesList || allFilesList.length === 0) {
+        allFilesList = [];
+        const storeFolder = currentUserStore === "ALL" ? "" : currentUserStore;
+        if (storeFolder) {
+            const storeFiles = await storage.ref(`Manifiestos/${storeFolder}`).listAll();
+            storeFiles.items.forEach(itemRef => allFilesList.push({
+                folderName: storeFolder,
+                ref: itemRef
+            }));
+        } else {
+            const root = await storage.ref("Manifiestos").listAll();
+            for (const folderRef of root.prefixes) {
+                const storeFiles = await folderRef.listAll();
+                storeFiles.items.forEach(itemRef => allFilesList.push({
+                    folderName: folderRef.name,
+                    ref: itemRef
+                }));
+            }
+        }
+    }
+    const filesToProcess = allFilesList.filter(f => !excelDataGlobal[f.ref.name]);
+    if (filesToProcess.length > 0) {
+        const phraseElement = document.getElementById('motivational-phrase');
+        if (phraseElement) {
+            phraseElement.innerText = `Cargando ${filesToProcess.length} archivo(s) nuevos...`;
+        }
+        await Promise.all(filesToProcess.map(fileInfo => reconstructManifestDataFromFirebase(fileInfo.ref.name))); // CORREGIDO para llamar a la función correcta
+    }
 
-                        if (storeFolder) {
-                            const storeFiles = await storage.ref(`Manifiestos/${storeFolder}`).listAll();
-                            storeFiles.items.forEach(itemRef => allFilesList.push({
-                                folderName: storeFolder,
-                                ref: itemRef
-                            }));
-                        } else {
-                            const root = await storage.ref("Manifiestos").listAll();
-                            for (const folderRef of root.prefixes) {
-                                const storeFiles = await folderRef.listAll();
-                                storeFiles.items.forEach(itemRef => allFilesList.push({
-                                    folderName: folderRef.name,
-                                    ref: itemRef
-                                }));
-                            }
-                        }
-                    }
-                    const filesToProcess = allFilesList.filter(f => !excelDataGlobal[f.ref.name]);
+    const foundCandidates = [];
+    const searchCode = code.toUpperCase();
 
-                    if (filesToProcess.length > 0) {
-                        const phraseElement = document.getElementById('motivational-phrase');
-                        if (phraseElement) {
-                            phraseElement.innerText = `Cargando ${filesToProcess.length} archivo(s) nuevos...`;
-                        }
-                        await Promise.all(filesToProcess.map(fileInfo => processSingleFile(fileInfo)));
-                    }
+    // Helper para buscar propiedades sin importar mayúsculas/minúsculas
+    const getPropCaseInsensitive = (obj, key) => {
+        if (!obj) return undefined;
+        const lowerKey = String(key).toLowerCase();
+        const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
+        return objKey ? obj[objKey] : undefined;
+    };
 
-                    const foundCandidates = [];
-                    const searchCode = code.toUpperCase();
+    for (const f of allFilesList) {
+        const fileName = f.ref.name;
+        if (!excelDataGlobal[fileName]) continue;
 
-                    for (const f of allFilesList) {
-                        const fileName = f.ref.name;
-                        if (!excelDataGlobal[fileName]) continue;
+        const records = excelDataGlobal[fileName].data;
+        
+        // --- INICIO DE LA LÓGICA DE BÚSQUEDA MEJORADA ---
+        const matched = records.filter(r => {
+            const cont = String(getPropCaseInsensitive(r, 'CONTENEDOR') || "").trim().toUpperCase();
+            const sku = String(getPropCaseInsensitive(r, 'SKU') || "").trim().toUpperCase();
+            const europeo = String(getPropCaseInsensitive(r, 'EUROPEO') || "").trim().toUpperCase();
 
-                        const records = excelDataGlobal[fileName].data;
-                        const matched = records.filter(r => {
-                            const cont = String(r.CONTENEDOR || "").trim().toUpperCase();
-                            const sku = String(r.SKU || "").trim().toUpperCase();
-                            return cont.includes(searchCode) || sku.includes(searchCode);
-                        });
+            // Normalizamos el código de búsqueda y los códigos del registro para la comparación
+            const normalizedSearchCode = searchCode.replace(/^0+/, '');
+            const normalizedSku = sku.replace(/^0+/, '');
+            const normalizedEuropeo = europeo.replace(/^0+/, '');
 
-                        if (matched.length > 0) {
-                            foundCandidates.push({
-                                folderName: f.folderName,
-                                fileName,
-                                matchedRecords: matched
-                            });
-                        }
-                    }
+            // 1. Búsqueda por CONTENEDOR (permite coincidencias parciales)
+            if (cont.includes(searchCode)) return true;
+            // 2. Búsqueda por SKU (coincidencia exacta después de normalizar)
+            if (sku && normalizedSku === normalizedSearchCode) return true;
+            // 3. Búsqueda por EUROPEO (coincidencia exacta después de normalizar)
+            if (europeo && normalizedEuropeo === normalizedSearchCode) return true;
 
-                    return foundCandidates.length > 0 ? foundCandidates : null;
-                }
+            return false;
+        });
+        // --- FIN DE LA LÓGICA DE BÚSQUEDA MEJORADA ---
+
+        if (matched.length > 0) {
+            foundCandidates.push({
+                folderName: f.folderName,
+                fileName,
+                matchedRecords: matched
+            });
+        }
+    }
+
+    return foundCandidates.length > 0 ? foundCandidates : null;
+}
 
                 function openContainerDirect(candidate, recordIndex = 0) {
                     currentFileName = candidate.fileName;
@@ -4134,7 +4159,7 @@ async function realOpenFileManifiesto(fileName, cont) {
 
                     await reuploadFileWithScannerChanges(selectedFileToWorkEl.textContent);
                 }
-// --- COMIENZO DE LA FUNCIÓN ACTUALIZADA: handleScanCode ---
+// --- COMIENZO DE LA FUNCIÓN ACTUALIZADA: handleScanCode (CON LÓGICA INTELIGENTE) ---
 async function handleScanCode(code) {
     if (!currentEmployeeNumber) {
         showScanErrorToast('Falta # de Empleado');
@@ -4150,87 +4175,103 @@ async function handleScanCode(code) {
     }
 
     const fn = currentFileName;
-    const dataObj = excelDataGlobal[fn]; // Current manifest data in memory
+    const dataObj = excelDataGlobal[fn];
 
     if (!dataObj || dataObj.closedContainers?.[currentContenedor]) {
         showScanErrorToast('Contenedor cerrado');
         inputScanCode.value = "";
         inputScanCode.focus();
         return;
-    }currentUserRole
+    }
 
     const codeUpper = code.trim().toUpperCase();
     let targetRow = null;
 
-    // 1. Find ALL rows that match the SKU or European code in the current container (in-memory data)
-    const matchingRows = currentContainerRecords.filter(r =>
-        String(r.SKU || "").toUpperCase() === codeUpper ||
-        String(r.EUROPEO || "").toUpperCase() === codeUpper
-    );
+    const getPropCaseInsensitive = (obj, key) => {
+        if (!obj) return undefined;
+        const lowerKey = String(key).toLowerCase();
+        const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
+        return objKey ? obj[objKey] : undefined;
+    };
 
+    // 1. Se busca una coincidencia en el contenedor actual
+    const matchingRows = currentContainerRecords.filter(r => {
+        const skuValue = String(getPropCaseInsensitive(r, 'SKU') || '').toUpperCase();
+        const europeoValue = String(getPropCaseInsensitive(r, 'EUROPEO') || '').toUpperCase();
+
+        // Primero, se busca una coincidencia exacta con el SKU (esto no cambia)
+        if (skuValue === codeUpper) {
+            return true;
+        }
+
+        // --- INICIO DEL CAMBIO INTELIGENTE ---
+        // Si hay un código europeo en el registro, procedemos con la comparación inteligente
+        if (europeoValue) {
+            // Normalizamos ambos códigos: quitamos cualquier cero que tengan al principio.
+            // Ejemplo: '0123' se convierte en '123'
+            const normalizedScannedCode = codeUpper.replace(/^0+/, '');
+            const normalizedEuropeoValue = europeoValue.replace(/^0+/, '');
+            
+            // Comparamos las versiones normalizadas.
+            if (normalizedEuropeoValue === normalizedScannedCode) {
+                return true;
+            }
+        }
+        // --- FIN DEL CAMBIO INTELIGENTE ---
+
+        return false;
+    });
+
+    // El resto de la función (a partir de aquí) permanece exactamente igual que antes.
     if (matchingRows.length > 0) {
         targetRow = matchingRows.find(r => (Number(r.SCANNER) || 0) < (Number(r.SAP) || 0));
         if (!targetRow) {
-            targetRow = matchingRows[0]; // If all are complete, just increment the first match
+            targetRow = matchingRows[0];
         }
         targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) + 1;
 
     } else {
-        // 3. No matching row found. Prompt to add as a new item.
-        const { isConfirmed } = await showAddItemConfirmation(codeUpper);
+        const {
+            isConfirmed
+        } = await showAddItemConfirmation(codeUpper);
         if (!isConfirmed) {
             inputScanCode.value = "";
             inputScanCode.focus();
             return;
         }
-
-        // --- INICIO DE LA LÓGICA CLAVE PARA ARTÍCULOS NUEVOS AL ESCANEAR ---
-        let sectionForNewItem = "ARTICULO NUEVO"; // Default value
-
-        // Collect all valid sections from existing items in the current container
+        
+        let sectionForNewItem = "ARTICULO NUEVO";
         const validSectionsInContainer = new Set();
         currentContainerRecords.forEach(r => {
-            const sec = String(r.SECCION || "").trim().toUpperCase();
+            const sec = String(getPropCaseInsensitive(r, 'SECCION') || "").trim().toUpperCase();
             if (sec && !["ARTICULO NUEVO", "N/A", "147"].includes(sec)) {
                 validSectionsInContainer.add(sec);
             }
         });
 
         if (validSectionsInContainer.size > 0) {
-            // Pick the first valid section found
             sectionForNewItem = validSectionsInContainer.values().next().value;
-            console.log(`[handleScanCode] Inferred section for new item ${codeUpper} in ${currentContenedor}: ${sectionForNewItem}`);
-        } else {
-            console.log(`[handleScanCode] No valid section found for container ${currentContenedor}, using default: ${sectionForNewItem}`);
         }
-        // --- FIN DE LA LÓGICA CLAVE ---
-
-        // Get MANIFIESTO from an existing item or a general reference if currentContainerRecords is empty
-        const getPropLocal = (obj, key) => { // Local helper to ensure it's available here
-            if (!obj) return undefined;
-            const lowerKey = String(key).toLowerCase();
-            const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
-            return objKey ? obj[objKey] : undefined;
-        };
-        const refForManifiesto = currentContainerRecords[0] || (excelDataGlobal[fn]?.data?.length > 0 ? excelDataGlobal[fn].data[0] : {}); 
         
+        const refForManifiesto = currentContainerRecords[0] || (excelDataGlobal[fn]?.data?.length > 0 ? excelDataGlobal[fn].data[0] : {});
+
         targetRow = {
             FECHA: new Date(),
-            SECCION: sectionForNewItem, // <--- ASSIGN THE INFERRED SECTION HERE
-            MANIFIESTO: String(getPropLocal(refForManifiesto, 'MANIFIESTO') || "N/A"),
+            SECCION: sectionForNewItem,
+            MANIFIESTO: String(getPropCaseInsensitive(refForManifiesto, 'MANIFIESTO') || "N/A"),
             CONTENEDOR: currentContenedor,
-            DESCRIPCION: "ARTÍCULO NUEVO",
+            DESCRIPCION: "ARTÍCULO NUEVO (Añadido por escaneo)",
             SKU: codeUpper,
+            EUROPEO: "",
             SAP: 0,
             SCANNER: 1,
             ENTREGADO_A: currentEmployeeNumber
         };
-        dataObj.data.push(targetRow); // Add to global data
-        currentContainerRecords.push(targetRow); // Add to current container's view
+        dataObj.data.push(targetRow);
+        currentContainerRecords.push(targetRow);
         Swal.fire('¡Agregado!', `El artículo ${targetRow.SKU} se añadió al contenedor con sección ${targetRow.SECCION}.`, 'success');
     }
 
-    // Update metadata for tracking this specific scan
     Object.assign(targetRow, {
         LAST_SCANNED_BY: currentUser.email,
         FECHA_ESCANEO: new Date(),
@@ -4239,14 +4280,12 @@ async function handleScanCode(code) {
 
     const isContainerClosed = excelDataGlobal[fn]?.closedContainers?.[currentContenedor] || false;
     mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
-
-    showScanSuccessToast(targetRow.SKU, targetRow.SCANNER);
+    showScanSuccessToast(targetRow.SKU || codeUpper, targetRow.SCANNER);
 
     inputScanCode.value = "";
     inputScanCode.focus();
 
     try {
-        // Log the scan event to Firestore for reconstruction
         await db.collection('manifiestos').doc(fn).collection('scans').add({
             sku: targetRow.SKU,
             type: 'add',
@@ -4255,20 +4294,20 @@ async function handleScanCode(code) {
             employee: currentEmployeeNumber,
             user: currentUser.email,
             container: currentContenedor,
-            description: targetRow.DESCRIPCION, 
-            section: targetRow.SECCION // <--- CRUCIAL: SEND THE CORRECT SECTION TO FIRESTORE SCAN RECORD
+            description: targetRow.DESCRIPCION,
+            section: targetRow.SECCION
         });
 
-        // Update the manifest's general metadata (last user, updated time)
         await db.collection('manifiestos').doc(fn).set({
             lastUser: currentUser.email,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        }, {
+            merge: true
+        });
     } catch (error) {
         console.error("Error guardando escaneo en Firestore:", error);
         showScanErrorToast('Error de Red', 'El escaneo no se guardó. Reinténtalo.');
-        // Revert local change if Firebase update fails for consistency
-        targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) - 1; 
+        targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) - 1;
         if (targetRow.SCANNER === 0 && targetRow.SAP === 0) {
             currentContainerRecords = currentContainerRecords.filter(r => r !== targetRow);
             dataObj.data = dataObj.data.filter(r => r !== targetRow);
@@ -4276,7 +4315,7 @@ async function handleScanCode(code) {
         mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
     }
 }
-// --- FIN DE LA FUNCIÓN ACTUALIZADA: handleScanCode ---
+// --- FIN DE LA FUNCIÓN ACTUALIZADA ---
 function scanInputHandler() {
     let val = inputScanCode.value.trim().toUpperCase();
     // --- CAMBIO CLAVE ---

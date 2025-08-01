@@ -201,16 +201,48 @@
             </div>
         </section>
 
-        <section id="tools-section" class="fade-in-section hidden">
-            <hr class="my-4">
-            <h4><i class="bi bi-tools me-2"></i>2. Panel de Control</h4>
-            <div class="tools-panel">
-                <div id="filesManagementContainer" class="mb-4"></div>
-                <div id="bossFilterContainer" class="mb-4"></div>
-                <div id="syncStatus" class="text-center small text-muted">
+<section id="tools-section" class="fade-in-section hidden">
+    <hr class="my-4">
+    <h4><i class="bi bi-tools me-2"></i>2. Panel de Control</h4>
+
+    <div class="accordion" id="dashboardAccordion">
+        <div class="accordion-item" style="background-color: #f7f9fc; border-radius: 16px;">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne" style="border-radius: 16px;">
+                    <i class="bi bi-bar-chart-line-fill me-2"></i>
+                    Comparativa de Rendimiento (Histórico)
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#dashboardAccordion">
+                <div class="accordion-body">
+                    <div class="tools-panel">
+                        <div id="filesManagementContainer" class="mb-4"></div>
+                        <div id="bossFilterContainer" class="mb-4"></div>
+                        
+                        <div class="dashboard-controls text-center p-3 rounded-3" style="background-color: rgba(0,0,0,0.03);">
+                            <h6 class="fw-bold text-dark"><i class="bi bi-calendar2-range-fill me-2"></i>Generar Dashboard</h6>
+                            
+                            <button id="generarDashboardTotalBtn" class="btn btn-pill btn-save mb-3">
+                                <i class="bi bi-archive-fill me-2"></i>Analizar Historial Completo
+                            </button>
+
+                            <div class="row justify-content-center align-items-center g-2">
+                                <div class="col-md-4"><input type="date" id="fechaInicio" class="form-control form-control-sm"></div>
+                                <div class="col-md-4"><input type="date" id="fechaFin" class="form-control form-control-sm"></div>
+                                <div class="col-md-3">
+                                    <button id="generarDashboardRangoBtn" class="btn btn-pill btn-pill-sm btn-primary w-100">
+                                        <i class="bi bi-search"></i> Generar por Rango
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="syncStatus" class="text-center small text-muted mt-3"></div>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
+    </section>
 
         <section id="content-section" class="fade-in-section hidden">
             <hr class="my-4">
@@ -226,6 +258,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+
     
     <script src="main.js"></script>
 
