@@ -91,16 +91,16 @@ async function syncPendingChanges(isAutoSave = false) {
         const fileRef = AppState.selectedFileData?.ref;
         if (!fileRef) throw new Error("No hay un archivo de referencia seleccionado.");
         
-        const metadata = await fileRef.getMetadata();
-        const serverVersion = (metadata.customMetadata && metadata.customMetadata.version) || "1";
-        
-        if (serverVersion !== AppState.fileVersion && isAutoSave) {
-            console.warn("Conflicto de versiones detectado durante autoguardado. Se reintentará en el próximo cambio.");
-            AppState.isSyncing = false;
-            updateSyncStatus('error'); // Muestra un error para que el usuario sepa que su último cambio no se guardó
-            return;
-        } else if (serverVersion !== AppState.fileVersion) {
-             throw new Error("Conflicto de versiones. Por favor, recarga la página para obtener los cambios más recientes.");
+        // --- INICIO DEL CAMBIO CLAVE ---
+        // 1. Leemos los metadatos existentes ANTES de hacer cualquier cambio.
+        const currentMetadata = await fileRef.getMetadata();
+        const serverVersion = (currentMetadata.customMetadata && currentMetadata.customMetadata.version) || "1";
+        // Rescatamos la fecha de subida original. Si no existe, usamos la fecha de creación actual como respaldo.
+        const originalUploadDate = (currentMetadata.customMetadata && currentMetadata.customMetadata.originalUploadDate) || currentMetadata.timeCreated;
+        // --- FIN DEL CAMBIO CLAVE ---
+
+        if (serverVersion !== AppState.fileVersion) {
+           throw new Error("Conflicto de versiones. Por favor, recarga la página para obtener los cambios más recientes.");
         }
 
         const url = await fileRef.getDownloadURL();
@@ -112,35 +112,28 @@ async function syncPendingChanges(isAutoSave = false) {
         
         let excelData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
         
-        // --- INICIO DE LA CORRECCIÓN CLAVE ---
-        // Aplicamos los cambios pendientes a una COPIA de los datos originales
-        // para confirmar que realmente hay algo que guardar.
         let hasChanges = false;
         const updatesMap = new Map(Object.entries(AppState.pendingChanges));
-
         excelData.forEach(row => {
             const remision = row.Remisión?.toString();
             if (remision && updatesMap.has(remision)) {
                 const updates = updatesMap.get(remision);
                 for (const field in updates) {
-                    // Comparamos el valor del archivo original con el cambio pendiente
                     if (row[field] !== updates[field]) {
-                        row[field] = updates[field]; // Aplicamos el cambio
+                        row[field] = updates[field];
                         hasChanges = true;
                     }
                 }
             }
         });
-        // --- FIN DE LA CORRECCIÓN CLAVE ---
 
         if (!hasChanges) {
-            console.log("No se encontraron cambios netos para sincronizar.");
-            AppState.pendingChanges = {};
-            localStorage.removeItem('pendingChanges');
-            if (isAutoSave) updateSyncStatus('synced');
-            else Swal.close();
-            AppState.isSyncing = false;
-            return;
+             console.log("No se encontraron cambios netos para sincronizar.");
+             AppState.pendingChanges = {};
+             localStorage.removeItem('pendingChanges');
+             if (isAutoSave) updateSyncStatus('synced'); else Swal.close();
+             AppState.isSyncing = false;
+             return;
         }
 
         const newSheet = XLSX.utils.json_to_sheet(excelData);
@@ -149,10 +142,20 @@ async function syncPendingChanges(isAutoSave = false) {
         const newBlob = new Blob([wbout], { type: "application/octet-stream" });
         const newVersion = (parseInt(serverVersion) + 1).toString();
         
-        await fileRef.put(newBlob, { customMetadata: { version: newVersion } });
+        // --- INICIO DEL CAMBIO CLAVE ---
+        // 2. Preparamos los NUEVOS metadatos, asegurándonos de preservar la fecha original.
+        const newMetadata = {
+            customMetadata: {
+                'version': newVersion,
+                'originalUploadDate': originalUploadDate 
+            }
+        };
+        // --- FIN DEL CAMBIO CLAVE ---
+
+        await fileRef.put(newBlob, newMetadata); // Guardamos el archivo con los metadatos actualizados
         
-        AppState.fileVersion = newVersion; // Actualizamos la versión local
-        AppState.allRechazosEnExcel = excelData; // Actualizamos los datos en memoria con los guardados
+        AppState.fileVersion = newVersion;
+        AppState.allRechazosEnExcel = excelData;
         AppState.pendingChanges = {};
         localStorage.removeItem('pendingChanges');
         
@@ -248,8 +251,10 @@ document.addEventListener("DOMContentLoaded", () => {
 // ===== SECCIÓN MODIFICADA (INICIO) =====
 // Se ha mejorado el listener para que el ícono de comentario cambie de forma más visible.
 function setupEventListeners() {
+    // Listener para el botón de logout (Cerrar Sesión)
     document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
     
+    // Listener para el botón de confirmar selección de archivo
     document.getElementById("confirmFileSelection").addEventListener("click", () => {
         if (AppState.selectedFileData) {
             showAlert("success", "Archivo Confirmado", `Cargando reportes...`);
@@ -262,19 +267,15 @@ function setupEventListeners() {
         }
     });
 
-    // ===== INICIO DE LA SECCIÓN CORREGIDA =====
+    // Listener para la zona de carga de archivos (dropzone)
     const dropzone = document.getElementById("dropzone");
     if (dropzone) {
-        // Esta función ahora es más simple
         const handleFileSelect = (file) => {
             if (file) {
-                // Ya no llamamos a checkExistingFile().
-                // Directamente procesamos la subida del nuevo archivo.
                 handleFileUpload(file);
             }
         };
 
-        // El resto del listener no cambia
         dropzone.addEventListener("click", () => {
             if (!AppState.isAdmin) return;
             const fileInput = document.createElement("input");
@@ -283,13 +284,29 @@ function setupEventListeners() {
             fileInput.onchange = (e) => handleFileSelect(e.target.files[0]);
             fileInput.click();
         });
-        // Aquí también puedes agregar los listeners de 'dragover', 'dragleave', y 'drop' si los necesitas.
     }
-    // ===== FIN DE LA SECCIÓN CORREGIDA =====
 
-    document.getElementById("generarDashboardTotalBtn").addEventListener("click", () => generarDashboard());
-    document.getElementById("generarDashboardRangoBtn").addEventListener("click", generarDashboardPorRango);
+    // --- INICIO DE LA CORRECCIÓN ---
+    // Verificamos que cada botón exista antes de asignarle un listener.
 
+    const totalBtn = document.getElementById("generarDashboardTotalBtn");
+    if (totalBtn) {
+        totalBtn.addEventListener("click", () => generarDashboard());
+    }
+
+    const rangoBtn = document.getElementById("generarDashboardRangoBtn");
+    if (rangoBtn) {
+        rangoBtn.addEventListener("click", generarDashboardPorRango);
+    }
+
+    const auditoresBtn = document.getElementById("generarDashboardAuditoresBtn");
+    if (auditoresBtn) {
+        auditoresBtn.addEventListener("click", generarDashboardAuditores);
+    }
+    // --- FIN DE LA CORRECCIÓN ---
+
+
+    // Listener para acciones en la tabla (elegir/borrar foto)
     document.addEventListener("click", (e) => {
         const target = e.target.closest("[data-action]");
         if (!target) return;
@@ -302,34 +319,40 @@ function setupEventListeners() {
         }
     });
     
-    // ===== SECCIÓN MODIFICADA (INICIO) =====
-    document.addEventListener("change", (e) => { // Cambiamos de "input" a "change"
-        if (e.target.classList.contains("status-select")) { // Buscamos la nueva clase
+    // Listener para el guardado automático de cambios (Estado y Auditor)
+    document.addEventListener("change", (e) => {
+        if (e.target.classList.contains("status-select")) {
             const rowIndex = e.target.dataset.rowIndex;
             const newStatus = e.target.value;
-            
-            // Lógica para guardar el cambio
+
             if (AppState.rechazosGlobal[rowIndex]) {
                 const remision = AppState.rechazosGlobal[rowIndex].Remisión;
-                AppState.rechazosGlobal[rowIndex].Status = newStatus; // Guardamos en el campo 'Status'
-                queueChange(remision, 'Status', newStatus); // Encolamos el cambio para el campo 'Status'
-            }
-            
-            // Lógica para actualizar el badge de estado en el encabezado del acordeón
-            const headerBadge = document.querySelector(`#heading-${rowIndex} .badge`);
-            if(headerBadge) {
-                const statusColors = { /* ... (copia el mismo objeto de colores de renderRechazoItem) ... */ };
-                headerBadge.style.backgroundColor = statusColors[newStatus] || 'var(--gris-oscuro)';
-                headerBadge.textContent = newStatus;
-            }
+                const user = auth.currentUser;
+                if (!user) {
+                    showAlert("error", "Error de Sesión", "No se pudo identificar al usuario. Por favor, recarga la página.");
+                    return;
+                }
+                const auditorName = user.displayName || user.email;
 
-            // Lógica para el autoguardado (sin cambios)
-            if (autoSaveTimers[rowIndex]) clearTimeout(autoSaveTimers[rowIndex]);
-            autoSaveTimers[rowIndex] = setTimeout(() => syncPendingChanges(true), 2000);
+                AppState.rechazosGlobal[rowIndex].Status = newStatus;
+                AppState.rechazosGlobal[rowIndex].Auditor = auditorName;
+
+                queueChange(remision, 'Status', newStatus);
+                queueChange(remision, 'Auditor', auditorName);
+                
+                const headerBadge = document.querySelector(`#heading-${rowIndex} .badge`);
+                if(headerBadge) {
+                    const statusColors = { "Sí encontrada": "var(--verde-exito)", "No encontrada": "var(--rojo-peligro)", "Encontrada en exhibición": "var(--azul-info)", "Encontrada Merma": "#ff9800", "Sin Estado": "var(--gris-oscuro)" };
+                    headerBadge.style.backgroundColor = statusColors[newStatus] || 'var(--gris-oscuro)';
+                    headerBadge.textContent = newStatus;
+                }
+
+                if (autoSaveTimers[rowIndex]) clearTimeout(autoSaveTimers[rowIndex]);
+                autoSaveTimers[rowIndex] = setTimeout(() => syncPendingChanges(true), 2000);
+            }
         }
     });
 }
-
 /*****************************************************
  * ========== MANEJO DE ARCHIVOS (FIREBASE) ==========
  *****************************************************/
@@ -338,44 +361,42 @@ async function loadFilesFromFirebase() {
     try {
         const storageRef = storage.ref("uploads");
         const fileList = await storageRef.listAll();
-
-        // --- INICIO DEL CAMBIO CLAVE ---
-        // Filtramos la lista de archivos para incluir solo aquellos que contienen "rechazos" en su nombre.
-        // Usamos toLowerCase() para que no importe si es "Rechazos", "rechazos", etc.
         const rechazosItems = fileList.items.filter(item => 
             item.name.toLowerCase().includes('rechazos')
         );
-        // --- FIN DEL CAMBIO CLAVE ---
 
-        // Ahora, basamos todas las comprobaciones en la lista ya filtrada.
         if (rechazosItems.length === 0) {
             showAlert("warning", "Sin archivos", "No se encontró ningún reporte de 'Rechazos'. Un administrador debe subir el primero.");
-            // Ocultamos el panel de gestión si no hay archivos que gestionar
             const mgmtContainer = document.getElementById("filesManagementContainer");
             if (mgmtContainer) mgmtContainer.innerHTML = "";
             return;
         }
-
-        // Obtenemos los metadatos solo de los archivos de rechazos
+        
         const filesWithMetadata = await Promise.all(
             rechazosItems.map(async (item) => {
                 const metadata = await item.getMetadata();
+                
+                // --- INICIO DEL CAMBIO CLAVE ---
+                // Priorizamos nuestra fecha personalizada. Si no existe, usamos timeCreated.
+                const displayDate = (metadata.customMetadata && metadata.customMetadata.originalUploadDate) 
+                                    ? new Date(metadata.customMetadata.originalUploadDate)
+                                    : new Date(metadata.timeCreated);
+                // --- FIN DEL CAMBIO CLAVE ---
+
                 return {
                     name: item.name,
                     ref: item,
-                    timeCreated: new Date(metadata.timeCreated),
+                    timeCreated: displayDate, // Usamos la fecha correcta para mostrar
                     version: (metadata.customMetadata && metadata.customMetadata.version) || "1"
                 };
             })
         );
 
-        // Ordenamos los archivos del más reciente al más antiguo
         filesWithMetadata.sort((a, b) => b.timeCreated - a.timeCreated);
         
         renderFileSelectOptions(filesWithMetadata);
 
         if (AppState.isAdmin) {
-            // La función de gestión ya recibe la lista filtrada, por lo que no necesita cambios.
             renderFilesManagement(filesWithMetadata);
         }
         
@@ -386,42 +407,93 @@ async function loadFilesFromFirebase() {
 }
 
 function renderFileSelectOptions(files) { const container = document.getElementById("fileListContainer"); container.innerHTML = files.map(file => `<div class="card file-card mb-2" style="border-radius: 12px;"><div class="card-body d-flex justify-content-between align-items-center p-3"><div><i class="bi bi-file-earmark-excel-fill me-2 text-success fs-4"></i><span class="fw-bold">${file.name}</span></div><button class="btn btn-pill btn-pill-sm btn-select">Seleccionar</button></div></div>`).join(''); container.querySelectorAll('.btn-select').forEach((button, index) => { button.addEventListener('click', () => { AppState.selectedFileData = files[index]; document.getElementById("selectedFileFeedback").textContent = `Archivo seleccionado: ${files[index].name}`; document.getElementById("confirmFileSelection").disabled = false; container.querySelectorAll('.file-card').forEach(card => card.style.border = "1px solid var(--gris-medio)"); button.closest('.file-card').style.border = "2px solid var(--rosa-principal)"; }); }); }
+
 async function renderFilesManagement(files) {
     if (!files.length) return;
 
     const container = document.getElementById("filesManagementContainer");
 
-    const filesHTML = files.map(file => `
-        <tr>
-            <td>
-                <i class="bi bi-file-earmark-excel-fill text-success"></i>
-                <span class="fw-bold ms-2">${file.name}</span>
+    const filesHTML = await Promise.all(files.map(async file => {
+        // Obtenemos la URL de descarga para cada archivo
+        const downloadUrl = await file.ref.getDownloadURL();
+        
+        const fileSize = file.ref.metadata?.size;
+        const formattedSize = fileSize ? `${(fileSize / 1024).toFixed(1)} KB` : 'N/A';
+
+        const dateOptions = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+        const formattedDate = file.timeCreated.toLocaleDateString('es-MX', dateOptions);
+
+        return `
+        <tr class="align-middle animate__animated animate__fadeIn">
+            <td class="ps-3 py-3">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0 me-3">
+                <div class="file-icon-wrapper bg-success-subtle text-success rounded-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="bi bi-file-earmark-excel-fill fs-5"></i>
+                </div>
+                </div>
+                <div class="flex-grow-1">
+                <div class="fw-bold text-dark">${file.name}</div>
+                <small class="text-muted">${formattedSize}</small>
+                </div>
+            </div>
             </td>
-            <td><span class="badge bg-secondary">Versión: ${file.version}</span></td>
-            <td>${file.timeCreated.toLocaleDateString()}</td>
-            <td class="text-end">
-                <button class="btn btn-sm btn-outline-danger btn-pill-sm admin-delete-btn" data-filename="${file.name}" title="Eliminar archivo">
-                    <i class="bi bi-trash"></i> Eliminar
+            <td class="py-3 text-center">
+            <span class="badge fs-6 bg-primary-subtle text-primary-emphasis rounded-pill fw-semibold border border-primary-subtle">v${file.version}</span>
+            </td>
+            <td class="py-3">
+            <span class="text-muted small">${formattedDate}</span>
+            </td>
+            <td class="text-end pe-3 py-3">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-ghost-secondary rounded-circle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más opciones">
+                <i class="bi bi-three-dots-vertical fs-5"></i>
                 </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3">
+                <li>
+                    <a class="dropdown-item d-flex align-items-center gap-2" href="${downloadUrl}" target="_blank" download="${file.name}">
+                    <i class="bi bi-download"></i> Descargar
+                    </a>
+                </li>
+                <li>
+                    <button class="dropdown-item d-flex align-items-center gap-2" onclick="navigator.clipboard.writeText('${downloadUrl}'); showAlert('success', '¡Enlace copiado!')">
+                    <i class="bi bi-link-45deg"></i> Copiar enlace
+                    </button>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <button class="dropdown-item d-flex align-items-center gap-2 text-danger admin-delete-btn" data-filename="${file.name}">
+                    <i class="bi bi-trash3-fill"></i> Eliminar Archivo
+                    </button>
+                </li>
+                </ul>
+            </div>
             </td>
         </tr>
-    `).join('');
+        `;
+    }));
 
     container.innerHTML = `
-        <div class="file-management-card">
-            <h5 class="mb-3 text-dark"><i class="bi bi-shield-lock-fill me-2"></i>Gestión de Archivos (Admin)</h5>
-            <div class="table-responsive">
-                <table class="table table-hover table-sm small">
-                    <thead>
-                        <tr>
-                            <th>Nombre del Archivo</th>
-                            <th>Versión</th>
-                            <th>Fecha de Subida</th>
-                            <th class="text-end">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>${filesHTML}</tbody>
-                </table>
+        <div class="card shadow-sm border-0 rounded-4 mt-4">
+            <div class="card-header bg-light-subtle border-0 pt-3 pb-2 rounded-top-4">
+                <h5 class="mb-0 fw-bold text-secondary">
+                    <i class="bi bi-folder-gear me-2"></i>Gestión de Archivos (Admin)
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-borderless align-middle mb-0">
+                        <thead class="text-muted small text-uppercase">
+                            <tr>
+                                <th class="ps-3 py-3">Nombre del Archivo</th>
+                                <th class="py-3">Versión</th>
+                                <th class="py-3">Fecha de Subida</th>
+                                <th class="text-end pe-3 py-3">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>${filesHTML.join('')}</tbody>
+                    </table>
+                </div>
             </div>
         </div>`;
 
@@ -432,7 +504,7 @@ async function renderFilesManagement(files) {
 
             const { isConfirmed } = await Swal.fire({
                 title: '¿Estás seguro?',
-                text: `El archivo "${fileName}" se borrará permanentemente.`,
+                text: `El archivo "${fileName}" se borrará permanentemente. Esta acción no se puede deshacer.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: 'var(--rojo-peligro)',
@@ -440,6 +512,7 @@ async function renderFilesManagement(files) {
                 confirmButtonText: 'Sí, ¡Eliminar!',
                 cancelButtonText: 'Cancelar'
             });
+
 
             if (isConfirmed) {
                 Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -453,8 +526,8 @@ async function renderFilesManagement(files) {
             }
         });
     });
-
-}async function handleFileUpload(file) {
+}
+async function handleFileUpload(file) {
     const { isConfirmed } = await Swal.fire({
         title: '¿Subir este archivo?',
         text: `Se cargará "${file.name}" como un nuevo reporte de rechazos.`,
@@ -464,15 +537,21 @@ async function renderFilesManagement(files) {
     });
 
     if (isConfirmed) {
-        // --- INICIO DEL CAMBIO CLAVE ---
-        // Generamos un nombre de archivo único con fecha y hora
         const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
         const newFileName = `Rechazos_${timestamp}.xlsx`;
-        
         const fileRef = storage.ref(`uploads/${newFileName}`);
+
+        // --- INICIO DEL CAMBIO CLAVE ---
+        // Preparamos los metadatos personalizados con la fecha de subida original.
+        const metadata = {
+            customMetadata: {
+                'version': '1',
+                'originalUploadDate': new Date().toISOString() // "Tatuamos" la fecha
+            }
+        };
         // --- FIN DEL CAMBIO CLAVE ---
 
-        const uploadTask = fileRef.put(file, { customMetadata: { version: "1" } });
+        const uploadTask = fileRef.put(file, metadata); // Subimos el archivo con los nuevos metadatos
 
         Swal.fire({
             title: 'Subiendo archivo...',
@@ -493,11 +572,12 @@ async function renderFilesManagement(files) {
             () => {
                 Swal.close();
                 showAlert("success", "Éxito", "Archivo subido correctamente.");
-                setTimeout(() => location.reload(), 1500); // Recargamos para ver el nuevo archivo en la lista
+                setTimeout(() => location.reload(), 1500);
             }
         );
     }
-}async function sendFileByEmail() { if (!AppState.selectedFileData?.ref) { return showAlert("error", "Error", "No hay un archivo seleccionado."); } const fileUrl = await AppState.selectedFileData.ref.getDownloadURL(); const subject = encodeURIComponent("Archivo de Rechazos - Liverpool"); const body = encodeURIComponent(`Hola,\n\nSe comparte el enlace de descarga para el archivo de rechazos actualizado:\n\n${fileUrl}\n\nSaludos.`); window.location.href = `mailto:?subject=${subject}&body=${body}`; }
+}
+async function sendFileByEmail() { if (!AppState.selectedFileData?.ref) { return showAlert("error", "Error", "No hay un archivo seleccionado."); } const fileUrl = await AppState.selectedFileData.ref.getDownloadURL(); const subject = encodeURIComponent("Archivo de Rechazos - Liverpool"); const body = encodeURIComponent(`Hola,\n\nSe comparte el enlace de descarga para el archivo de rechazos actualizado:\n\n${fileUrl}\n\nSaludos.`); window.location.href = `mailto:?subject=${subject}&body=${body}`; }
 
 /*****************************************************
  * ========== MANEJO DE FOTOS (VERSIÓN MEJORADA) ==========
@@ -659,7 +739,6 @@ function renderRechazoItem(rechazo, i) {
     const user = AppState.usuariosData.find(u => u.Usuarios && u.Usuarios.toString().trim().toLowerCase() === usuarioRechazo.toLowerCase());
     const usuarioName = user?.Nombre || usuarioRechazo;
 
-    // Lógica de Estado (Nueva)
     const estadosPosibles = ["Sin Estado", "Sí encontrada", "No encontrada", "Encontrada en exhibición", "Encontrada Merma"];
     const estadoActual = rechazo.Status || "Sin Estado";
 
@@ -675,7 +754,6 @@ function renderRechazoItem(rechazo, i) {
         `<option value="${opt}" ${estadoActual === opt ? 'selected' : ''}>${opt}</option>`
     ).join('');
 
-    // Lógica de URLs de Búsqueda (Restaurada)
     let liverpoolUrl = "#";
     if (/^\d{10,}$/.test(Sku)) {
         liverpoolUrl = `https://www.liverpool.com.mx/tienda/pdp/producto/${Sku}`;
@@ -688,8 +766,7 @@ function renderRechazoItem(rechazo, i) {
     let googleQuerySku = Sku && Sku.toString().trim() !== "" ? Sku : descripcionSku;
     const googleUrlSku = `https://www.google.com/search?q=${encodeURIComponent(googleQuerySku)}`;
     const googleUrlDesc = descripcionSku && descripcionSku !== "N/A" ? `https://www.google.com/search?q=${encodeURIComponent(descripcionSku)}` : "#";
-
-    // Función auxiliar para crear filas de detalles (Restaurada)
+    
     const createDetailRow = (icon, label, value) => `
         <div class="detail-row d-flex justify-content-between align-items-center py-2 px-1 flex-wrap">
             <div class="d-flex align-items-center gap-2">
@@ -700,7 +777,6 @@ function renderRechazoItem(rechazo, i) {
         </div>
     `;
 
-    // Estructura HTML Completa
     return `
     <div class="accordion-item report-card shadow-sm mb-3 rounded-4 border-0" id="item-${_rowIndex}">
         <h2 class="accordion-header" id="heading-${_rowIndex}">
@@ -760,39 +836,48 @@ function renderRechazoItem(rechazo, i) {
     </div>
     `;
 }
-// NUEVA FUNCIÓN para manejar el clic del botón de rango de fechas
+
 async function generarDashboardPorRango() {
-    const fechaInicioStr = document.getElementById('fechaInicio').value;
-    const fechaFinStr = document.getElementById('fechaFin').value;
+    const fechaInicioStr = document.getElementById('fechaInicio').value; // e.g., "2025-08-01"
+    const fechaFinStr = document.getElementById('fechaFin').value;     // e.g., "2025-08-03"
 
     if (!fechaInicioStr || !fechaFinStr) {
-        showAlert("warning", "Fechas incompletas", "Por favor, selecciona una fecha de inicio y una de fin.");
-        return;
+        return showAlert("warning", "Fechas incompletas", "Por favor, selecciona una fecha de inicio y una de fin.");
     }
 
-    const fechaInicio = new Date(fechaInicioStr);
-    // Añadimos un día a la fecha de fin para incluir todo el día seleccionado
-    const fechaFin = new Date(fechaFinStr);
-    fechaFin.setDate(fechaFin.getDate() + 1);
+    // --- CORRECCIÓN CLAVE: Creación de fechas en UTC para evitar problemas de zona horaria ---
+    const inicioParts = fechaInicioStr.split('-').map(Number); // [2025, 8, 1]
+    const finParts = fechaFinStr.split('-').map(Number);     // [2025, 8, 3]
 
-    if (fechaInicio > fechaFin) {
-        showAlert("error", "Rango inválido", "La fecha de inicio no puede ser posterior a la fecha de fin.");
-        return;
+    // Creamos la fecha de inicio a la medianoche del día seleccionado, en tiempo universal (UTC)
+    // El mes en JS es 0-indexado, por eso restamos 1.
+    const fechaInicio = new Date(Date.UTC(inicioParts[0], inicioParts[1] - 1, inicioParts[2]));
+
+    // Creamos la fecha de fin para que apunte al inicio del DÍA SIGUIENTE.
+    // Esto hace la comparación más segura y fácil (usaremos '<' en lugar de '<=')
+    const fechaFin = new Date(Date.UTC(finParts[0], finParts[1] - 1, finParts[2]));
+    fechaFin.setUTCDate(fechaFin.getUTCDate() + 1);
+    // --- FIN DE LA CORRECCIÓN ---
+
+    if (fechaInicio >= fechaFin) {
+        return showAlert("error", "Rango inválido", "La fecha de inicio no puede ser posterior a la fecha de fin.");
     }
     
-    // Llamamos a la función principal pasándole las fechas
+    // Llamamos a la función principal pasándole el rango de fechas corregido.
     generarDashboard({ fechaInicio, fechaFin });
 }
 
 async function generarDashboard(dateRange = null) {
+    // Muestra un popup de carga mientras se procesan los datos.
     Swal.fire({
-        title: 'Generando Comparativa de Rendimiento...',
-        html: 'Analizando el historial completo de reportes.',
+        title: 'Generando Reporte...',
+        html: dateRange ? `Filtrando datos...` : 'Analizando historial completo...',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
     });
 
     try {
+        // Carga todos los archivos de "Rechazos" desde Firebase Storage.
         const storageRef = storage.ref("uploads");
         const fileList = await storageRef.listAll();
         const rechazosItems = fileList.items.filter(item => item.name.toLowerCase().includes('rechazos'));
@@ -808,37 +893,75 @@ async function generarDashboard(dateRange = null) {
             const workbook = XLSX.read(data, { type: "array" });
             const sheet = workbook.Sheets["Rechazos"];
             if (sheet) {
+                // Acumula los datos de todos los archivos en un solo arreglo.
                 todosLosRechazosHistoricos.push(...XLSX.utils.sheet_to_json(sheet, { defval: "" }));
             }
         }));
-        
-        const statsHistoricas = agregarDatosPorJefatura(todosLosRechazosHistoricos);
 
-        if (statsHistoricas.length === 0) {
-            return Swal.fire("Sin Datos", "No se encontraron jefaturas en los archivos para generar el reporte.", "info");
+        let datosParaDashboard = todosLosRechazosHistoricos;
+
+        // Si se proporcionó un rango de fechas, se filtra el arreglo de datos.
+        if (dateRange) {
+            // Función interna para interpretar fechas de Excel de forma segura (números o texto).
+            const _parseDateForCompare = (excelDate) => {
+                if (!excelDate) return null;
+
+                // Caso 1: La fecha es un número (formato serial de Excel).
+                if (typeof excelDate === 'number') {
+                    // Convierte el número de serie de Excel a milisegundos UTC.
+                    const utcMilliseconds = (excelDate - 25569) * 86400 * 1000;
+                    return new Date(utcMilliseconds);
+                }
+
+                // Caso 2: La fecha es un string.
+                if (typeof excelDate === 'string') {
+                    const parsed = Date.parse(excelDate);
+                    if (isNaN(parsed)) return null;
+                    return new Date(parsed);
+                }
+
+                return null;
+            };
+
+            datosParaDashboard = todosLosRechazosHistoricos.filter(rechazo => {
+                const fechaRechazo = _parseDateForCompare(rechazo["Fecha y Hora Rechazo"]);
+                if (!fechaRechazo) return false;
+                
+                // Compara si la fecha del rechazo está dentro del rango seleccionado.
+                // Es inclusivo para el inicio y exclusivo para el fin (cubre el día completo).
+                return fechaRechazo >= dateRange.fechaInicio && fechaRechazo < dateRange.fechaFin;
+            });
         }
 
-        // Encontrar el máximo de piezas rechazadas para usarlo como el 100% de "mal desempeño"
+        // Si después de filtrar no quedan datos, muestra una alerta.
+        if (datosParaDashboard.length === 0) {
+             return Swal.fire("Sin Resultados", "No se encontraron registros en el rango de fechas seleccionado.", "info");
+        }
+
+        // Procesa los datos filtrados para agruparlos por jefatura y calcular el rendimiento.
+        const statsHistoricas = agregarDatosPorJefatura(datosParaDashboard);
+        if (statsHistoricas.length === 0) {
+             return Swal.fire("Sin Datos", "No se encontraron jefaturas en los datos filtrados para generar el reporte.", "info");
+        }
+
         const maxPiezasRechazadas = Math.max(...statsHistoricas.map(j => j.totalPiezas).filter(p => p > 0));
 
-        // Calcular el porcentaje de rendimiento para cada jefe
         const datosConRendimiento = statsHistoricas.map(jefeData => {
             const rendimiento = maxPiezasRechazadas > 0 ? 100 - (jefeData.totalPiezas / maxPiezasRechazadas) * 100 : 100;
             return {
                 ...jefeData,
                 rendimiento: parseFloat(rendimiento.toFixed(1))
             };
-        }).sort((a, b) => b.rendimiento - a.rendimiento); // Ordenar por mejor rendimiento
+        }).sort((a, b) => b.rendimiento - a.rendimiento);
 
-        renderDashboardUI(datosConRendimiento);
+        // Llama a la función que dibuja la interfaz del dashboard con los datos finales.
+        renderDashboardUI(datosConRendimiento, dateRange);
 
     } catch (error) {
         console.error("Error generando dashboard:", error);
-        Swal.fire("Error", "No se pudo generar el dashboard. Revisa la consola.", "error");
+        Swal.fire("Error", "No se pudo generar el dashboard. Revisa la consola para más detalles.", "error");
     }
 }
-// La función auxiliar 'agregarDatosPorJefatura' no necesita cambios
-
 
 function agregarDatosPorJefatura(rechazos) {
     const stats = {};
@@ -870,57 +993,185 @@ function agregarDatosPorJefatura(rechazos) {
         jefe, ...data
     }));
 }
+// Función para generar iniciales a partir de un nombre
+function generarIniciales(nombre) {
+    if (!nombre || typeof nombre !== 'string') return '?';
+    return nombre.split(' ').map(palabra => palabra[0]).slice(0, 2).join('').toUpperCase();
+}
 
+// Función para obtener un color en una escala de verde a rojo
+function obtenerColorParaValor(valor, maxValor) {
+    if (maxValor === 0) return '#f8f9fa'; // Color neutral si no hay piezas
+    const porcentaje = Math.min(valor / maxValor, 1);
+    // Interpola de verde (120) a rojo (0) en el espectro HSL
+    const hue = (1 - porcentaje) * 120;
+    return `hsl(${hue}, 80%, 90%)`; // Tono pastel para el fondo
+}
+async function generarDashboardAuditores() {
+    Swal.fire({
+        title: 'Generando Dashboard de Auditores...',
+        html: 'Analizando el rendimiento de los auditores.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // Carga todos los datos históricos
+        const storageRef = storage.ref("uploads");
+        const fileList = await storageRef.listAll();
+        const rechazosItems = fileList.items.filter(item => item.name.toLowerCase().includes('rechazos'));
+
+        if (rechazosItems.length === 0) {
+            return Swal.fire("Sin Datos", "No se encontraron archivos de 'Rechazos' para analizar.", "info");
+        }
+        
+        let todosLosRechazosHistoricos = [];
+        await Promise.all(rechazosItems.map(async (fileRef) => {
+            const url = await fileRef.getDownloadURL();
+            const data = await (await fetch(url)).arrayBuffer();
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheet = workbook.Sheets["Rechazos"];
+            if (sheet) {
+                todosLosRechazosHistoricos.push(...XLSX.utils.sheet_to_json(sheet, { defval: "" }));
+            }
+        }));
+
+        // Procesa los datos para contar las auditorías por usuario
+        const statsAuditores = {};
+        todosLosRechazosHistoricos.forEach(rechazo => {
+            const auditor = rechazo.Auditor;
+            if (auditor) {
+                if (!statsAuditores[auditor]) {
+                    statsAuditores[auditor] = { totalAuditado: 0 };
+                }
+                statsAuditores[auditor].totalAuditado += 1;
+            }
+        });
+
+        const datosParaDashboard = Object.entries(statsAuditores).map(([auditor, data]) => ({
+            auditor,
+            ...data
+        })).sort((a, b) => b.totalAuditado - a.totalAuditado);
+
+        if (datosParaDashboard.length === 0) {
+            return Swal.fire("Sin Datos", "No se encontraron registros con auditor asignado.", "info");
+        }
+
+        // Llama a la función que crea la interfaz del dashboard
+        renderAuditorDashboardUI(datosParaDashboard);
+
+    } catch (error) {
+        console.error("Error generando dashboard de auditores:", error);
+        Swal.fire("Error", "No se pudo generar el dashboard. Revisa la consola.", "error");
+    }
+}
+
+/**
+ * Dibuja la interfaz (la ventana emergente) para el dashboard de auditores.
+ */
+function renderAuditorDashboardUI(data) {
+    const modalHTML = `
+        <style>
+            .auditor-card {
+                display: flex;
+                align-items: center;
+                padding: 1rem;
+                margin-bottom: 0.75rem;
+                border-radius: 12px;
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+            }
+            .auditor-rank {
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: #adb5bd;
+                width: 50px;
+            }
+            .auditor-name {
+                flex-grow: 1;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+            .auditor-total {
+                font-size: 1.75rem;
+                font-weight: 700;
+                color: #E6007E; /* Rosa Liverpool */
+            }
+        </style>
+        <div>
+            ${data.map((item, index) => `
+                <div class="auditor-card">
+                    <div class="auditor-rank">#${index + 1}</div>
+                    <div class="auditor-name">${item.auditor}</div>
+                    <div class="auditor-total">${item.totalAuditado.toLocaleString()}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    Swal.fire({
+        title: '🏆 <strong>Rendimiento de Auditores</strong>',
+        html: modalHTML,
+        width: '800px',
+        showCloseButton: true,
+        showConfirmButton: false,
+    });
+}
 function renderDashboardUI(dataConRendimiento, dateRange) {
-    let title = "<strong>Dashboard de Productividad (Historial Completo)</strong>";
+    let title = '🏆 <strong>Dashboard de Productividad</strong> (Historial Completo)';
     if (dateRange) {
-        const fechaFinCorrecta = new Date(dateRange.fechaFin.getTime() - 86400000); 
-        title = `<strong>Dashboard de Productividad (${dateRange.fechaInicio.toLocaleDateString('es-MX')} - ${fechaFinCorrecta.toLocaleDateString('es-MX')})</strong>`;
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        title = `📊 <strong>Dashboard de Productividad</strong> <br><span class="fw-normal fs-6 text-muted">${dateRange.fechaInicio.toLocaleDateString('es-MX', options)} - ${dateRange.fechaFin.toLocaleDateString('es-MX', options)}</span>`;
     }
 
     const modalHTML = `
         <style>
-            .nav-pills .nav-link { font-weight: 600; color: #495057; border-radius: 50px; padding: 0.5rem 1.5rem; transition: all 0.3s ease; }
-            .nav-pills .nav-link.active { color: #fff; background-color: var(--rosa-principal); box-shadow: 0 4px 15px rgba(230, 0, 126, 0.4); }
-            .tab-content { background-color: #f8f9fa; border-radius: 16px; margin-top: 1rem; }
-            .leaderboard-item { display: flex; align-items: center; padding: 0.5rem; margin-bottom: 0.5rem; }
-            .leaderboard-name { font-weight: 500; color: #343a40; width: 180px; text-align: right; margin-right: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .progress-container { flex-grow: 1; display: flex; align-items: center; }
-            .progress { height: 25px; width: 100%; border-radius: 5px; background-color: #e9ecef; overflow: visible; position: relative; }
-            .progress-bar { font-weight: bold; font-size: 0.8rem; text-align: left; padding-left: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.15) inset; }
-            .percentage-label { font-weight: 700; color: #343a40; margin-left: 1rem; width: 50px; }
-            .stat-card-lg { background-color: #fff; border-radius: 16px; padding: 1.5rem; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.07); transition: all 0.3s ease; }
-            .stat-card-lg:hover { transform: translateY(-5px); box-shadow: 0 12px 30px rgba(0,0,0,0.1); }
-            .stat-card-lg .icon { font-size: 3rem; }
-            .stat-card-lg .total { font-size: 3.5rem; font-weight: 700; line-height: 1.1; }
-            .chart-card { background-color: #fff; padding: 1.5rem; border-radius: 16px; height: 300px; box-shadow: 0 8px 25px rgba(0,0,0,0.07); }
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+            .swal2-container { font-family: 'Poppins', sans-serif; }
+            :root { --rosa-liverpool: #E6007E; --azul-profundo: #0b1f48; --gris-claro: #f4f7fa; --gris-borde: #e9ecef; }
+            .dashboard-main-container { background-color: var(--gris-claro); padding: 1rem; border-radius: 1rem; }
+            .nav-pills .nav-link { font-weight: 600; color: #5a6a7d; border-radius: 8px; padding: 0.5rem 1rem; transition: all 0.3s ease; }
+            .nav-pills .nav-link.active { color: #fff; background-color: var(--rosa-liverpool); box-shadow: 0 4px 12px rgba(230, 0, 126, 0.4); }
+            .dashboard-card { background-color: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 25px rgba(0,0,0,0.05); height: 100%; }
+            
+            /* -- Estilos Rendimiento -- */
+            @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+            .rendimiento-card {
+                background-color: #ffffff;
+                background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23f0f2f5' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            }
+            .podium-container { display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: flex-end; gap: 1rem; text-align: center; }
+            .podium-item { background: linear-gradient(145deg, #f9f9f9, #e7e7e7); padding: 1.5rem 1rem; border-radius: 16px; border: 1px solid var(--gris-borde); box-shadow: 0 8px 16px rgba(0,0,0,0.1); transition: transform 0.3s ease; animation: slideUp 0.5s ease-out forwards; }
+            .podium-item:hover { transform: translateY(-10px) scale(1.05) !important; }
+            .podium-item.rank-1 { order: 2; transform: scale(1.15); z-index: 1; border-color: #ffd700; background: linear-gradient(145deg, #fff9e6, #ffd700); animation-delay: 0.2s; }
+            .podium-item.rank-2 { order: 1; animation-delay: 0.1s; }
+            .podium-item.rank-3 { order: 3; animation-delay: 0s; }
+            .podium-rank { font-size: 2.5rem; font-weight: 700; }
+            .podium-rank.rank-1 { color: #e6a200; } .podium-rank.rank-2 { color: #a0a0a0; } .podium-rank.rank-3 { color: #c57b3f; }
+            .leaderboard-list { list-style: none; padding: 0; margin-top: 2rem; }
+            .leaderboard-item { display: flex; align-items: center; padding: 0.75rem; border-radius: 8px; transition: background-color 0.2s; }
+            .leaderboard-item:hover { background-color: var(--gris-claro); }
+
+            /* -- Estilos Análisis de Estados -- */
+            .analysis-chart-container { height: 600px; }
         </style>
-        <div class="container-fluid">
-            <ul class="nav nav-pills justify-content-center mb-3" id="dashboardTab" role="tablist">
-                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#rendimiento" type="button"><i class="bi bi-trophy-fill me-2"></i>Rendimiento</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#desglose" type="button"><i class="bi bi-pie-chart-fill me-2"></i>Análisis de Estados</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabla" type="button"><i class="bi bi-table me-2"></i>Tabla Completa</button></li>
+        <div class="dashboard-main-container">
+            <ul class="nav nav-pills justify-content-center mb-4" id="dashboardTab" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#rendimiento">Rendimiento</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#desglose">Análisis por Jefatura</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabla">Tabla de Datos</button></li>
             </ul>
-            <div class="tab-content p-3" id="dashboardTabContent">
-                <div class="tab-pane fade show active" id="rendimiento" role="tabpanel">
-                    <div class="p-3 rounded-3" style="background-color: #fff; box-shadow: 0 8px 25px rgba(0,0,0,0.07);">
-                        </div>
+            <div class="tab-content" id="dashboardTabContent">
+                <div class="tab-pane fade show active dashboard-card rendimiento-card" id="rendimiento">
+                    <div id="podium-section" class="mb-4"></div>
+                    <div id="leaderboard-section"></div>
                 </div>
-                <div class="tab-pane fade" id="desglose" role="tabpanel">
-                    <div class="row g-4">
-                        <div class="col-12 col-md-6">
-                            <div class="stat-card-lg text-success"><i class="bi bi-check-circle-fill icon"></i><div id="totalSiEncontrada" class="total">0</div><div>Piezas "Sí Encontradas"</div></div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <div class="stat-card-lg text-danger"><i class="bi bi-x-circle-fill icon"></i><div id="totalNoEncontrada" class="total">0</div><div>Piezas "No Encontradas"</div></div>
-                        </div>
-                        <div class="col-12 mt-4"><hr></div>
-                        <div class="col-12 col-xl-6"><div class="chart-card"><canvas id="exhibicionChart"></canvas></div></div>
-                        <div class="col-12 col-xl-6"><div class="chart-card"><canvas id="mermaChart"></canvas></div></div>
+                <div class="tab-pane fade" id="desglose">
+                    <div class="dashboard-card">
+                       <div class="analysis-chart-container" id="analysis-chart-wrapper"></div>
                     </div>
                 </div>
-                <div class="tab-pane fade" id="tabla" role="tabpanel">
-                    </div>
+                <div class="tab-pane fade" id="tabla"></div>
             </div>
         </div>
     `;
@@ -933,88 +1184,57 @@ function renderDashboardUI(dataConRendimiento, dateRange) {
         showCloseButton: true,
         showConfirmButton: false,
         didOpen: () => {
-            // --- Lógica para Pestaña 1: Rendimiento ---
-            const rendimientoContainer = document.querySelector('#rendimiento .p-3');
-            rendimientoContainer.innerHTML = dataConRendimiento.map((item) => {
-                let colorClass;
-                if (item.rendimiento >= 85) colorClass = 'bg-success';
-                else if (item.rendimiento >= 60) colorClass = 'bg-warning text-dark';
-                else colorClass = 'bg-danger';
-                return `
-                <div class="leaderboard-item">
-                    <div class="leaderboard-name" title="${item.jefe}">${item.jefe}</div>
-                    <div class="progress-container">
-                        <div class="progress">
-                            <div class="progress-bar ${colorClass}" role="progressbar" style="width: ${item.rendimiento}%;"></div>
-                        </div>
-                        <div class="percentage-label">${item.rendimiento.toFixed(1)}%</div>
-                    </div>
-                </div>`;
-            }).join('');
+            // --- Pestaña 1: Rendimiento (Con mejoras visuales) ---
+            // La lógica JS no cambia, las mejoras son principalmente en CSS.
+            const top3 = dataConRendimiento.slice(0, 3);
+            const a_partir_del_4 = dataConRendimiento.slice(3);
+            document.getElementById('podium-section').innerHTML = `<div class="podium-container">${top3.map((item, index) => `<div class="podium-item rank-${index + 1}"><div class="podium-rank rank-${index + 1}"><i class="bi bi-trophy-fill"></i></div><div class="h5">${item.jefe}</div><div class="display-6 fw-bold">${item.rendimiento}%</div><small class="text-muted">${item.totalPiezas.toLocaleString()} pzas.</small></div>`).join('')}</div>`;
+            document.getElementById('leaderboard-section').innerHTML = `<ul class="leaderboard-list">${a_partir_del_4.map((item, index) => `<li class="leaderboard-item"><strong class="me-3">${index + 4}.</strong><div class="flex-grow-1 h6 mb-0">${item.jefe}</div><strong class="fs-5">${item.rendimiento}%</strong></li>`).join('')}</ul>`;
 
-            // --- Lógica para Pestaña 2: Desglose de Estados ---
-            const createStatusChart = (canvasId, statusName, color, data, titleText) => {
-                const chartData = data
-                    .map(j => ({ jefe: j.jefe, piezas: j.statusPieces[statusName] || 0 }))
-                    .filter(j => j.piezas > 0)
-                    .sort((a, b) => b.piezas - a.piezas);
+            // --- Pestaña 2: Análisis de Estados (Lógica completamente nueva) ---
+            const analysisWrapper = document.getElementById('analysis-chart-wrapper');
+            analysisWrapper.innerHTML = '<canvas id="stackedBarChart"></canvas>';
 
-                if (chartData.length === 0) {
-                    document.getElementById(canvasId).parentElement.innerHTML = `<div class="d-flex align-items-center justify-content-center h-100 text-muted">No hay datos para "${statusName}".</div>`;
-                    return;
-                }
-                new Chart(document.getElementById(canvasId).getContext('2d'), {
-                    type: 'bar',
-                    data: {
-                        labels: chartData.map(d => d.jefe),
-                        datasets: [{ label: 'Piezas', data: chartData.map(d => d.piezas), backgroundColor: color, borderRadius: 4 }]
-                    },
-                    options: {
-                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { display: false }, title: { display: true, text: titleText, font: { weight: 'bold', size: 14 } }, tooltip: { callbacks: { label: (c) => ` Piezas: ${c.raw.toLocaleString('es-MX')}` } } },
-                        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-                    }
-                });
+            const labels = dataConRendimiento.map(d => d.jefe);
+            const statusColors = {
+                'Sí encontrada': 'rgba(40, 167, 69, 0.8)',
+                'No encontrada': 'rgba(220, 53, 69, 0.8)',
+                'Encontrada en exhibición': 'rgba(13, 110, 253, 0.8)',
+                'Encontrada Merma': 'rgba(255, 193, 7, 0.8)',
+                'Sin Estado': 'rgba(108, 117, 125, 0.8)'
             };
-            
-            document.getElementById('totalSiEncontrada').textContent = dataConRendimiento.reduce((sum, j) => sum + j.statusPieces['Sí encontrada'], 0).toLocaleString('es-MX');
-            document.getElementById('totalNoEncontrada').textContent = dataConRendimiento.reduce((sum, j) => sum + j.statusPieces['No encontrada'], 0).toLocaleString('es-MX');
-            createStatusChart('exhibicionChart', 'Encontrada en exhibición', 'rgba(13, 110, 253, 0.8)', dataConRendimiento, 'Top Jefes - En Exhibición');
-            createStatusChart('mermaChart', 'Encontrada Merma', 'rgba(255, 193, 7, 0.8)', dataConRendimiento, 'Top Jefes - En Merma');
 
-            // --- Lógica para Pestaña 3: Tabla de Datos ---
-            const tablaContainer = document.querySelector('#tabla');
-            const tablaHTML = `
-                <h5 class="fw-bold"><i class="bi bi-table me-2"></i>Resumen por Jefatura</h5>
-                <div class="table-responsive" style="max-height: 450px;">
-                    <table class="table table-striped table-hover table-sm">
-                        <thead class="table-dark" style="position: sticky; top: 0;">
-                            <tr>
-                                <th>Jefatura</th>
-                                <th class="text-center">Sí Encontrada</th>
-                                <th class="text-center">No Encontrada</th>
-                                <th class="text-center">Exhibición</th>
-                                <th class="text-center">Merma</th>
-                                <th class="text-center">Total Reportes</th>
-                                <th class="text-center">Total Piezas</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${dataConRendimiento.map(item => `
-                                <tr>
-                                    <td>${item.jefe}</td>
-                                    <td class="text-center">${item.statusCounts['Sí encontrada'].toLocaleString('es-MX')}</td>
-                                    <td class="text-center">${item.statusCounts['No encontrada'].toLocaleString('es-MX')}</td>
-                                    <td class="text-center">${item.statusCounts['Encontrada en exhibición'].toLocaleString('es-MX')}</td>
-                                    <td class="text-center">${item.statusCounts['Encontrada Merma'].toLocaleString('es-MX')}</td>
-                                    <td class="text-center fw-bold">${item.totalReportes.toLocaleString('es-MX')}</td>
-                                    <td class="text-center table-secondary fw-bold">${item.totalPiezas.toLocaleString('es-MX')}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>`;
-            tablaContainer.innerHTML = tablaHTML;
+            const datasets = Object.keys(statusColors).map(status => {
+                return {
+                    label: status,
+                    data: dataConRendimiento.map(jefe => jefe.statusPieces[status] || 0),
+                    backgroundColor: statusColors[status],
+                };
+            });
+
+            new Chart(document.getElementById('stackedBarChart').getContext('2d'), {
+                type: 'bar',
+                data: { labels, datasets },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: { display: true, text: 'Desglose de Piezas Rechazadas por Jefatura', font: { size: 18, weight: 'bold' } },
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { stacked: true, title: { display: true, text: 'Cantidad de Piezas' } },
+                        y: { stacked: true }
+                    }
+                }
+            });
+
+            // --- Pestaña 3: Tabla de Datos (La lógica no cambia) ---
+            const tablaContainer = document.getElementById('tabla');
+            const maxPiezas = Math.max(...dataConRendimiento.map(item => item.totalPiezas));
+            tablaContainer.innerHTML = `<div class="dashboard-card"><div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Jefatura</th><th class="text-center">Sí Encontrada</th><th class="text-center">No Encontrada</th><th class="text-center">Exhibición</th><th class="text-center">Merma</th><th class="text-center">Total Piezas</th></tr></thead><tbody>${dataConRendimiento.map(item => `<tr><td class="fw-bold">${item.jefe}</td><td class="text-center">${item.statusCounts['Sí encontrada'].toLocaleString()}</td><td class="text-center">${item.statusCounts['No encontrada'].toLocaleString()}</td><td class="text-center">${item.statusCounts['Encontrada en exhibición'].toLocaleString()}</td><td class="text-center">${item.statusCounts['Encontrada Merma'].toLocaleString()}</td><td class="text-center fw-bolder" style="background-color: ${obtenerColorParaValor(item.totalPiezas, maxPiezas)};">${item.totalPiezas.toLocaleString()}</td></tr>`).join('')}</tbody></table></div></div>`;
         }
     });
 }
