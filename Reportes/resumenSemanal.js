@@ -21,7 +21,9 @@ let currentUser = null;
 let currentUserStore = null;
 let currentUserRole = null;
 let excelDataGlobal = {}; // Cache for manifest data
-const SUPER_ADMINS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2","3PWbUNLeaRYbVamF7QLHvwufeoy1","m910mvAxDjSRmG40QyQu0pFiTZ52"];
+const SUPER_ADMINS = ["OaieQ6cGi7TnW0nbxvlk2oyLaER2", "doxhVo1D3aYQqqkqgRgfJ4qcKcU2", "3PWbUNLeaRYbVamF7QLHvwufeoy1", "m910mvAxDjSRmG40QyQu0pFiTZ52"];
+
+
 
 // === STATE VARIABLES FOR DASHBOARD FILTERS AND CHARTS ===
 let currentStatusFilterManifiestos = 'Todos';
@@ -35,11 +37,6 @@ let seccionesMap = new Map(); // Map of sections to jefaturas, global for access
 let jefaturasConDatosEnPeriodo = new Set(); // Set of jefaturas with activity in the period
 
 
-// ==============================================================================
-// === HELPER FUNCTIONS (DEFINED BEFORE generateWeeklySummary) ===
-// These functions are defined here to ensure they are available in the global scope
-// before `generateWeeklySummary` or other functions call them.
-// ==============================================================================
 
 // Helper to get object properties regardless of case
 const getProp = (obj, key) => {
@@ -120,7 +117,7 @@ async function reconstructManifestDataFromFirebase(manifestoId) {
         });
 
         const scansSnapshot = await db.collection('manifiestos').doc(manifestoId).collection('scans').orderBy('scannedAt').get();
-        
+
         scansSnapshot.docs.forEach(doc => {
             const scan = doc.data();
             const skuUpper = String(scan.sku || "").toUpperCase();
@@ -153,7 +150,7 @@ async function reconstructManifestDataFromFirebase(manifestoId) {
                 }
                 // If no reference section is found, it remains "ARTICULO NUEVO".
                 // --- END OF INHERITANCE LOGIC ---
-                
+
                 const refBaseRow = baseData.length > 0 ? baseData[0] : {};
                 record = {
                     'MANIFIESTO': getProp(refBaseRow, 'MANIFIESTO') || 'N/A',
@@ -748,30 +745,32 @@ const renderJefaturaFilter = () => {
         });
     });
 };
-
 const renderJefaturas = () => {
     const grid = document.getElementById('jefaturas-grid');
-    const chartContainer = document.getElementById('jefaturas-comparativa-container'); // Container for the new chart
+    const chartContainer = document.getElementById('jefaturas-comparativa-container');
 
     if (!grid || !chartContainer) return;
 
-    // Only sort and display managers that actually have data in the report
     const jefesOrdenados = Object.entries(report.jefaturas)
-        .filter(([_, data]) => data.sap > 0 || data.scan > 0) // Only managers with activity
-        .sort((a, b) => (b[1].scan / b[1].sap) - (a[1].scan / a[1].sap)); // Sort by progress %
+        .filter(([_, data]) => data.sap > 0 || data.scan > 0)
+        .sort((a, b) => {
+            const avanceA = a[1].sap > 0 ? (a[1].piezasEncontradas / a[1].sap) * 100 : 100;
+            const avanceB = b[1].sap > 0 ? (b[1].piezasEncontradas / b[1].sap) * 100 : 100;
+            return avanceB - avanceA;
+        });
 
-    // --- NEW FUNCTION FOR COMPARATIVE CHART ---
     const renderJefaturasComparativaChart = (jefes) => {
         chartContainer.innerHTML = '<canvas id="jefaturasComparativaChart"></canvas>';
         const ctx = document.getElementById('jefaturasComparativaChart').getContext('2d');
 
         const labels = jefes.map(([nombre, _]) => nombre);
-        const dataPoints = jefes.map(([_, data]) => data.sap > 0 ? (data.scan / data.sap) * 100 : 100);
+        const dataPoints = jefes.map(([_, data]) => data.sap > 0 ? (data.piezasEncontradas / data.sap) * 100 : 100);
 
         const backgroundColors = dataPoints.map(avance => {
-            if (avance < 50) return 'rgba(225, 0, 152, 0.7)'; // liverpool-pink
-            if (avance < 90) return 'rgba(240, 173, 78, 0.7)'; // Orange
-            return 'rgba(149, 193, 31, 0.7)'; // liverpool-green
+            if (avance < 50) return 'rgba(227, 0, 0, 0.7)';
+            if (avance < 75) return 'rgba(245, 130, 32, 0.7)';
+            if (avance < 100) return 'rgba(254, 225, 1, 0.7)';
+            return 'rgba(149, 193, 31, 0.7)';
         });
 
         new Chart(ctx, {
@@ -788,7 +787,7 @@ const renderJefaturas = () => {
                 }]
             },
             options: {
-                indexAxis: 'y', // This makes the chart horizontal
+                indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
@@ -818,7 +817,6 @@ const renderJefaturas = () => {
                             }
                         }
                     },
-                    // To display the value above each bar
                     datalabels: {
                         anchor: 'end',
                         align: 'end',
@@ -830,44 +828,116 @@ const renderJefaturas = () => {
                     }
                 }
             },
-            // You need to register the datalabels plugin if you don't have it globally
             plugins: [ChartDataLabels],
         });
     };
 
-    // --- EXISTING LOGIC (SLIGHTLY MODIFIED) ---
-
     if (jefesOrdenados.length === 0) {
-        chartContainer.innerHTML = ''; // Clear the chart if no data
+        chartContainer.innerHTML = '';
         grid.innerHTML = '<p class="text-center text-muted col-12 mt-5">No se encontraron datos de jefaturas con actividad en este periodo.</p>';
         return;
     }
 
-    // First, render the new comparative chart with the sorted data
     renderJefaturasComparativaChart(jefesOrdenados);
 
-    // Then, render the individual cards as before
     grid.innerHTML = jefesOrdenados.map(([nombreJefe, data]) => {
         const chartId = `chart-jefe-${String(nombreJefe || '').replace(/[^a-zA-Z0-9]/g, '')}`;
-        const seccionesHTML = data.secciones.sort((a, b) => b.avance - a.avance).map(s => `
-            <li>
-                <span class="section-name">${String(s.nombre || 'N/A').trim()}</span>
-                <span class="badge rounded-pill" style="background-color: ${s.avance < 50 ? 'var(--liverpool-pink)' : s.avance < 90 ? '#f0ad4e' : 'var(--liverpool-green)'}; min-width: 50px;">${s.avance.toFixed(0)}%</span>
-            </li>
-        `).join('');
+        const avanceTotalJefatura = data.sap > 0 ? (data.piezasEncontradas / data.sap) * 100 : 100;
 
-        const avanceTotalJefatura = data.sap > 0 ? (data.scan / data.sap) * 100 : 100;
+        const seccionesHTML = data.secciones.sort((a, b) => b.avance - a.avance).map(s => {
+            const avance = s.avance;
+            const avanceRedondeado = Math.round(avance);
+
+            const isCompleted = s.faltantes === 0 && s.sap > 0;
+            const colorAvance = isCompleted ? 'var(--liverpool-green)' : (avanceRedondeado < 50 ? '#E30000' : (avanceRedondeado < 75 ? '#F58220' : '#FEE101'));
+            const progressColorClass = isCompleted ? 'progress-green' : (avanceRedondeado < 50 ? 'progress-red' : (avanceRedondeado < 75 ? 'progress-orange' : 'progress-yellow'));
+
+            const showButton = s.faltantes > 0;
+
+            const porcentajeTexto = isCompleted ? '100%' : `${Math.floor(avance)}%`;
+
+            const sanitizedJefe = String(nombreJefe || 'N/A').trim();
+            const sanitizedSeccion = String(s.nombre || 'N/A').trim();
+            const sanitizedDescripcion = String(s.descripcion || s.nombre).trim();
+
+            const detailButtonHTML = showButton ? `
+        <button 
+            class="btn-view-details" 
+            onclick="mostrarDetalleFaltantes('${sanitizedJefe}', '${sanitizedSeccion}')" 
+            title="Ver detalle de faltantes para la sección ${sanitizedSeccion}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+            </svg>
+        </button>
+    ` : `<div class="btn-placeholder"></div>`;
+
+            return `
+        <li class="jefatura-secciones-list-item">
+            <div class="section-content-wrapper">
+                <div class="section-details">
+                    <span class="section-name" title="${sanitizedDescripcion}">${sanitizedSeccion}</span>
+                    <span class="section-stats">${s.piezasEncontradas.toLocaleString('es-MX')} / ${s.sap.toLocaleString('es-MX')} pzs</span>
+                </div>
+                <div class="section-progress-container">
+                    <div class="custom-progress-bar">
+                        <div class="custom-progress-fill ${progressColorClass}" style="width: ${avance.toFixed(0)}%;"></div>
+                    </div>
+                    <span class="progress-text" style="color: ${colorAvance};">${porcentajeTexto}</span>
+                </div>
+            </div>
+            ${detailButtonHTML}
+        </li>
+    `;
+        }).join('');
+
+        const avanceRedondeadoTotal = Math.round(avanceTotalJefatura);
+        const isJefaturaCompleted = data.faltantes === 0 && data.sap > 0;
+        const colorAvance = isJefaturaCompleted ? 'var(--liverpool-green)' : (avanceRedondeadoTotal < 50 ? '#E30000' : (avanceRedondeadoTotal < 75 ? '#F58220' : '#FEE101'));
+
+        const totalPiezasJefatura = (data.piezasEncontradas || 0) + (data.excedentes || 0);
+        const kpiColorClassFaltantes = data.faltantes > 0 ? 'text-danger' : 'text-success';
+        const kpiColorClassExcedentes = data.excedentes > 0 ? 'text-warning' : 'text-muted';
+
+        const numManifestos = data.manifiestosConSecciones?.size || 0;
+        const numSecciones = data.secciones?.length || 0;
 
         return `
-            <div class="jefatura-card">
-                <div class="jefatura-header">
-                    <div class="jefatura-chart-container"><canvas id="${chartId}"></canvas></div>
-                    <div class="jefatura-title">
-                        <h5>${String(nombreJefe || 'N/A').trim()}</h5>
-                        <span class="stats-summary">${(data.scan || 0).toLocaleString('es-MX')} / ${(data.sap || 0).toLocaleString('es-MX')} pzs escaneadas</span>
-                    </div>
+            <div class="jefatura-card" style="--progress-color: ${colorAvance};">
+            <div class="jefatura-header">
+                <div class="jefatura-chart-container">
+                <canvas id="${chartId}"></canvas>
                 </div>
-                <ul class="jefatura-secciones-list">${seccionesHTML}</ul>
+                <div class="jefatura-title">
+                <h5>${String(nombreJefe || 'N/A').trim()}</h5>
+                <div class="stats-summary">
+                    <span><i class="bi bi-journal-text me-1"></i> ${numManifestos} Manifiesto(s)</span>
+                    <span class="ms-3"><i class="bi bi-diagram-3-fill me-1"></i> ${numSecciones} Sección(es)</span>
+                </div>
+                </div>
+            </div>
+
+            <div class="jefatura-kpi-list">
+                <div class="kpi-item">
+                <span class="kpi-label"><i class="bi bi-box-seam me-2"></i>Piezas SAP</span>
+                <span class="kpi-value">${(data.sap || 0).toLocaleString('es-MX')}</span>
+                </div>
+                <div class="kpi-item">
+                <span class="kpi-label"><i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>Faltantes</span>
+                <span class="kpi-value ${kpiColorClassFaltantes}">${(data.faltantes || 0).toLocaleString('es-MX')}</span>
+                </div>
+                <div class="kpi-item">
+                <span class="kpi-label"><i class="bi bi-plus-circle-dotted me-2 text-warning"></i>Excedentes</span>
+                <span class="kpi-value ${kpiColorClassExcedentes}">${(data.excedentes || 0).toLocaleString('es-MX')}</span>
+                </div>
+            </div>
+
+            <details class="jefatura-details-wrapper">
+                <summary class="jefatura-summary">
+                <span>Ver Desglose de Secciones</span>
+                <i class="bi bi-chevron-down"></i>
+                </summary>
+                <ul class="jefatura-secciones-list mt-2">${seccionesHTML}</ul>
+            </details>
             </div>`;
     }).join('');
 
@@ -875,8 +945,10 @@ const renderJefaturas = () => {
         jefesOrdenados.forEach(([nombreJefe, data]) => {
             const doughnutCtx = document.getElementById(`chart-jefe-${String(nombreJefe || '').replace(/[^a-zA-Z0-9]/g, '')}`)?.getContext('2d');
             if (doughnutCtx) {
-                const avance = data.sap > 0 ? (data.scan / data.sap) * 100 : 100;
-                const colorAvance = avance < 50 ? 'var(--liverpool-pink)' : avance < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
+                const avance = data.sap > 0 ? (data.piezasEncontradas / data.sap) * 100 : 100;
+                const avanceRedondeado = Math.round(avance);
+                const isCompleted = data.faltantes === 0 && data.sap > 0;
+                const colorAvance = isCompleted ? 'var(--liverpool-green)' : (avanceRedondeado < 50 ? '#E30000' : (avanceRedondeado < 75 ? '#F58220' : '#FEE101'));
                 new Chart(doughnutCtx, {
                     type: 'doughnut',
                     data: {
@@ -903,7 +975,7 @@ const renderJefaturas = () => {
                             ctx.fillStyle = colorAvance;
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
-                            ctx.fillText(`${avance.toFixed(0)}%`, width / 2, height / 2);
+                            ctx.fillText(isCompleted ? '100%' : `${Math.floor(avance)}%`, width / 2, height / 2);
                             ctx.save();
                         }
                     }]
@@ -912,7 +984,6 @@ const renderJefaturas = () => {
         });
     }, 100);
 };
-
 const renderSecciones = (filtroJefe = 'Todos') => {
     const grid = document.getElementById('secciones-grid-container');
     if (!grid) return;
@@ -927,8 +998,7 @@ const renderSecciones = (filtroJefe = 'Todos') => {
 
     grid.innerHTML = seccionesFiltradas.sort((a, b) => b[1].sap - a[1].sap).map(([nombre, data]) => {
         const avance = data.sap > 0 ? (data.scan / data.sap * 100) : 100;
-        const progressColorClass = avance < 50 ? 'progress-pink' : avance < 90 ? 'progress-yellow' : 'progress-green';
-
+        const progressColorClass = avance < 50 ? 'progress-red' : (avance < 75 ? 'progress-orange' : (avance < 100 ? 'progress-yellow' : 'progress-green'));
         return `<div class="col">
             <div class="section-card-compact">
                 <div class="section-name" title="${String(data.descripcion || 'Sin Descripción').trim()}">${String(nombre || 'N/A').trim()}</div>
@@ -1057,7 +1127,7 @@ const renderManifestDetail = (manifestId) => {
     const manifestTotalSAP = Object.values(manifest.seccionesResumen).reduce((sum, s) => sum + (s.totalSap || 0), 0);
     const manifestTotalSCAN = Object.values(manifest.seccionesResumen).reduce((sum, s) => sum + (s.totalScan || 0), 0);
     const manifestAvanceOverall = manifestTotalSAP > 0 ? (manifestTotalSCAN / manifestTotalSAP) * 100 : 100;
-    const colorManifestAvance = manifestAvanceOverall < 50 ? 'var(--liverpool-pink)' : (manifestAvanceOverall < 90 ? '#f0ad4e' : 'var(--liverpool-green)');
+    const colorManifestAvance = manifestAvanceOverall < 50 ? '#E30000' : (manifestAvanceOverall < 75 ? '#F58220' : (manifestAvanceOverall < 100 ? '#FEE101' : 'var(--liverpool-green)'));
 
     const jefaturasEnEsteManifiesto = new Set();
     for (const seccionKey in manifest.seccionesResumen) {
@@ -1182,7 +1252,6 @@ const renderSeccionesInManifestDetail = (manifestId) => {
     filteredSectionsByJefatura.forEach(([seccionNombre, data]) => {
         if (data.byContenedor && Object.keys(data.byContenedor).length > 0) {
             for (const cont in data.byContenedor) {
-                // Corrected: changed 'data.byVendedor[cont].scan' to 'data.byContenedor[cont].scan'
                 if (data.byContenedor[cont].sap > 0 || data.byContenedor[cont].scan > 0 || data.byContenedor[cont].faltantes > 0 || data.byContenedor[cont].excedentes > 0) {
                     contenedoresRelevantes.add(cont);
                 }
@@ -1214,7 +1283,6 @@ const renderSeccionesInManifestDetail = (manifestId) => {
     });
 
     const sortedSectionsToDisplay = filteredSectionsByJefatura.filter(([seccionNombre, data]) => {
-        // Simplified and made safer:
         const containerData = data.byContenedor?.[currentContenedorFilterManifiestosDetalle];
 
         if (currentContenedorFilterManifiestosDetalle === 'Todos') {
@@ -1222,7 +1290,6 @@ const renderSeccionesInManifestDetail = (manifestId) => {
         } else if (currentContenedorFilterManifiestosDetalle === 'N/A (Sin Cont.)') {
             return (!data.byContenedor || Object.keys(data.byContenedor).length === 0) && (data.totalSap > 0 || data.totalScan > 0 || Object.values(data.byContenedor || {}).some(c => c.faltantes > 0 || c.excedentes > 0));
         } else {
-            // Ensure containerData exists before accessing its properties
             return (containerData && (containerData.sap > 0 || containerData.scan > 0 || containerData.faltantes > 0 || containerData.excedentes > 0));
         }
     }).sort((a, b) => {
@@ -1237,11 +1304,8 @@ const renderSeccionesInManifestDetail = (manifestId) => {
         return avanceB - avanceA;
     });
 
-    // Moved the setTimeout block outside the if/else for rendering HTML
     if (sortedSectionsToDisplay.length > 0) {
         seccionesGrid.innerHTML = sortedSectionsToDisplay.map(([seccionNombre, data]) => {
-            // seccionInfo is correctly defined here, inside the map function,
-            // where it is actually needed for generating HTML elements.
             const seccionInfo = seccionesMap.get(seccionNombre.toUpperCase()) || {
                 jefatura: 'Sin Asignar',
                 descripcion: 'Descripción no encontrada',
@@ -1252,9 +1316,8 @@ const renderSeccionesInManifestDetail = (manifestId) => {
             const currentFaltantes = (currentSap - currentScan) > 0 ? (currentSap - currentScan) : 0;
             const currentExcedentes = (currentScan - currentSap) > 0 ? (currentScan - currentSap) : 0;
 
-
             const avanceSeccion = currentSap > 0 ? (currentScan / currentSap) * 100 : 100;
-            const colorAvanceSeccion = avanceSeccion < 50 ? 'var(--liverpool-pink)' : avanceSeccion < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
+            const colorAvanceSeccion = avanceSeccion < 50 ? '#E30000' : (avanceSeccion < 75 ? '#F58220' : (avanceSeccion < 100 ? '#FEE101' : 'var(--liverpool-green)'));
             const chartId = `chart-manifest-${String(manifest.id || '').replace(/[^a-zA-Z0-9]/g, '')}-seccion-${String(seccionNombre || '').replace(/[^a-zA-Z0-9]/g, '')}-${String(currentContenedorFilterManifiestosDetalle || '').replace(/[^a-zA-Z0-9]/g, '')}`;
 
             return `
@@ -1267,8 +1330,8 @@ const renderSeccionesInManifestDetail = (manifestId) => {
                         </div>
                         <div class="section-counts">
                             ${(currentScan || 0).toLocaleString('es-MX')} / ${(currentSap || 0).toLocaleString('es-MX')} pzs
-                            ${currentFaltantes > 0 ? `<br><span style="color: var(--liverpool-pink);">Faltantes: ${currentFaltantes.toLocaleString('es-MX')}</span>` : ''}
-                            ${currentExcedentes > 0 ? `<br><span style="color: #f0ad4e;">Excedentes: ${currentExcedentes.toLocaleString('es-MX')}</span>` : ''}
+                            ${currentFaltantes > 0 ? `<br><span style="color: #E30000;">Faltantes: ${currentFaltantes.toLocaleString('es-MX')}</span>` : ''}
+                            ${currentExcedentes > 0 ? `<br><span style="color: #F58220;">Excedentes: ${currentExcedentes.toLocaleString('es-MX')}</span>` : ''}
                         </div>
                     </div>
                 </div>
@@ -1287,7 +1350,7 @@ const renderSeccionesInManifestDetail = (manifestId) => {
                 const currentScan = (currentContenedorFilterManifiestosDetalle === 'Todos' ? (data.totalScan || 0) : (data.byContenedor[currentContenedorFilterManifiestosDetalle]?.scan || 0));
 
                 const avanceSeccion = currentSap > 0 ? (currentScan / currentSap) * 100 : 100;
-                const colorAvanceSeccion = avanceSeccion < 50 ? 'var(--liverpool-pink)' : avanceSeccion < 90 ? '#f0ad4e' : 'var(--liverpool-green)';
+                const colorAvanceSeccion = avanceSeccion < 50 ? '#E30000' : (avanceSeccion < 75 ? '#F58220' : (avanceSeccion < 100 ? '#FEE101' : 'var(--liverpool-green)'));
                 new Chart(doughnutCtx, {
                     type: 'doughnut',
                     data: {
@@ -1510,6 +1573,10 @@ async function generarResumenSemanal() {
 
     const [startDateStr, endDateStr] = dateRange;
 
+    // **AÑADE ESTAS DOS LÍNEAS**
+    report.startDate = startDateStr;
+    report.endDate = endDateStr;
+
     // 2. Show loading SweetAlert while data is processed
     Swal.fire({
         title: '<span style="font-weight:700;color:#E10098;">Analizando Datos...</span>',
@@ -1520,12 +1587,12 @@ async function generarResumenSemanal() {
 
     try {
         // 3. Load Secciones.xlsx data
-        seccionesMap = new Map(); // Clear map before filling
+        seccionesMap = new Map();
         try {
             const seccionesURL = await storage.ref('ExcelManifiestos/Secciones.xlsx').getDownloadURL();
             const seccionesBuffer = await (await fetch(seccionesURL)).arrayBuffer();
             const seccionesWB = XLSX.read(seccionesBuffer, { type: 'array' });
-            const seccionesData = XLSX.utils.sheet_to_json(seccionesWB.Sheets['Jefatura']); // Assumes 'Jefatura' sheet
+            const seccionesData = XLSX.utils.sheet_to_json(seccionesWB.Sheets['Jefatura']);
             seccionesData.forEach(row => {
                 const seccionKey = String(getProp(row, 'Seccion') || '').trim();
                 if (seccionKey) {
@@ -1545,7 +1612,6 @@ async function generarResumenSemanal() {
         // 4. Define date range for Firebase query
         const [startY, startM, startD] = startDateStr.split('-').map(Number);
         const startDate = new Date(startY, startM - 1, startD, 0, 0, 0, 0);
-
         const [endY, endM, endD] = endDateStr.split('-').map(Number);
         const endDate = new Date(endY, endM - 1, endD, 23, 59, 59, 999);
 
@@ -1563,9 +1629,10 @@ async function generarResumenSemanal() {
         }
 
         // 6. Initialize the `report` object to store aggregated data
-        report = { // Assign to the global `report`
+        report = {
             totalSAP: 0,
             totalSCAN: 0,
+            piezasEncontradasTotales: 0,
             manifiestos: {},
             usuarios: {},
             secciones: {},
@@ -1583,6 +1650,10 @@ async function generarResumenSemanal() {
                 document.getElementById('loading-message').innerHTML = `Cargando inteligencia de secciones y procesando manifiestos...<br>Procesando ${index + 1} de ${totalManifestsInSnapshot} manifiestos...<br>Por favor, espera.`;
 
                 const reconstructed = await reconstructManifestDataFromFirebase(doc.id);
+                if (!reconstructed) {
+                    console.warn(`[generarResumenSemanal] Skipping manifest ${doc.id} due to reconstruction failure.`);
+                    return null;
+                }
                 const manifestData = reconstructed.data;
 
                 const contenedoresUnicos = new Set();
@@ -1615,20 +1686,20 @@ async function generarResumenSemanal() {
                     };
                     const jefatura = seccionInfo.jefatura;
 
-                    // General Aggregation Logic for Sections and Totals
+                    // Lógica de agregación para el reporte global
                     if (!report.secciones[seccionKey]) {
                         report.secciones[seccionKey] = {
-                            sap: 0, scan: 0, skus: 0, faltantes: 0, excedentes: 0,
+                            sap: 0, scan: 0, piezasEncontradas: 0, faltantes: 0, excedentes: 0,
                             jefatura: jefatura, descripcion: seccionInfo.descripcion, asistente: seccionInfo.asistente
                         };
                     }
                     report.secciones[seccionKey].sap += sap;
                     report.secciones[seccionKey].scan += scan;
-                    report.secciones[seccionKey].skus++;
-                    if (scan < sap) report.secciones[seccionKey].faltantes += (sap - scan);
-                    if (scan > sap) report.secciones[seccionKey].excedentes += (scan - sap);
+                    report.secciones[seccionKey].piezasEncontradas += Math.min(sap, scan);
+                    report.secciones[seccionKey].faltantes += Math.max(0, sap - scan);
+                    report.secciones[seccionKey].excedentes += Math.max(0, scan - sap);
 
-                    // Aggregation Logic per Manifest
+                    // Lógica de agregación por manifiesto
                     if (!manifestInfo.seccionesResumen[seccionKey]) {
                         manifestInfo.seccionesResumen[seccionKey] = {
                             totalSap: 0, totalScan: 0, byContenedor: {}, jefatura: jefatura
@@ -1648,17 +1719,21 @@ async function generarResumenSemanal() {
 
                     report.totalSAP += sap;
                     report.totalSCAN += scan;
+                    report.piezasEncontradasTotales += Math.min(sap, scan);
 
-                    // CORRECTED Logic for Missing and Excess
                     const diferencia = scan - sap;
 
                     if (diferencia < 0) {
-                        if(scan === 0) {
-                            report.skusSinEscanear.push({
-                                sku: sku, desc: desc, sap: sap,
-                                manifiesto: { id: manifestInfo.id, numero: manifestInfo.numero }
-                            });
-                        }
+                        report.skusSinEscanear.push({
+                            sku: sku,
+                            desc: desc,
+                            sap: sap,
+                            faltante: Math.abs(diferencia),
+                            manifiesto: { id: manifestInfo.id, numero: manifestInfo.numero },
+                            contenedor: contenedor,
+                            seccion: seccionKey,
+                            jefatura: jefatura
+                        });
                     } else if (diferencia > 0) {
                         report.skusConExcedentes.push({
                             sku: sku,
@@ -1671,7 +1746,6 @@ async function generarResumenSemanal() {
                         });
                     }
 
-                    // User Aggregation Logic
                     if (user !== 'N/A' && scan > 0) {
                         if (!report.usuarios[user]) report.usuarios[user] = { scans: 0, manifests: new Map() };
                         report.usuarios[user].scans += scan;
@@ -1679,9 +1753,7 @@ async function generarResumenSemanal() {
                         report.usuarios[user].manifests.get(manifestInfo.id).scans += scan;
                     }
                 });
-                
                 return manifestInfo;
-                
             } catch (innerError) {
                 console.error(`Error processing manifest ${doc.id}:`, innerError);
                 return { id: doc.id, error: innerError.message || 'Unknown error processing' };
@@ -1690,7 +1762,7 @@ async function generarResumenSemanal() {
 
         const results = await Promise.allSettled(manifestPromises);
 
-        report.failedManifests = results.filter(r => r.status === 'rejected').map(r => r.reason);
+        report.failedManifests = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value && r.value.error)).map(r => r.reason || r.value);
         results.filter(r => r.status === 'fulfilled' && r.value !== null && !r.value.error)
             .map(r => r.value)
             .forEach(man => { report.manifiestos[man.id] = man; });
@@ -1705,6 +1777,7 @@ async function generarResumenSemanal() {
                 report.jefaturas[jefe] = {
                     sap: 0,
                     scan: 0,
+                    piezasEncontradas: 0,
                     faltantes: 0,
                     excedentes: 0,
                     skus: 0,
@@ -1714,14 +1787,34 @@ async function generarResumenSemanal() {
             }
             report.jefaturas[jefe].sap += seccionData.sap;
             report.jefaturas[jefe].scan += seccionData.scan;
+            report.jefaturas[jefe].piezasEncontradas += seccionData.piezasEncontradas;
             report.jefaturas[jefe].faltantes += seccionData.faltantes;
             report.jefaturas[jefe].excedentes += seccionData.excedentes;
-            report.jefaturas[jefe].skus += seccionData.skus;
+            report.jefaturas[jefe].skus++;
+
+            // LÓGICA DE CÁLCULO DE AVANCE CORREGIDA Y ROBUSTA
+            let avanceSeccionCalculado = 0;
+            if (seccionData.sap > 0) {
+                // Si hay faltantes, el avance NUNCA es 100%
+                if (seccionData.faltantes > 0) {
+                    avanceSeccionCalculado = (seccionData.piezasEncontradas / seccionData.sap) * 100;
+                } else {
+                    // Si no hay faltantes, el avance es 100%
+                    avanceSeccionCalculado = 100;
+                }
+            } else {
+                avanceSeccionCalculado = 100;
+            }
+
             report.jefaturas[jefe].secciones.push({
                 nombre: seccionNombre,
+                descripcion: seccionData.descripcion,
                 sap: seccionData.sap,
                 scan: seccionData.scan,
-                avance: seccionData.sap > 0 ? (seccionData.scan / seccionData.sap) * 100 : 100
+                piezasEncontradas: seccionData.piezasEncontradas,
+                faltantes: seccionData.faltantes,
+                excedentes: seccionData.excedentes,
+                avance: avanceSeccionCalculado
             });
             Object.values(report.manifiestos).forEach(man => {
                 const seccionResumenManifiesto = man.seccionesResumen[seccionNombre];
@@ -1736,638 +1829,358 @@ async function generarResumenSemanal() {
             }
         }
 
-        const avanceGeneral = report.totalSAP > 0 ? (report.totalSCAN / report.totalSAP) * 100 : 0;
-        const totalFaltantes = report.totalSAP > report.totalSCAN ? report.totalSAP - report.totalSCAN : 0;
+        const avanceGeneral = report.totalSAP > 0 ? (report.piezasEncontradasTotales / report.totalSAP) * 100 : 0;
+        const totalFaltantes = Object.values(report.secciones).reduce((acc, seccion) => acc + (seccion.faltantes || 0), 0);
         const totalExcedentes = Object.values(report.secciones).reduce((acc, seccion) => acc + (seccion.excedentes || 0), 0);
         const topScanners = Object.entries(report.usuarios).sort((a, b) => b[1].scans - a[1].scans);
         const jefaturasUnicas = Array.from(jefaturasConDatosEnPeriodo).sort();
 
-const descargarResumenExcel = () => {
-    Swal.fire({
-        title: 'Creando Reporte Profesional',
-        html: 'Aplicando formato de tabla y generando análisis detallados...',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-    });
-
-    const borderAll = { top: { style: "thin", color: { rgb: "D9D9D9" } }, bottom: { style: "thin", color: { rgb: "D9D9D9" } }, left: { style: "thin", color: { rgb: "D9D9D9" } }, right: { style: "thin", color: { rgb: "D9D9D9" } } };
-    const styles = {
-        title: { font: { sz: 24, bold: true, color: { rgb: "E10098" } }, alignment: { vertical: "center" } },
-        subtitle: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } } },
-        header: { font: { sz: 16, bold: true, color: { rgb: "414141" } }, border: { bottom: { style: "medium", color: { rgb: "E10098" } } } },
-        tableHeader: { font: { sz: 12, bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "000000" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll },
-        manifestHeader: { font: { sz: 14, bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "E10098" } }, border: borderAll },
-        jefeHeader: { font: { sz: 13, bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "414141" } }, alignment: { horizontal: "left" }, border: borderAll },
-        kpiValueRed: { font: { sz: 28, bold: true, color: { rgb: "C00000" } }, alignment: { horizontal: "center" } },
-        kpiValueYellow: { font: { sz: 28, bold: true, color: { rgb: "b4830a" } }, alignment: { horizontal: "center" } },
-        kpiValueGreen: { font: { sz: 28, bold: true, color: { rgb: "548235" } }, alignment: { horizontal: "center" } },
-        kpiValue: { font: { sz: 28, bold: true, color: { rgb: "000000" } }, alignment: { horizontal: "center" } },
-        kpiLabel: { font: { sz: 11, bold: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } },
-        dataRowEven: { fill: { fgColor: { rgb: "F8F9FA" } }, border: borderAll },
-        dataRowOdd: { fill: { fgColor: { rgb: "FFFFFF" } }, border: borderAll },
-        cellRed: { font: { bold: true, color: { rgb: "C00000" } } },
-        cellYellow: { font: { bold: true, color: { rgb: "b4830a" } } },
-        cellGreen: { font: { bold: true, color: { rgb: "155724" } } },
-        avanceGood: { font: { bold: true, color: { rgb: "155724" } }, fill: { fgColor: { rgb: "D4EDDA" } } },
-        avanceWarning: { font: { bold: true, color: { rgb: "856404" } }, fill: { fgColor: { rgb: "FFF3CD" } } },
-        avanceDanger: { font: { bold: true, color: { rgb: "721c24" } }, fill: { fgColor: { rgb: "F8D7DA" } } },
-        statusCritico: { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "C00000" } } },
-        statusAlerta: { font: { bold: true, color: { rgb: "000000" } }, fill: { fgColor: { rgb: "FFC700" } } },
-        statusInfo:    { font: { bold: true, color: { rgb: "000000" } }, fill: { fgColor: { rgb: "DAE3F3" } } },
-        statusOk:      { font: { bold: true, color: { rgb: "155724" } }, fill: { fgColor: { rgb: "D4EDDA" } } },
-    };
-
-    const wb = XLSX.utils.book_new();
-    const hoy = new Date();
-    const fechaReporte = hoy.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-    const formatSheet = (ws, colWidths = [], numRows, numCols) => {
-        if (!ws || !ws['!ref']) return;
-        ws['!cols'] = colWidths.map(wch => ({ wch }));
-        ws['!autofilter'] = { ref: ws['!ref'] };
-        ws['!freeze'] = { ySplit: 1 };
-        
-        for (let R = 0; R < numRows; R++) {
-            const rowStyle = R === 0 ? styles.tableHeader : (R % 2 !== 0 ? styles.dataRowEven : styles.dataRowOdd);
-            for (let C = 0; C < numCols; C++) {
-                const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-                if (ws[cellRef]) {
-                    // Only apply if no specific style was set, or if we want to override
-                    if (!ws[cellRef].s || (ws[cellRef].s.font === undefined && ws[cellRef].s.fill === undefined && ws[cellRef].s.border === undefined)) {
-                        ws[cellRef].s = rowStyle;
-                    }
-                }
-            }
-        }
-    };
-    
-    // --- SHEET 1: EXECUTIVE DASHBOARD ---
-    const totalFaltantesPeriodo = Object.values(report.secciones).reduce((sum, sec) => sum + (sec.faltantes || 0), 0);
-    const totalExcedentesPeriodo = Object.values(report.secciones).reduce((sum, sec) => sum + (sec.excedentes || 0), 0);
-    const piezasEsperadas = report.totalSAP;
-    const piezasEncontradas = piezasEsperadas - totalFaltantesPeriodo;
-    const avanceGeneral = piezasEsperadas > 0 ? piezasEncontradas / piezasEsperadas : 1;
-    
-    // Initial data for Dashboard sheet - creates the cells
-    const initialDashData = [
-        [{ v: "📊 Dashboard Ejecutivo de Rendimiento", s: styles.title }],
-        [{ v: `Periodo: ${startDateStr} a ${endDateStr} | Generado: ${fechaReporte}`, s: styles.subtitle }],
-        [],
-        [{ v: "📈 INDICADORES CLAVE DE RENDIMIENTO (KPIs)", s: styles.header }],
-        [],
-        ["AVANCE GENERAL", "PIEZAS ENCONTRADAS (DE SAP)", "FALTANTES", "EXCEDENTES", "MANIFIESTOS PROCESADOS"],
-        [
-            { v: avanceGeneral, t: 'n', z: '0.0%', s: avanceGeneral >= 0.95 ? styles.kpiValueGreen : avanceGeneral >= 0.85 ? styles.kpiValueYellow : styles.kpiValueRed },
-            { v: piezasEncontradas, t: 'n', z: '#,##0', s: styles.kpiValueGreen },
-            { v: totalFaltantesPeriodo, t: 'n', z: '#,##0', s: styles.kpiValueRed },
-            { v: totalExcedentesPeriodo, t: 'n', z: '#,##0', s: styles.kpiValueYellow },
-            { v: Object.keys(report.manifiestos).length, t: 'n', z: '#,##0', s: styles.kpiValue }
-        ],
-        [],
-        [{ v: "🚨 ÁREAS CRÍTICAS (JEFATURAS CON MÁS FALTANTES)", s: styles.header }],
-    ];
-    const wsDash = XLSX.utils.aoa_to_sheet(initialDashData, { cellStyles: true });
-    
-    // Apply specific styles for KPI labels AFTER cells are created
-    ['A6', 'B6', 'C6', 'D6', 'E6'].forEach(cellRef => {
-        if (wsDash[cellRef]) wsDash[cellRef].s = styles.kpiLabel;
-    });
-
-    const jefaturasPorFaltantes = Object.entries(report.jefaturas).sort(([, a], [, b]) => b.faltantes - a.faltantes).slice(0, 5);
-    
-    // Add Jefatura table header
-    XLSX.utils.sheet_add_aoa(wsDash, [["Jefatura", "Piezas Faltantes", "% Avance"]], { origin: "A10" });
-    
-    // Apply specific styles to Jefatura table headers AFTER they are added
-    ['A10', 'B10', 'C10'].forEach(cellRef => {
-        if (wsDash[cellRef]) wsDash[cellRef].s = styles.tableHeader;
-    });
-
-    const topJefaturasData = jefaturasPorFaltantes.map(([jefe, data]) => {
-        const avance = data.sap > 0 ? (data.sap - data.faltantes) / data.sap : 1;
-        return [ { v: jefe, s: { font: { bold: true } } }, { v: data.faltantes, t: 'n', z: '#,##0', s: styles.cellRed }, { v: avance, t: 'n', z: '0.0%', s: (avance > 0.95 ? styles.cellGreen : avance > 0.85 ? styles.cellYellow : styles.cellRed) }];
-    });
-    XLSX.utils.sheet_add_aoa(wsDash, topJefaturasData, { origin: "A11", cellStyles: true });
-    
-    // Merges for main titles and headers
-    wsDash['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
-        { s: { r: 3, c: 0 }, e: { r: 3, c: 4 } },
-        { s: { r: 8, c: 0 }, e: { r: 8, c: 4 } }
-    ];
-    wsDash['!cols'] = [{wch:25},{wch:28},{wch:25},{wch:25},{wch:30}];
-    
-    // Calculate the starting row for "MANIFIESTOS INCLUIDOS" section
-    // Add 2 for the empty rows after Jefaturas table + 1 for the header itself
-    const startRowManifestsSection = 11 + topJefaturasData.length + 2; 
-
-    // Add Manifiestos Incluidos section to Dashboard
-    const includedManifests = Object.values(report.manifiestos).map(m => ([
-        `${m.numero || 'N/A'} (ID: ${String(m.id || 'N/A').substring(0, 8)}...)`,
-        `${(m.contenedores || []).length} Cont.`
-    ]));
-
-    XLSX.utils.sheet_add_aoa(wsDash, [
-        [], // Empty row for spacing
-        [{ v: "🧾 MANIFIESTOS INCLUIDOS EN EL REPORTE", s: styles.header }],
-        ["Número de Manifiesto", "Contenedores"],
-        ...includedManifests
-    ], { origin: `A${startRowManifestsSection}`, cellStyles: true });
-    
-    // Apply styles to new section headers and data
-    const headerRowForManifests = startRowManifestsSection + 1; // "Número de Manifiesto" row
-    if (wsDash[`A${headerRowForManifests}`]) wsDash[`A${headerRowForManifests}`].s = styles.tableHeader;
-    if (wsDash[`B${headerRowForManifests}`]) wsDash[`B${headerRowForManifests}`].s = styles.tableHeader;
-
-    // Merge for "MANIFIESTOS INCLUIDOS EN EL REPORTE" title
-    const titleRowForManifests = startRowManifestsSection;
-    wsDash['!merges'].push({ s: { r: titleRowForManifests, c: 0 }, e: { r: titleRowForManifests, c: 4 } });
-
-
-    XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard Ejecutivo");
-
-    // --- SHEET 2: DETAILED ANALYSIS BY MANIFEST ---
-    const analisisManifiestoData = [];
-    const manifiestosOrdenados = Object.values(report.manifiestos).sort((a,b) => (a.numero || "").localeCompare(b.numero || ""));
-    manifiestosOrdenados.forEach(man => {
-        analisisManifiestoData.push([]); // Empty row for spacing
-        analisisManifiestoData.push([]); // Empty row for spacing
-        analisisManifiestoData.push([{v: `ANÁLISIS DETALLADO DEL MANIFIESTO: ${man.numero || man.id}`, s: styles.manifestHeader, z:'@'}]);
-        analisisManifiestoData.push(["ID Manifiesto", "Número de Manifiesto", "Piezas SAP Total", "Piezas Escaneadas Total", "Contenedores Únicos"]);
-        
-        const manTotalSAP = Object.values(man.seccionesResumen).reduce((sum, s) => sum + (s.totalSap || 0), 0);
-        const manTotalSCAN = Object.values(man.seccionesResumen).reduce((sum, s) => sum + (s.totalScan || 0), 0);
-        
-        analisisManifiestoData.push([
-            {v: man.id, s: styles.dataRowEven, z:'@'}, 
-            {v: man.numero, s: styles.dataRowEven, z:'@'}, 
-            {v: manTotalSAP, t:'n', z:'#,##0', s: styles.dataRowEven}, 
-            {v: manTotalSCAN, t:'n', z:'#,##0', s: styles.dataRowEven}, 
-            {v: (man.contenedores || []).length, t:'n', z:'0', s: styles.dataRowEven}
-        ]);
-        analisisManifiestoData.push([]); // Empty row for spacing
-        
-        const jefesEnManifiesto = {};
-        Object.entries(man.seccionesResumen).forEach(([nombreSeccion, dataSeccion]) => {
-            const jefe = dataSeccion.jefatura;
-            if(!jefesEnManifiesto[jefe]) { jefesEnManifiesto[jefe] = { sap: 0, scan: 0, faltantes: 0, excedentes: 0, secciones: [] }; }
-            const secTotals = { sap: dataSeccion.totalSap, scan: dataSeccion.totalScan, faltantes: 0, excedentes: 0 };
-            Object.values(dataSeccion.byContenedor).forEach(cont => { secTotals.faltantes += cont.faltantes; secTotals.excedentes += cont.excedentes; });
-            
-            jefesEnManifiesto[jefe].sap += secTotals.sap;
-            jefesEnManifiesto[jefe].scan += secTotals.scan;
-            jefesEnManifiesto[jefe].faltantes += secTotals.faltantes;
-            jefesEnManifiesto[jefe].excedentes += secTotals.excedentes;
-            jefesEnManifiesto[jefe].secciones.push({nombre: nombreSeccion, ...secTotals});
-        });
-
-        Object.entries(jefesEnManifiesto).forEach(([jefe, dataJefe]) => {
-            analisisManifiestoData.push([ {v: `    Jefatura: ${jefe}`, s: styles.jefeHeader} ]);
-            analisisManifiestoData.push(["    Sección", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "Avance (%)", "Contenedores con Desviación"]);
-            dataJefe.secciones.sort((a,b) => b.faltantes - a.faltantes).forEach(sec => {
-                const secAvance = sec.sap > 0 ? (sec.sap - sec.faltantes) / sec.sap : 1;
-                
-                // Collect containers with deviations for this section
-                const containersWithDeviation = Object.entries(man.seccionesResumen[sec.nombre]?.byContenedor || {})
-                    .filter(([, cData]) => cData.faltantes > 0 || cData.excedentes > 0)
-                    .map(([cName, cData]) => {
-                        let dev = [];
-                        if (cData.faltantes > 0) dev.push(`F:${cData.faltantes}`);
-                        if (cData.excedentes > 0) dev.push(`E:${cData.excedentes}`);
-                        return `${cName} (${dev.join(', ')})`;
-                    })
-                    .join('; ') || 'N/A';
-
-                analisisManifiestoData.push([ 
-                    `    ${sec.nombre}`, 
-                    {t:'n', v:sec.sap, z:'#,##0'}, 
-                    {t:'n', v:sec.scan, z:'#,##0'}, 
-                    {t:'n', v:sec.faltantes, z:'#,##0', s:styles.cellRed}, 
-                    {t:'n', v:sec.excedentes, z:'#,##0', s:styles.cellYellow}, 
-                    {t:'n', v:secAvance, z:'0.00%', s: (secAvance >= 0.995) ? styles.avanceGood : styles.avanceDanger},
-                    containersWithDeviation
-                ]);
-            });
-        });
-    });
-
-    const wsAnalisisManifiesto = XLSX.utils.aoa_to_sheet(analisisManifiestoData, {cellStyles: true});
-    const mergesAnalisis = [];
-    let currentRowForStyleAnalysis = 0; // Renamed for clarity and to prevent redeclaration
-    analisisManifiestoData.forEach((row, index) => {
-        // Condition for main headers "ANÁLISIS DETALLADO" and "Jefatura: "
-        if (row.length === 1 && row[0].v && (row[0].v.startsWith("ANÁLISIS DETALLADO") || row[0].v.startsWith("    Jefatura:"))) {
-            mergesAnalisis.push({ s: { r: index, c: 0 }, e: { r: index, c: 6 } }); // Merge across 7 columns for these headers
-            if (row[0].v.startsWith("ANÁLISIS DETALLADO")) {
-                 for(let C=0; C<7; C++) { const cellRef = XLSX.utils.encode_cell({c:C,r:index}); if(wsAnalisisManifiesto[cellRef]) wsAnalisisManifiesto[cellRef].s = styles.manifestHeader; }
-            } else if (row[0].v.startsWith("    Jefatura:")) {
-                 for(let C=0; C<7; C++) { const cellRef = XLSX.utils.encode_cell({c:C,r:index}); if(wsAnalisisManifiesto[cellRef]) wsAnalisisManifiesto[cellRef].s = styles.jefeHeader; }
-            }
-            currentRowForStyleAnalysis = 0; // Reset row style counter after a merged header
-        } 
-        // Condition for table headers "ID Manifiesto" or "Sección"
-        else if (row.length > 1 && (row[0].toString().trim() === "ID Manifiesto" || row[0].toString().trim() === "Sección")) {
-            const numColsToStyle = (row[0].toString().trim() === "ID Manifiesto") ? 5 : 7; // Style 5 cols for manifest summary, 7 for section details
-            for(let C=0; C<numColsToStyle; C++) { const cellRef = XLSX.utils.encode_cell({c:C,r:index}); if(wsAnalisisManifiesto[cellRef]) wsAnalisisManifiesto[cellRef].s = styles.tableHeader; }
-        }
-        // Condition for data rows (not headers, not empty)
-        else if (row.length > 1 && row[0].v !== undefined && row[0].v !== null && row[0].v !== "") { // Data rows
-            const rowStyle = (currentRowForStyleAnalysis++ % 2 === 0) ? styles.dataRowEven : styles.dataRowOdd;
-            const numColsToStyle = 7; // Apply style to all 7 data columns
-            for(let C = 0; C < numColsToStyle; C++){ 
-                const cellRef = XLSX.utils.encode_cell({c:C, r:index}); 
-                if(wsAnalisisManifiesto[cellRef]) {
-                    // Preserve existing cell styles (like red/yellow for diff) if they are more specific
-                    wsAnalisisManifiesto[cellRef].s = wsAnalisisManifiesto[cellRef].s ? {...rowStyle, ...wsAnalisisManifiesto[cellRef].s} : rowStyle; 
-                }
-            }
-        } 
-        // For empty rows, ensure no style is applied or counter is reset if needed
-        else { 
-             // currentRowForStyleAnalysis is not reset here as empty rows usually separate logical blocks,
-             // and the counter for row styling should continue for the *next* data block.
-             // It is reset when a new "ANÁLISIS DETALLADO" or "Jefatura:" header is encountered.
-        }
-    });
-    wsAnalisisManifiesto['!merges'] = mergesAnalisis;
-    wsAnalisisManifiesto['!cols'] = [{wch:40},{wch:20},{wch:20},{wch:15},{wch:15},{wch:15},{wch:50}]; // Added width for new column
-    XLSX.utils.book_append_sheet(wb, wsAnalisisManifiesto, "Análisis por Manifiesto");
-
-    // --- SHEET 3: GENERAL SUMMARY BY JEFATURA ---
-    const desgloseData = [["Jefatura / Sección", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "Avance (%)"]];
-    const jefaturasOrdenadas = Object.entries(report.jefaturas).sort(([, a], [, b]) => b.faltantes - a.faltantes);
-    jefaturasOrdenadas.forEach(([nombreJefe, dataJefe]) => {
-        if (dataJefe.sap === 0 && dataJefe.scan === 0) return;
-        const avanceJefe = dataJefe.sap > 0 ? (dataJefe.sap - dataJefe.faltantes) / dataJefe.sap : 1;
-        desgloseData.push([ { v: nombreJefe, s: styles.jefeHeader }, { v: dataJefe.sap, t:'n', z:'#,##0', s: styles.jefeHeader }, { v: dataJefe.scan, t:'n', z:'#,##0', s: styles.jefeHeader }, { v: dataJefe.faltantes, t:'n', z:'#,##0', s: styles.jefeHeader }, { v: dataJefe.excedentes, t:'n', z:'#,##0', s: styles.jefeHeader }, { v: avanceJefe, t:'n', z:'0.00%', s: styles.jefeHeader }]);
-        const seccionesDelJefe = Object.entries(report.secciones).filter(([, data]) => data.jefatura === nombreJefe && (data.sap > 0 || data.scan > 0)).sort(([, a], [, b]) => b.faltantes - a.faltantes);
-        seccionesDelJefe.forEach(([nombreSeccion, dataSeccion], index) => {
-            const avanceSeccion = dataSeccion.sap > 0 ? (dataSeccion.sap - dataSeccion.faltantes) / dataSeccion.sap : 1;
-            const rowStyle = index % 2 === 0 ? styles.dataRowEven : styles.dataRowOdd;
-            desgloseData.push([ {v: `    ${nombreSeccion}`, s: rowStyle}, {t:'n', v:dataSeccion.sap, z:'#,##0', s:rowStyle}, {t:'n', v:dataSeccion.scan, z:'#,##0', s:rowStyle}, {t:'n', v:dataSeccion.faltantes, z:'#,##0', s: {...rowStyle, ...styles.cellRed}}, {t:'n', v:dataSeccion.excedentes, z:'#,##0', s: {...rowStyle, ...styles.cellYellow}}, {t:'n', v:avanceSeccion, z:'0.00%', s: (avanceSeccion >= 0.98) ? {...rowStyle, ...styles.avanceGood} : (avanceSeccion >= 0.90) ? {...rowStyle, ...styles.avanceWarning} : {...rowStyle, ...styles.avanceDanger}} ]);
-        });
-    });
-    const wsJefaturas = XLSX.utils.aoa_to_sheet(desgloseData, {cellStyles: true});
-    wsJefaturas["A1"].s = styles.tableHeader;
-    wsJefaturas['!cols'] = [{wch:40},{wch:15},{wch:18},{wch:15},{wch:15},{wch:15}];
-    wsJefaturas['!autofilter'] = { ref: `A1:F${desgloseData.length}` };
-    wsJefaturas['!freeze'] = { ySplit: 1 };
-    XLSX.utils.book_append_sheet(wb, wsJefaturas, "Resumen por Jefatura");
-
-    // --- SHEET 4: DETAILED BREAKDOWN BY MANAGER AND SKU ---
-    const desgloseDetalladoSheetData = [];
-    Object.keys(report.jefaturas).sort().forEach(jefe => {
-        if(jefe === "Sin Asignar") return;
-        let itemsConDiferencia = [];
-        Object.values(report.manifiestos).forEach(man => { man.data.forEach(row => { const seccion = String(getProp(row, 'SECCION') || 'N/A'); const jefaturaActual = (seccionesMap.get(seccion.toUpperCase()) || {}).jefatura; if (jefaturaActual === jefe) { const sap = Number(getProp(row, 'SAP')) || 0; const scan = Number(getProp(row, 'SCANNER')) || 0; if (sap !== scan) { itemsConDiferencia.push({ seccion, manifiesto: man.numero, contenedor: getProp(row, 'CONTENEDOR'), sku: getProp(row, 'SKU'), descripcion: getProp(row, 'DESCRIPCION'), faltante: Math.max(0, sap - scan), excedente: Math.max(0, scan - sap) }); } } }); });
-        if (itemsConDiferencia.length > 0) {
-            desgloseDetalladoSheetData.push([{ v: `Jefatura: ${jefe}`, s: styles.jefeHeader }]);
-            desgloseDetalladoSheetData.push(["Sección", "Manifiesto", "Contenedor", "SKU", "Descripción", "Faltantes", "Excedentes"]);
-            itemsConDiferencia.sort((a,b) => a.seccion.localeCompare(b.seccion) || b.faltante - a.faltante);
-            itemsConDiferencia.forEach(item => { desgloseDetalladoSheetData.push([ item.seccion, item.manifiesto, item.contenedor, item.sku, item.descripcion, {t: 'n', v: item.faltante, z: '#,##0', s: styles.cellRed}, {t: 'n', v: item.excedente, z: '#,##0', s: styles.cellYellow} ]); });
-            desgloseDetalladoSheetData.push([]);
-        }
-    });
-    const wsDesgloseDetallado = XLSX.utils.aoa_to_sheet(desgloseDetalladoSheetData, {cellStyles: true});
-    const mergesDetalle = [];
-    let currentRowForStyleDetail = 0; // Renamed for clarity and to prevent redeclaration
-    desgloseDetalladoSheetData.forEach((row, index) => {
-        if (row.length === 1 && row[0].v && row[0].v.startsWith("Jefatura:")) {
-            mergesDetalle.push({ s: { r: index, c: 0 }, e: { r: index, c: 6 } });
-            for(let C = 0; C < 7; C++) { const cellRef = XLSX.utils.encode_cell({c:C, r:index + 1}); if(wsDesgloseDetallado[cellRef]) wsDesgloseDetallado[cellRef].s = styles.tableHeader; }
-        } else if (row.length > 1) {
-            const rowStyle = (currentRowForStyleDetail++ % 2 === 0) ? styles.dataRowEven : styles.dataRowOdd;
-            for(let C = 0; C < 7; C++){ const cellRef = XLSX.utils.encode_cell({c:C, r:index}); if(wsDesgloseDetallado[cellRef]) wsDesgloseDetallado[cellRef].s = wsDesgloseDetallado[cellRef].s ? {...rowStyle, ...wsDesgloseDetallado[cellRef].s} : rowStyle; }
-        } else { currentRowForStyleDetail = 0; }
-    });
-    wsDesgloseDetallado['!merges'] = mergesDetalle;
-    wsDesgloseDetallado['!cols'] = [{wch:30},{wch:20},{wch:25},{wch:20},{wch:45},{wch:15},{wch:15}];
-    XLSX.utils.book_append_sheet(wb, wsDesgloseDetallado, "Desglose Detallado por Jefe"); // Corrected to append_sheet
-
-    // --- SHEET 5: CONTAINER DEVIATION REPORT ---
-    const desviaciones = [];
-    Object.values(report.manifiestos).forEach(man => {
-        const contenedoresEnManifiesto = {};
-        Object.values(man.seccionesResumen).forEach(seccion => {
-            Object.entries(seccion.byContenedor).forEach(([nombreContenedor, dataContenedor]) => {
-                if (!contenedoresEnManifiesto[nombreContenedor]) { contenedoresEnManifiesto[nombreContenedor] = { sap: 0, scan: 0, faltantes: 0, excedentes: 0, jefaturas: new Set() }; }
-                const c = contenedoresEnManifiesto[nombreContenedor];
-                c.sap += dataContenedor.sap; c.scan += dataContenedor.scan; c.faltantes += dataContenedor.faltantes; c.excedentes += dataContenedor.excedentes;
-                if (seccion.jefatura && seccion.jefatura !== 'Sin Asignar') { c.jefaturas.add(seccion.jefatura); }
-            });
-        });
-        Object.entries(contenedoresEnManifiesto).forEach(([contenedor, data]) => {
-            let estado = 'COMPLETO', priority = 5;
-            if (data.sap > 0 && data.scan === 0) { estado = 'NO ESCANEADO'; priority = 1; } 
-            else if (data.faltantes > 0 && data.excedentes > 0) { estado = 'MIXTO (FALTANTES Y EXCEDENTES)'; priority = 2; } 
-            else if (data.faltantes > 0) { estado = 'CON FALTANTES'; priority = 3; } 
-            else if (data.excedentes > 0) { estado = 'CON EXCEDENTES'; priority = 4; }
-            desviaciones.push({ manifiesto: man.numero, contenedor, estado, sap: data.sap, scan: data.scan, faltantes: data.faltantes, excedentes: data.excedentes, jefaturas: Array.from(data.jefaturas).join(', '), priority });
-        });
-    });
-    desviaciones.sort((a, b) => a.priority - b.priority || b.faltantes - a.faltantes);
-    const desviacionesSheetData = desviaciones.map(d => [ d.manifiesto, d.contenedor, {v: d.estado, s: d.estado === 'COMPLETO' ? styles.statusOk : d.estado === 'NO ESCANEADO' ? styles.statusCritico : d.estado.includes('FALTANTES') ? styles.statusAlerta : styles.statusInfo}, {t:'n', v:d.sap, z:'#,##0'}, {t:'n', v:d.scan, z:'#,##0'}, {t:'n', v:d.faltantes, z:'#,##0', s:styles.cellRed}, {t:'n', v:d.excedentes, z:'#,##0', s:styles.cellYellow}, d.jefaturas ]);
-    const wsDesviaciones = XLSX.utils.aoa_to_sheet([["Manifiesto", "Contenedor", "Estado", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "Jefatura(s) Responsable(s)"], ...desviacionesSheetData], {cellStyles: true});
-    formatSheet(wsDesviaciones, [20, 25, 30, 15, 18, 15, 15, 40], desviaciones.length + 1, 8);
-    XLSX.utils.book_append_sheet(wb, wsDesviaciones, "Reporte de Desviaciones");
-
-    // --- SHEET 6: OPPORTUNITIES (EXCESS) ---
-    report.skusConExcedentes.sort((a, b) => b.excedente - a.excedente);
-    const excedentesSheetData = report.skusConExcedentes.map(item => [item.jefatura, item.seccion, item.manifiesto.numero, item.contenedor, item.sku, item.desc, { t: 'n', v: item.excedente, z: '#,##0', s: styles.cellYellow }]);
-    const wsExcedentes = XLSX.utils.aoa_to_sheet([["Jefatura", "Sección", "Manifiesto", "Contenedor", "SKU", "Descripción", "Cantidad Excedente"], ...excedentesSheetData], {cellStyles: true});
-    formatSheet(wsExcedentes, [30, 30, 25, 25, 20, 45, 20], report.skusConExcedentes.length + 1, 7);
-    XLSX.utils.book_append_sheet(wb, wsExcedentes, "Oportunidades (Excedentes)");
-    
-    // --- SHEET 7: OPERATOR RANKING ---
-    const operadoresSorted = Object.entries(report.usuarios).sort(([, a], [, b]) => b.scans - a.scans);
-    const totalScansOverall = Object.values(report.usuarios).reduce((sum, user) => sum + user.scans, 0);
-
-    const operadoresSheetData = operadoresSorted.map(([email, data], index) => {
-        const participationPercentage = totalScansOverall > 0 ? (data.scans / totalScansOverall) : 0;
-        return [
-            index + 1,
-            email,
-            { t: 'n', v: data.scans, z: '#,##0' },
-            { t: 'n', v: participationPercentage, z: '0.00%' }, // Participation percentage
-            data.manifests.size
-        ];
-    });
-    const wsOperadores = XLSX.utils.aoa_to_sheet([["Ranking", "Operador", "Piezas Escaneadas", "Participación (%)", "Manifiestos Trabajados"], ...operadoresSheetData], {cellStyles: true});
-    formatSheet(wsOperadores, [10, 40, 25, 20, 25], operadoresSorted.length + 1, 5); // Adjusted column count
-    XLSX.utils.book_append_sheet(wb, wsOperadores, "Ranking Operadores");
-
-    // --- SHEET 8: PROCESSING ERRORS ---
-    if (report.failedManifests && report.failedManifests.length > 0) {
-        const erroresSheetData = report.failedManifests.map(error => [error.id || 'Desconocido', error.error || 'Sin detalle']);
-        const wsErrores = XLSX.utils.aoa_to_sheet([["ID Manifiesto con Error", "Detalle del Error"], ...erroresSheetData]);
-        formatSheet(wsErrores, [40, 80], report.failedManifests.length + 1, 2);
-        XLSX.utils.book_append_sheet(wb, wsErrores, "Errores de Proceso");
-    }
-    
-    XLSX.writeFile(wb, `Reporte_Ejecutivo_Rendimiento_${startDateStr}_a_${endDateStr}.xlsx`);
-    Swal.close();
-};
-
-        // Generates the main HTML for the weekly summary dashboard
+        // 8. Generates the main HTML for the weekly summary dashboard
         const mainHTML = `
-                                <style>
-                                    :root {
-                                        --liverpool-pink: #E10098;
-                                        --liverpool-green: #95C11F;
-                                        --liverpool-dark: #414141;
-                                        --liverpool-light-gray: #f4f7fa;
-                                        --liverpool-border-gray: #dee2e6;
-                                    }
-                                    .swal2-popup.swal2-modal { border-radius: 1.5rem !important; }
-                                    .epic-summary-container{display:flex;min-height:85vh;width:100%;font-family:'Poppins',sans-serif;background:var(--liverpool-light-gray);border-radius:1.5rem;overflow:hidden;}
-                                    .epic-sidebar{width:280px;min-width:280px;background:#ffffff;color:var(--liverpool-dark);padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:flex-start;border-right: 1px solid var(--liverpool-border-gray);}
-                                    .epic-sidebar h3{font-weight:700;font-size:1.5rem;margin-bottom:0.25rem;color:var(--liverpool-pink);}
-                                    .epic-sidebar .date-range {font-size:0.9rem; color:#6c757d; margin-bottom: 2rem;}
-                                    .sidebar-nav{list-style:none;padding:0;margin:0;width:100%;}
-                                    .sidebar-nav li button{width:100%;text-align:left;padding:0.8rem 1rem;background:transparent;border:none;color:#495057;border-radius:10px;font-weight:500;display:flex;align-items:center;gap:0.8rem;transition:all 0.2s ease;margin-bottom:0.5rem;}
-                                    .sidebar-nav li button:hover{background:#e9ecef;color:var(--liverpool-pink);}
-                                    .sidebar-nav li button.active{background:var(--liverpool-pink);color:#fff;font-weight:600;}
-                                    .epic-content{flex-grow:1;padding:2rem 2.5rem;overflow-y:auto;}
-                                    .epic-tab-pane{display:none;animation:fadeIn 0.5s;} .epic-tab-pane.active{display:block;}
-                                    .epic-content h4{font-weight:600;color:var(--liverpool-dark);margin-bottom:1.5rem;border-bottom:1px solid var(--liverpool-border-gray);padding-bottom:0.8rem;display:flex;align-items:center;justify-content:space-between;}
-                                    
-                                    .stat-card-main{background:#fff;border-radius:1rem;padding:1.5rem;text-align:center;border:1px solid var(--liverpool-border-gray); transition:all 0.3s ease;}
-                                    .stat-card-main:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.08);}
-                                    .stat-card-main .icon{font-size:2rem;margin-bottom:0.0rem;line-height:1;}
-                                    .stat-card-main .value{font-size:2.2rem;font-weight:700;line-height:1.1; color: var(--liverpool-dark);}
-                                    .stat-card-main .label{color:#6c757d;font-weight:500;font-size:0.9rem;}
-                                    .stat-card-main.sap .icon { color: var(--liverpool-dark); }
-                                    .stat-card-main.scan .icon { color: var(--liverpool-green); }
-                                    .stat-card-main.missing .icon { color: var(--liverpool-pink); }
-                                    .stat-card-main.excess .icon { color: #f0ad4e; }
-                                    
-                                    .filter-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-                                    .filter-pills button { background-color: #e9ecef; border: none; border-radius: 2rem; padding: 0.4rem 1rem; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; cursor: pointer; }
-                                    .filter-pills button.active { background-color: var(--liverpool-pink); color: white; box-shadow: 0 4px 10px rgba(225, 0, 152, 0.3); }
+            <style>
+                :root {
+                    --liverpool-pink: #E10098;
+                    --liverpool-green: #95C11F;
+                    --liverpool-dark: #414141;
+                    --liverpool-light-gray: #f4f7fa;
+                    --liverpool-border-gray: #dee2e6;
+                }
+                .swal2-popup.swal2-modal { border-radius: 1.5rem !important; }
+                .epic-summary-container{display:flex;min-height:85vh;width:100%;font-family:'Poppins',sans-serif;background:var(--liverpool-light-gray);border-radius:1.5rem;overflow:hidden;}
+                .epic-sidebar{width:280px;min-width:280px;background:#ffffff;color:var(--liverpool-dark);padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:flex-start;border-right: 1px solid var(--liverpool-border-gray);}
+                .epic-sidebar h3{font-weight:700;font-size:1.5rem;margin-bottom:0.25rem;color:var(--liverpool-pink);}
+                .epic-sidebar .date-range {font-size:0.9rem; color:#6c757d; margin-bottom: 2rem;}
+                .sidebar-nav{list-style:none;padding:0;margin:0;width:100%;}
+                .sidebar-nav li button{width:100%;text-align:left;padding:0.8rem 1rem;background:transparent;border:none;color:#495057;border-radius:10px;font-weight:500;display:flex;align-items:center;gap:0.8rem;transition:all 0.2s ease;margin-bottom:0.5rem;}
+                .sidebar-nav li button:hover{background:#e9ecef;color:var(--liverpool-pink);}
+                .sidebar-nav li button.active{background:var(--liverpool-pink);color:#fff;font-weight:600;}
+                .epic-content{flex-grow:1;padding:2rem 2.5rem;overflow-y:auto;}
+                .epic-tab-pane{display:none;animation:fadeIn 0.5s;} .epic-tab-pane.active{display:block;}
+                .epic-content h4{font-weight:600;color:var(--liverpool-dark);margin-bottom:1.5rem;border-bottom:1px solid var(--liverpool-border-gray);padding-bottom:0.8rem;display:flex;align-items:center;justify-content:space-between;}
+                
+                .stat-card-main{background:#fff;border-radius:1rem;padding:1.5rem;text-align:center;border:1px solid var(--liverpool-border-gray); transition:all 0.3s ease;}
+                .stat-card-main:hover{transform:translateY(-5px);box-shadow:0 8px 25px rgba(0,0,0,0.08);}
+                .stat-card-main .icon{font-size:2rem;margin-bottom:0.0rem;line-height:1;}
+                .stat-card-main .value{font-size:2.2rem;font-weight:700;line-height:1.1; color: var(--liverpool-dark);}
+                .stat-card-main .label{color:#6c757d;font-weight:500;font-size:0.9rem;}
+                .stat-card-main.sap .icon { color: var(--liverpool-dark); }
+                .stat-card-main.scan .icon { color: var(--liverpool-green); }
+                .stat-card-main.missing .icon { color: var(--liverpool-pink); }
+                .stat-card-main.excess .icon { color: #f0ad4e; }
+                
+                .filter-pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+                .filter-pills button { background-color: #e9ecef; border: none; border-radius: 2rem; padding: 0.4rem 1rem; font-size: 0.9rem; font-weight: 500; transition: all 0.2s ease; cursor: pointer; }
+                .filter-pills button.active { background-color: var(--liverpool-pink); color: white; box-shadow: 0 4px 10px rgba(225, 0, 152, 0.3); }
 
-                                    .jefatura-card { background-color: #fff; border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--liverpool-border-gray); margin-bottom: 1.5rem; }
-                                    .jefatura-header { display: flex; align-items: center; gap: 1.5rem; padding-bottom:1rem; margin-bottom:1rem; border-bottom: 1px solid #f1f3f5; }
-                                    .jefatura-chart-container { width: 80px; height: 80px; position: relative; flex-shrink: 0; }
-                                    .jefatura-title h5 { font-weight: 700; margin-bottom: 0.1rem; color: var(--liverpool-dark); }
-                                    .jefatura-title .stats-summary { font-size: 0.9rem; color: #6c757d; }
-                                    .jefatura-secciones-list { list-style: none; padding: 0; margin: 0; }
-                                    .jefatura-secciones-list li { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.2rem; font-size: 0.95rem; border-bottom: 1px solid #f8f9fa; }
-                                    .jefatura-secciones-list li:last-child { border-bottom: none; }
-                                    .jefatura-secciones-list .section-name { font-weight: 500; }
-                                    
-                                    .section-card-compact { background: #fff; border: 1px solid var(--liverpool-border-gray); border-radius: 0.75rem; padding: 1rem; text-align: center; transition: all 0.2s ease-in-out; display: flex; flex-direction: column; height: 100%;}
-                                    .section-card-compact:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.1); z-index: 10; position:relative; }
-                                    .section-card-compact .section-name { font-weight: 600; font-size: 0.95rem; color: var(--liverpool-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                                    .section-card-compact .section-jefe { font-size: 0.8rem; color: #6c757d; margin-bottom: 0.75rem; }
-                                    .section-card-compact .section-counts { font-size: 0.8rem; color: #6c757d; margin-top: 0.5rem; }
-                                    
-                                    .custom-progress { background-color: #e9ecef; border-radius: 2rem; height: 1.25rem; overflow: hidden; }
-                                    .custom-progress-bar { display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-weight: 600; font-size: 0.75rem; transition: width 0.4s ease; }
-                                    .progress-green { background: linear-gradient(45deg, #84ac1c, #95C11F); }
-                                    .progress-yellow { background: linear-gradient(45deg, #e69a05, #f0ad4e); }
-                                    .progress-pink { background: linear-gradient(45deg, #d3008a, #E10098); }
+                .jefatura-card { background-color: #fff; border-radius: 1rem; padding: 1.5rem; border: 1px solid var(--liverpool-border-gray); margin-bottom: 1.5rem; }
+                .jefatura-header { display: flex; align-items: center; gap: 1.5rem; padding-bottom:1rem; margin-bottom:1rem; border-bottom: 1px solid #f1f3f5; }
+                .jefatura-chart-container { width: 80px; height: 80px; position: relative; flex-shrink: 0; }
+                .jefatura-title h5 { font-weight: 700; margin-bottom: 0.1rem; color: var(--liverpool-dark); }
+                .jefatura-title .stats-summary { font-size: 0.9rem; color: #6c757d; }
+                .jefatura-secciones-list { list-style: none; padding: 0; margin: 0; }
+                .jefatura-secciones-list li { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.2rem; font-size: 0.95rem; border-bottom: 1px solid #f8f9fa; }
+                .jefatura-secciones-list li:last-child { border-bottom: none; }
+                .jefatura-secciones-list .section-name { font-weight: 500; }
+                
+                .section-card-compact { background: #fff; border: 1px solid var(--liverpool-border-gray); border-radius: 0.75rem; padding: 1rem; text-align: center; transition: all 0.2s ease-in-out; display: flex; flex-direction: column; height: 100%;}
+                .section-card-compact:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.1); z-index: 10; position:relative; }
+                .section-card-compact .section-name { font-weight: 600; font-size: 0.95rem; color: var(--liverpool-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .section-card-compact .section-jefe { font-size: 0.8rem; color: #6c757d; margin-bottom: 0.75rem; }
+                .section-card-compact .section-counts { font-size: 0.8rem; color: #6c757d; margin-top: 0.5rem; }
+                
+                .custom-progress { background-color: #e9ecef; border-radius: 2rem; height: 1.25rem; overflow: hidden; }
+                .custom-progress-bar { display: flex; align-items: center; justify-content: center; height: 100%; color: white; font-weight: 600; font-size: 0.75rem; transition: width 0.4s ease; }
+                .progress-green { background: linear-gradient(45deg, #84ac1c, #95C11F); }
+                .progress-yellow { background: linear-gradient(45deg, #ddc304, #FEE101); }
+                .progress-orange { background: linear-gradient(45deg, #d8721c, #F58220); }
+                .progress-red { background: linear-gradient(45deg, #cc0000, #E30000); }
 
-                                    .leaderboard-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 1rem; background: #fff; margin-bottom: 0.75rem; border: 1px solid var(--liverpool-border-gray); }
-                                    .leaderboard-rank { font-size: 1.2rem; font-weight: 700; color: var(--liverpool-pink); width: 2.5rem; text-align: center; flex-shrink: 0; }
-                                    .leaderboard-info { flex-grow: 1; }
-                                    .leaderboard-name { font-weight: 600; color: var(--liverpool-dark); }
-                                    .leaderboard-details { font-size: 0.85rem; color: #6c757d; }
-                                    .leaderboard-stats { font-size: 1.2rem; font-weight: 700; color: var(--liverpool-dark); text-align: right; }
+                .leaderboard-item { display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 1rem; background: #fff; margin-bottom: 0.75rem; border: 1px solid var(--liverpool-border-gray); }
+                .leaderboard-rank { font-size: 1.2rem; font-weight: 700; color: var(--liverpool-pink); width: 2.5rem; text-align: center; flex-shrink: 0; }
+                .leaderboard-info { flex-grow: 1; }
+                .leaderboard-name { font-weight: 600; color: var(--liverpool-dark); }
+                .leaderboard-details { font-size: 0.85rem; color: #6c757d; }
+                .leaderboard-stats { font-size: 1.2rem; font-weight: 700; color: var(--liverpool-dark); text-align: right; }
 
-                                    .manifiesto-list-item {
-                                        cursor: pointer;
-                                        transition: background-color 0.2s ease;
-                                    }
-                                    .manifiesto-list-item:hover {
-                                        background-color: #f8f9fa;
-                                    }
-                                    .manifiesto-list-item.active {
-                                        background-color: var(--liverpool-pink) !important;
-                                        color: white;
-                                        border-color: var(--liverpool-pink);
-                                    }
-                                    .manifiesto-list-item.active i {
-                                        color: white !important;
-                                    }
-                                    .manifiesto-list-item.active .text-muted {
-                                        color: rgba(255,255,255,0.7) !important;
-                                    }
-                                    .manifiesto-list-item.active .badge {
-                                        background-color: #fff !important;
-                                        color: var(--liverpool-dark) !important;
-                                    }
-                                    .manifest-status-completed { border-left: 5px solid var(--liverpool-green); }
-                                    .manifest-status-diff { border-left: 5px solid #f0ad4e; }
-                                    .manifest-status-zero { border-left: 5px solid var(--liverpool-pink); }
+                .manifiesto-list-item {
+                    cursor: pointer;
+                    transition: background-color 0.2s ease;
+                }
+                .manifiesto-list-item:hover {
+                    background-color: #f8f9fa;
+                }
+                .manifiesto-list-item.active {
+                    background-color: var(--liverpool-pink) !important;
+                    color: white;
+                    border-color: var(--liverpool-pink);
+                }
+                .manifiesto-list-item.active i {
+                    color: white !important;
+                }
+                .manifiesto-list-item.active .text-muted {
+                    color: rgba(255,255,255,0.7) !important;
+                }
+                .manifiesto-list-item.active .badge {
+                    background-color: #fff !important;
+                    color: var(--liverpool-dark) !important;
+                }
+                .manifest-status-completed { border-left: 5px solid var(--liverpool-green); }
+                .manifest-status-diff { border-left: 5px solid #f0ad4e; }
+                .manifest-status-zero { border-left: 5px solid var(--liverpool-pink); }
 
-                                    #manifest-detail-view .stat-card-main .value {
-                                        font-size: 1.8rem;
-                                    }
-                                    #manifest-detail-view .stat-card-main .label {
-                                        font-size: 0.8rem;
-                                    }
-                                    /* Responsive improvements */
-                                    @media (max-width: 991px) {
-                                        .epic-summary-container { flex-direction: column; }
-                                        .epic-sidebar { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid var(--liverpool-border-gray); flex-direction: row; align-items: center; padding: 1rem 1rem; }
-                                        .epic-sidebar h3 { font-size: 1.1rem; margin-bottom: 0; }
-                                        .epic-sidebar .date-range { margin-bottom: 0; }
-                                        .sidebar-nav { flex-direction: row; display: flex; gap: 0.5rem; width: auto; }
-                                        .sidebar-nav li button { padding: 0.5rem 0.7rem; font-size: 0.9rem; margin-bottom: 0; }
-                                        .epic-content { padding: 1rem 0.5rem; }
-                                    }
-                                    @media (max-width: 600px) {
-                                        .epic-sidebar { flex-wrap: wrap; }
-                                        .sidebar-nav { flex-wrap: wrap; }
-                                        .sidebar-nav li button { font-size: 0.8rem; }
-                                    }
-                                </style>
-                                <div class="epic-summary-container">
-                                    <div class="epic-sidebar">
-                                        <h3><i class="bi bi-robot me-2"></i>Resumen AI</h3>
-                                        <p class="date-range">${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}</p>
-                                        <ul class="sidebar-nav">
-                                            <li><button class="nav-btn active" data-target="dashboard"><i class="bi bi-grid-1x2-fill"></i>Dashboard</button></li>
-                                            <li><button class="nav-btn" data-target="jefaturas"><i class="bi bi-person-badge-fill"></i>Por Jefatura</button></li>
-                                            <li><button class="nav-btn" data-target="secciones"><i class="bi bi-pie-chart-fill"></i>Por Sección</button></li>
-                                            <li><button class="nav-btn" data-target="manifiestos-detail"><i class="bi bi-journal-check"></i>Por Manifiesto</button></li>
-                                            <li><button class="nav-btn" data-target="excedentes-detail"><i class="bi bi-box-arrow-in-up-right"></i>Excedentes <span class="badge rounded-pill" style="background-color: #f0ad4e;">${report.skusConExcedentes.length}</span></button></li>
-                                            <li><button class="nav-btn" data-target="usuarios"><i class="bi bi-trophy-fill"></i>Ranking</button></li>
-                                            <li><button class="nav-btn" data-target="evidencia"><i class="bi bi-exclamation-diamond-fill"></i>Alertas <span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${report.skusSinEscanear.length}</span></button></li>
+                #manifest-detail-view .stat-card-main .value {
+                    font-size: 1.8rem;
+                }
+                #manifest-detail-view .stat-card-main .label {
+                    font-size: 0.8rem;
+                }
+                /* Responsive improvements */
+                @media (max-width: 991px) {
+                    .epic-summary-container { flex-direction: column; }
+                    .epic-sidebar { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid var(--liverpool-border-gray); flex-direction: row; align-items: center; padding: 1rem 1rem; }
+                    .epic-sidebar h3 { font-size: 1.1rem; margin-bottom: 0; }
+                    .epic-sidebar .date-range { margin-bottom: 0; }
+                    .sidebar-nav { flex-direction: row; display: flex; gap: 0.5rem; width: auto; }
+                    .sidebar-nav li button { padding: 0.5rem 0.7rem; font-size: 0.9rem; margin-bottom: 0; }
+                    .epic-content { padding: 1rem 0.5rem; }
+                }
+                @media (max-width: 600px) {
+                    .epic-sidebar { flex-wrap: wrap; }
+                    .sidebar-nav { flex-wrap: wrap; }
+                    .sidebar-nav li button { font-size: 0.8rem; }
+                }
+    .jefatura-secciones-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .jefatura-secciones-list-item:hover {
+        background-color: #f1f3f5;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    }
+    .section-content-wrapper {
+        display: flex;
+        align-items: center;
+        flex-grow: 1;
+    }
+    .section-details {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        margin-left: 1rem;
+    }
+    .section-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: var(--liverpool-dark);
+    }
+    .section-stats {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .section-progress-container {
+        display: flex;
+        align-items: center;
+        width: 150px; /* Ajusta el ancho según tu preferencia */
+        margin-left: auto;
+    }
+    .custom-progress-bar {
+        height: 12px;
+        flex-grow: 1;
+        background-color: #e9ecef;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    .custom-progress-fill {
+        height: 100%;
+        transition: width 0.4s ease;
+        border-radius: 6px;
+    }
+    .progress-text {
+        font-weight: 700;
+        font-size: 1rem;
+        width: 50px; /* Ancho fijo para el texto */
+        text-align: right;
+        margin-left: 0.5rem;
+    }
+    .btn-view-details {
+        background: none;
+        border: none;
+        padding: 0;
+        margin-left: 1rem;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #dc3545; /* Rojo de alerta */
+        background-color: #fff;
+    }
+    .btn-view-details:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+    .btn-view-details svg {
+        width: 20px;
+        height: 20px;
+        transition: fill 0.2s ease;
+    }
+    .btn-placeholder {
+        width: 32px;
+        height: 32px;
+        margin-left: 1rem;
+    }
+            </style>
+            <div class="epic-summary-container">
+                <div class="epic-sidebar">
+                    <h3><i class="bi bi-robot me-2"></i>Resumen AI</h3>
+                    <p class="date-range">${startDate.toLocaleDateString('es-ES')} - ${endDate.toLocaleDateString('es-ES')}</p>
+                    <ul class="sidebar-nav">
+                        <li><button class="nav-btn active" data-target="dashboard"><i class="bi bi-grid-1x2-fill"></i>Dashboard</button></li>
+                        <li><button class="nav-btn" data-target="jefaturas"><i class="bi bi-person-badge-fill"></i>Por Jefatura</button></li>
+                        <li><button class="nav-btn" data-target="secciones"><i class="bi bi-pie-chart-fill"></i>Por Sección</button></li>
+                        <li><button class="nav-btn" data-target="manifiestos-detail"><i class="bi bi-journal-check"></i>Por Manifiesto</button></li>
+                        <li><button class="nav-btn" data-target="excedentes-detail"><i class="bi bi-box-arrow-in-up-right"></i>Excedentes <span class="badge rounded-pill" style="background-color: #f0ad4e;">${report.skusConExcedentes.length}</span></button></li>
+                        <li><button class="nav-btn" data-target="usuarios"><i class="bi bi-trophy-fill"></i>Ranking</button></li>
+                        <li><button class="nav-btn" data-target="evidencia"><i class="bi bi-exclamation-diamond-fill"></i>Alertas <span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${report.skusSinEscanear.length}</span></button></li>
+                    </ul>
+                    <div class="mt-auto w-100"><button id="btnDescargarResumenExcel" class="btn btn-outline-success w-100"><i class="bi bi-file-earmarked-excel-fill me-2"></i>Descargar Excel</button></div>
+                    ${report.failedManifests.length > 0 ? `<div class="mt-3 alert alert-danger p-2 small" role="alert"><i class="bi bi-exclamation-circle-fill me-1"></i> ${report.failedManifests.length} Manifiesto(s) con errores. Revisa la consola o descarga el Excel.</div>` : ''}
+                </div>
+                <div class="epic-content">
+                    <div id="dashboard" class="epic-tab-pane active">
+                        <h4><i class="bi bi-speedometer2"></i>Resumen General</h4>
+                        <div class="row g-4 mb-5">
+                            <div class="col-lg-7">
+                                <div class="row g-3">
+                                    <div class="col-6"><div class="stat-card-main sap"><i class="bi bi-box-seam icon"></i><div class="value">${report.totalSAP.toLocaleString('es-MX')}</div><div class="label">Piezas SAP</div></div></div>
+                                    <div class="col-6"><div class="stat-card-main scan"><i class="bi bi-check-circle-fill icon"></i><div class="value">${report.totalSCAN.toLocaleString('es-MX')}</div><div class="label">Escaneadas</div></div></div>
+                                    <div class="col-6"><div class="stat-card-main missing"><i class="bi bi-exclamation-triangle-fill icon"></i><div class="value">${totalFaltantes.toLocaleString('es-MX')}</div><div class="label">Faltantes</div></div></div>
+                                    <div class="col-6"><div class="stat-card-main excess"><i class="bi bi-plus-circle-dotted icon"></i><div class="value">${totalExcedentes.toLocaleString('es-MX')}</div><div class="label">Excedentes</div></div></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 d-flex align-items-center justify-content-center"><canvas id="gaugeChart"></canvas></div>
+                        </div>
+                        <h4><i class="bi bi-archive-fill me-2"></i>Manifiestos Incluidos</h4>
+                        <ul class="list-group list-group-flush">${Object.values(report.manifiestos).map(m => `<li class="list-group-item d-flex justify-content-between align-items-center"><i class="bi bi-file-earmark-text me-2" style="color:var(--liverpool-pink);"></i><div><strong>${m.id}</strong> <br><span class="text-muted small">N° Manif: ${m.numero}</span></div><span class="badge bg-secondary ms-2">${(m.contenedores || []).length} Cont.</span></li>`).join('')}</ul>
+                    </div>
+                    <div id="jefaturas" class="epic-tab-pane">
+                        <h4><i class="bi bi-person-badge-fill me-2"></i>Rendimiento por Jefatura</h4>
+                        <div class="accordion" id="jefaturasAccordion">
+                            <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius: 1rem;">
+                                <h2 class="accordion-header" id="headingComparativa">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComparativa" aria-expanded="true" aria-controls="collapseComparativa" style="border-radius: 1rem;">
+                                        <i class="bi bi-bar-chart-line-fill me-2"></i>
+                                        <span style="color: var(--liverpool-dark); font-weight: 600;">Comparativa de Rendimiento</span>
+                                    </button>
+                                </h2>
+                                <div id="collapseComparativa" class="accordion-collapse collapse show" aria-labelledby="headingComparativa" data-bs-parent="#jefaturasAccordion">
+                                    <div class="accordion-body">
+                                        <div id="jefaturas-comparativa-container" style="min-height: 250px; max-height: 400px; position: relative;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item border-0 shadow-sm" style="border-radius: 1rem;">
+                                <h2 class="accordion-header" id="headingDesglose">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesglose" aria-expanded="false" aria-controls="collapseDesglose" style="border-radius: 1rem;">
+                                        <i class="bi bi-card-list me-2"></i>
+                                        <span style="color: var(--liverpool-dark); font-weight: 600;">Desglose Detallado por Jefe</span>
+                                    </button>
+                                </h2>
+                                <div id="collapseDesglose" class="accordion-collapse collapse" aria-labelledby="headingDesglose" data-bs-parent="#jefaturasAccordion">
+                                    <div class="accordion-body">
+                                        <div id="jefaturas-grid" style="max-height: 70vh; overflow-y: auto; padding-right: 0.5rem;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="secciones" class="epic-tab-pane">
+                        <h4><i class="bi bi-pie-chart-fill me-2"></i>Rendimiento por Sección</h4>
+                        <div id="seccion-jefatura-filter" class="filter-pills mb-4"></div>
+                        <div id="secciones-grid-container" class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3"></div>
+                    </div>
+                    <div id="manifiestos-detail" class="epic-tab-pane">
+                        <h4><i class="bi bi-journal-check me-2"></i>Análisis Detallado por Manifiesto</h4>
+                        <div class="row mb-4">
+                            <div class="col-lg-4">
+                                <div class="card p-3 shadow-sm border-0 h-100">
+                                    <h6 class="card-title text-muted mb-3"><i class="bi bi-list-check me-1"></i> Seleccionar Manifiesto</h6>
+                                    <div id="manifiestos-status-filter" class="filter-pills mb-3 d-flex flex-wrap gap-2">
+                                        <button class="filter-btn active" data-status-filter="Todos">Todos</button>
+                                        <button class="filter-btn" data-status-filter="Completado">Completados</button>
+                                        <button class="filter-btn" data-status-filter="Diferencias">Con Diferencias</button>
+                                        <button class="filter-btn" data-status-filter="Sin Escanear">Sin Escanear</button>
+                                    </div>
+                                    <div id="manifiestos-list-container" class="list-group list-group-flush" style="max-height: 50vh; overflow-y: auto; border: 1px solid var(--liverpool-border-gray); border-radius: 0.5rem;">
+                                        <li class="list-group-item text-center text-muted py-3">Cargando manifiestos...</li>
+                                    </div>
+                                    <p class="small text-muted mt-3">💡 <b>Consejo para Auditoría:</b> Enfócate en manifiestos con alta desviación (muchas piezas faltantes/excedentes) para identificar problemas de raíz. Revisa la sección de "Alertas" para SKUs específicos no escaneados.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div id="manifest-detail-view" class="card p-4 shadow-sm border-0 h-100">
+                                    <p class="text-muted text-center mt-4">Selecciona un manifiesto de la lista para ver su detalle y desglose por jefatura, contenedor y sección.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="excedentes-detail" class="epic-tab-pane">
+                        <h4 style="color: #f0ad4e;"><i class="bi bi-box-arrow-in-up-right me-2"></i>Artículos con Excedentes</h4>
+                        <div class="row mb-4">
+                            <div class="col-lg-4">
+                                <div class="card p-3 shadow-sm border-0 h-100">
+                                    <h6 class="card-title text-muted mb-3"><i class="bi bi-filter-circle me-1"></i> Filtrar Excedentes por Jefatura</h6>
+                                    <div id="excedentes-jefatura-filter" class="filter-pills mb-3 d-flex flex-wrap gap-2">
+                                    </div>
+                                    <p class="small text-muted mt-3">Utiliza este filtro para ver los excedentes por la jefatura responsable de la sección.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="card p-4 shadow-sm border-0 h-100 d-flex flex-column align-items-center justify-content-center">
+                                    <h5 class="mt-4 mb-3" style="color: var(--liverpool-dark); border-bottom: 1px solid var(--liverpool-border-gray); padding-bottom: 0.5rem; width: 100%; text-align: center;"><i class="bi bi-pie-chart-fill me-2"></i>Distribución de Excedentes</h5>
+                                    <div style="width: 200px; height: 200px; position: relative;">
+                                        <canvas id="excedentesChart"></canvas>
+                                    </div>
+                                    <div class="mt-4 w-100" style="max-height: 250px; overflow-y: auto;">
+                                        <ul class="list-group list-group-flush" id="excedentes-list-container">
                                         </ul>
-                                        <div class="mt-auto w-100"><button id="btnDescargarResumenExcel" class="btn btn-outline-success w-100"><i class="bi bi-file-earmarked-excel-fill me-2"></i>Descargar Excel</button></div>
-                                        ${report.failedManifests.length > 0 ? `<div class="mt-3 alert alert-danger p-2 small" role="alert"><i class="bi bi-exclamation-circle-fill me-1"></i> ${report.failedManifests.length} Manifiesto(s) con errores. Revisa la consola o descarga el Excel.</div>` : ''}
                                     </div>
-                                    <div class="epic-content">
-                                        <div id="dashboard" class="epic-tab-pane active">
-                                                <h4><i class="bi bi-speedometer2"></i>Resumen General</h4>
-                                                <div class="row g-4 mb-5">
-                                                    <div class="col-lg-7">
-                                                        <div class="row g-3">
-                                                            <div class="col-6"><div class="stat-card-main sap"><i class="bi bi-box-seam icon"></i><div class="value">${report.totalSAP.toLocaleString('es-MX')}</div><div class="label">Piezas SAP</div></div></div>
-                                                            <div class="col-6"><div class="stat-card-main scan"><i class="bi bi-check-circle-fill icon"></i><div class="value">${report.totalSCAN.toLocaleString('es-MX')}</div><div class="label">Escaneadas</div></div></div>
-                                                            <div class="col-6"><div class="stat-card-main missing"><i class="bi bi-exclamation-triangle-fill icon"></i><div class="value">${totalFaltantes.toLocaleString('es-MX')}</div><div class="label">Faltantes</div></div></div>
-                                                            <div class="col-6"><div class="stat-card-main excess"><i class="bi bi-plus-circle-dotted icon"></i><div class="value">${totalExcedentes.toLocaleString('es-MX')}</div><div class="label">Excedentes</div></div></div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-lg-5 d-flex align-items-center justify-content-center"><canvas id="gaugeChart"></canvas></div>
-                                                </div>
-                                                <h4><i class="bi bi-archive-fill me-2"></i>Manifiestos Incluidos</h4>
-                                                <ul class="list-group list-group-flush">${Object.values(report.manifiestos).map(m => `<li class="list-group-item d-flex justify-content-between align-items-center"><i class="bi bi-file-earmark-text me-2" style="color:var(--liverpool-pink);"></i><div><strong>${m.id}</strong> <br><span class="text-muted small">N° Manif: ${m.numero}</span></div><span class="badge bg-secondary ms-2">${(m.contenedores || []).length} Cont.</span></li>`).join('')}</ul>
-                                        </div>
-<div id="jefaturas" class="epic-tab-pane">
-    <h4><i class="bi bi-person-badge-fill me-2"></i>Rendimiento por Jefatura</h4>
-
-    <div class="accordion" id="jefaturasAccordion">
-
-        <div class="accordion-item border-0 shadow-sm mb-3" style="border-radius: 1rem;">
-            <h2 class="accordion-header" id="headingComparativa">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseComparativa" aria-expanded="true" aria-controls="collapseComparativa" style="border-radius: 1rem;">
-                    <i class="bi bi-bar-chart-line-fill me-2"></i>
-                    <span style="color: var(--liverpool-dark); font-weight: 600;">Comparativa de Rendimiento</span>
-                </button>
-            </h2>
-            <div id="collapseComparativa" class="accordion-collapse collapse show" aria-labelledby="headingComparativa" data-bs-parent="#jefaturasAccordion">
-                <div class="accordion-body">
-                    <div id="jefaturas-comparativa-container" style="min-height: 250px; max-height: 400px; position: relative;">
+                                </div>
+                            </div>
                         </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="accordion-item border-0 shadow-sm" style="border-radius: 1rem;">
-            <h2 class="accordion-header" id="headingDesglose">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDesglose" aria-expanded="false" aria-controls="collapseDesglose" style="border-radius: 1rem;">
-                    <i class="bi bi-card-list me-2"></i>
-                    <span style="color: var(--liverpool-dark); font-weight: 600;">Desglose Detallado por Jefe</span>
-                </button>
-            </h2>
-            <div id="collapseDesglose" class="accordion-collapse collapse" aria-labelledby="headingDesglose" data-bs-parent="#jefaturasAccordion">
-                <div class="accordion-body">
-                    <div id="jefaturas-grid" style="max-height: 70vh; overflow-y: auto; padding-right: 0.5rem;">
-                        </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-    </div>
-                                        <div id="secciones" class="epic-tab-pane">
-                                            <h4><i class="bi bi-pie-chart-fill me-2"></i>Rendimiento por Sección</h4>
-                                            <div id="seccion-jefatura-filter" class="filter-pills mb-4"></div>
-                                            <div id="secciones-grid-container" class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3"></div>
-                                        </div>
-                                        <div id="manifiestos-detail" class="epic-tab-pane">
-                                            <h4><i class="bi bi-journal-check me-2"></i>Análisis Detallado por Manifiesto</h4>
-                                            <div class="row mb-4">
-                                                <div class="col-lg-4">
-                                                    <div class="card p-3 shadow-sm border-0 h-100">
-                                                        <h6 class="card-title text-muted mb-3"><i class="bi bi-list-check me-1"></i> Seleccionar Manifiesto</h6>
-                                                        <div id="manifiestos-status-filter" class="filter-pills mb-3 d-flex flex-wrap gap-2">
-                                                            <button class="filter-btn active" data-status-filter="Todos">Todos</button>
-                                                            <button class="filter-btn" data-status-filter="Completado">Completados</button>
-                                                            <button class="filter-btn" data-status-filter="Diferencias">Con Diferencias</button>
-                                                            <button class="filter-btn" data-status-filter="Sin Escanear">Sin Escanear</button>
-                                                        </div>
-                                                        <div id="manifiestos-list-container" class="list-group list-group-flush" style="max-height: 50vh; overflow-y: auto; border: 1px solid var(--liverpool-border-gray); border-radius: 0.5rem;">
-                                                            <li class="list-group-item text-center text-muted py-3">Cargando manifiestos...</li>
-                                                        </div>
-                                                        <p class="small text-muted mt-3">💡 <b>Consejo para Auditoría:</b> Enfócate en manifiestos con alta desviación (muchas piezas faltantes/excedentes) para identificar problemas de raíz. Revisa la sección de "Alertas" para SKUs específicos no escaneados.</p>
-                                                    </div>
-                                                </div>
-                                                <div class="col-lg-8">
-                                                    <div id="manifest-detail-view" class="card p-4 shadow-sm border-0 h-100">
-                                                        <p class="text-muted text-center mt-4">Selecciona un manifiesto de la lista para ver su detalle y desglose por jefatura, contenedor y sección.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div id="excedentes-detail" class="epic-tab-pane">
-                                            <h4 style="color: #f0ad4e;"><i class="bi bi-box-arrow-in-up-right me-2"></i>Artículos con Excedentes</h4>
-                                            <div class="row mb-4">
-                                                <div class="col-lg-4">
-                                                    <div class="card p-3 shadow-sm border-0 h-100">
-                                                        <h6 class="card-title text-muted mb-3"><i class="bi bi-filter-circle me-1"></i> Filtrar Excedentes por Jefatura</h6>
-                                                        <div id="excedentes-jefatura-filter" class="filter-pills mb-3 d-flex flex-wrap gap-2">
-                                                            </div>
-                                                        <p class="small text-muted mt-3">Utiliza este filtro para ver los excedentes por la jefatura responsable de la sección.</p>
-                                                    </div>
-                                                </div>
-                                                <div class="col-lg-8">
-                                                    <div class="card p-4 shadow-sm border-0 h-100 d-flex flex-column align-items-center justify-content-center">
-                                                        <h5 class="mt-4 mb-3" style="color: var(--liverpool-dark); border-bottom: 1px solid var(--liverpool-border-gray); padding-bottom: 0.5rem; width: 100%; text-align: center;"><i class="bi bi-pie-chart-fill me-2"></i>Distribución de Excedentes</h5>
-                                                        <div style="width: 200px; height: 200px; position: relative;">
-                                                            <canvas id="excedentesChart"></canvas>
-                                                        </div>
-                                                        <div class="mt-4 w-100" style="max-height: 250px; overflow-y: auto;">
-                                                            <ul class="list-group list-group-flush" id="excedentes-list-container">
-                                                                </ul>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div id="usuarios" class="epic-tab-pane">
-                                            <h4><i class="bi bi-trophy-fill me-2"></i>Ranking de Operadores</h4>
-                                            <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;">
-                                                ${topScanners.length > 0 ? topScanners.map(([email, data], i) => `
-                                                    <div class="leaderboard-item">
-                                                        <div class="leaderboard-rank">${['🥇', '🥈', '🥉'][i] || `#${i + 1}`}</div>
-                                                        <div class="leaderboard-info">
-                                                            <div class="leaderboard-name">${String(email || 'N/A').trim()}</div>
-                                                            <div class="leaderboard-details">En ${data.manifests.size} manifiesto(s)</div>
-                                                        </div>
-                                                        <div class="leaderboard-stats">${(data.scans || 0).toLocaleString('es-MX')} <span class="small text-muted">pzs</span></div>
-                                                    </div>`).join('') : '<p class="text-muted text-center mt-4">No hay datos de rendimiento de usuarios.</p>'}
-                                            </div>
-                                        </div>
-                                        <div id="evidencia" class="epic-tab-pane">
-                                            <h4 style="color: var(--liverpool-pink);"><i class="bi bi-exclamation-diamond-fill me-2"></i>Artículos con Cero Escaneos</h4>
-                                            <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;"><ul class="list-group list-group-flush">${report.skusSinEscanear.length > 0 ? report.skusSinEscanear.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center"><div><strong style="color:var(--liverpool-dark);">${String(item.sku || 'N/A').trim()}</strong> - ${String(item.desc || 'Sin Descripción').trim()}<br><small class="text-muted">Manifiesto: ${String(item.manifiesto.id || 'N/A').trim()} (N° ${String(item.manifiesto.numero || 'N/A').trim()})</small></div><span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${(item.sap || 0)} pz.</span></li>`).join('') : '<li class="list-group-item text-center text-success fs-5 p-4">¡Felicidades! Todos los artículos fueron escaneados.</li>'}</ul></div>
-                                        </div>
+                    </div>
+                    <div id="usuarios" class="epic-tab-pane">
+                        <h4><i class="bi bi-trophy-fill me-2"></i>Ranking de Operadores</h4>
+                        <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;">
+                            ${topScanners.length > 0 ? topScanners.map(([email, data], i) => `
+                                <div class="leaderboard-item">
+                                    <div class="leaderboard-rank">${['🥇', '🥈', '🥉'][i] || `#${i + 1}`}</div>
+                                    <div class="leaderboard-info">
+                                        <div class="leaderboard-name">${String(email || 'N/A').trim()}</div>
+                                        <div class="leaderboard-details">En ${data.manifests.size} manifiesto(s)</div>
                                     </div>
-                                </div>`;
+                                    <div class="leaderboard-stats">${(data.scans || 0).toLocaleString('es-MX')} <span class="small text-muted">pzs</span></div>
+                                </div>`).join('') : '<p class="text-muted text-center mt-4">No hay datos de rendimiento de usuarios.</p>'}
+                        </div>
+                    </div>
+                    <div id="evidencia" class="epic-tab-pane">
+                        <h4><i class="bi bi-exclamation-diamond-fill me-2"></i>Artículos con Cero Escaneos</h4>
+                        <div style="max-height: 75vh; overflow-y: auto; padding-right:10px;"><ul class="list-group list-group-flush">${report.skusSinEscanear.length > 0 ? report.skusSinEscanear.map(item => `<li class="list-group-item d-flex justify-content-between align-items-center"><div><strong style="color:var(--liverpool-dark);">${String(item.sku || 'N/A').trim()}</strong> - ${String(item.desc || 'Sin Descripción').trim()}<br><small class="text-muted">Manifiesto: ${String(item.manifiesto.id || 'N/A').trim()} (N° ${String(item.manifiesto.numero || 'N/A').trim()})</small></div><span class="badge rounded-pill" style="background-color: var(--liverpool-pink);">${(item.sap || 0)} pz.</span></li>`).join('') : '<li class="list-group-item text-center text-success fs-5 p-4">¡Felicidades! Todos los artículos fueron escaneados.</li>'}</ul></div>
+                    </div>
+                </div>
+            </div>`;
 
         // 9. Add HTML to the main page div (`resumenContent`)
         const resumenContentDiv = document.getElementById('resumenContent');
@@ -2422,6 +2235,7 @@ const descargarResumenExcel = () => {
                         data: [avanceGeneral, 100 - avanceGeneral],
                         backgroundColor: ['var(--liverpool-pink)', '#e9ecef'],
                         borderWidth: 0,
+                        cutout: '80%',
                         circumference: 180,
                         rotation: 270
                     }]
@@ -2429,7 +2243,6 @@ const descargarResumenExcel = () => {
                 options: {
                     responsive: true,
                     aspectRatio: 2,
-                    cutout: '80%',
                     plugins: {
                         legend: { display: false },
                         tooltip: { enabled: false },
@@ -2457,7 +2270,6 @@ const descargarResumenExcel = () => {
                 }]
             });
         }
-
         // 13. Close the "Analyzing Data..." SweetAlert
         Swal.close();
 
@@ -2467,9 +2279,505 @@ const descargarResumenExcel = () => {
         document.getElementById('resumenContent').innerHTML = '<p class="text-center text-danger fs-5 mt-5">Error al cargar el resumen. Por favor, intenta de nuevo más tarde o contacta a soporte.</p>';
     }
 }
+const descargarResumenExcel = () => {
+    Swal.fire({
+        title: 'Creando Reporte Profesional',
+        html: 'Aplicando formato de tabla y generando análisis detallados...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+    });
+
+    // Se crea una copia del objeto de reporte para evitar modificar los datos originales.
+    const reportParaExcel = JSON.parse(JSON.stringify(report));
+
+    // Esta sección recalcula la estructura de jefaturas del reporte,
+    // basándose en los datos ya procesados y sin la lógica de reasignación manual.
+    reportParaExcel.jefaturas = {};
+    for (const [seccionNombre, seccionData] of Object.entries(reportParaExcel.secciones)) {
+        const jefe = seccionData.jefatura;
+        if (jefe === 'Sin Asignar') continue;
+
+        if (!reportParaExcel.jefaturas[jefe]) {
+            reportParaExcel.jefaturas[jefe] = {
+                sap: 0, scan: 0, faltantes: 0, excedentes: 0, skus: 0, secciones: [],
+                manifiestosConSecciones: []
+            };
+        }
+        reportParaExcel.jefaturas[jefe].sap += seccionData.sap;
+        reportParaExcel.jefaturas[jefe].scan += seccionData.scan;
+        reportParaExcel.jefaturas[jefe].faltantes += seccionData.faltantes;
+        reportParaExcel.jefaturas[jefe].excedentes += seccionData.excedentes;
+        reportParaExcel.jefaturas[jefe].skus += seccionData.skus;
+        reportParaExcel.jefaturas[jefe].secciones.push({
+            nombre: seccionNombre,
+            sap: seccionData.sap,
+            scan: seccionData.scan,
+            avance: seccionData.sap > 0 ? (seccionData.scan / seccionData.sap) * 100 : 100
+        });
+    }
+
+    const borderAll = { top: { style: "thin", color: { rgb: "D9D9D9" } }, bottom: { style: "thin", color: { rgb: "D9D9D9" } }, left: { style: "thin", color: { rgb: "D9D9D9" } }, right: { style: "thin", color: { rgb: "D9D9D9" } } };
+    const styles = {
+        title: { font: { sz: 24, bold: true, color: { rgb: "E10098" } }, alignment: { vertical: "center" } },
+        subtitle: { font: { sz: 11, italic: true, color: { rgb: "6c757d" } } },
+        header: { font: { sz: 16, bold: true, color: { rgb: "414141" } }, border: { bottom: { style: "medium", color: { rgb: "E10098" } } } },
+        tableHeader: { font: { sz: 12, bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "000000" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderAll },
+        manifestHeader: { font: { sz: 14, bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "E10098" } }, border: borderAll },
+        jefeHeader: { font: { sz: 13, bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "414141" } }, alignment: { horizontal: "left" }, border: borderAll },
+        kpiValueRed: { font: { sz: 28, bold: true, color: { rgb: "C00000" } }, alignment: { horizontal: "center" } },
+        kpiValueYellow: { font: { sz: 28, bold: true, color: { rgb: "b4830a" } }, alignment: { horizontal: "center" } },
+        kpiValueGreen: { font: { sz: 28, bold: true, color: { rgb: "548235" } }, alignment: { horizontal: "center" } },
+        kpiValue: { font: { sz: 28, bold: true, color: { rgb: "000000" } }, alignment: { horizontal: "center" } },
+        kpiLabel: { font: { sz: 11, bold: true, color: { rgb: "6c757d" } }, alignment: { horizontal: "center" } },
+        dataRowEven: { fill: { fgColor: { rgb: "F8F9FA" } }, border: borderAll },
+        dataRowOdd: { fill: { fgColor: { rgb: "FFFFFF" } }, border: borderAll },
+        cellRed: { font: { bold: true, color: { rgb: "C00000" } } },
+        cellYellow: { font: { bold: true, color: { rgb: "b4830a" } } },
+        cellGreen: { font: { bold: true, color: { rgb: "155724" } } },
+        avanceGood: { font: { bold: true, color: { rgb: "155724" } }, fill: { fgColor: { rgb: "D4EDDA" } } },
+        avanceWarning: { font: { bold: true, color: { rgb: "856404" } }, fill: { fgColor: { rgb: "FFF3CD" } } },
+        avanceDanger: { font: { bold: true, color: { rgb: "721c24" } }, fill: { fgColor: { rgb: "F8D7DA" } } },
+        statusCritico: { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "C00000" } } },
+        statusAlerta: { font: { bold: true, color: { rgb: "000000" } }, fill: { fgColor: { rgb: "FFC700" } } },
+        statusInfo: { font: { bold: true, color: { rgb: "000000" } }, fill: { fgColor: { rgb: "DAE3F3" } } },
+        statusOk: { font: { bold: true, color: { rgb: "155724" } }, fill: { fgColor: { rgb: "D4EDDA" } } },
+    };
+
+    const wb = XLSX.utils.book_new();
+    const hoy = new Date();
+    const fechaReporte = hoy.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    const formatSheet = (ws, colWidths = [], numRows, numCols) => {
+        if (!ws || !ws['!ref']) return;
+        ws['!cols'] = colWidths.map(wch => ({ wch }));
+        ws['!autofilter'] = { ref: ws['!ref'] };
+        ws['!freeze'] = { ySplit: 1 };
+
+        for (let R = 0; R < numRows; R++) {
+            const rowStyle = R === 0 ? styles.tableHeader : (R % 2 !== 0 ? styles.dataRowEven : styles.dataRowOdd);
+            for (let C = 0; C < numCols; C++) {
+                const cellRef = XLSX.utils.encode_cell({ c: C, r: R });
+                if (ws[cellRef]) {
+                    if (!ws[cellRef].s || (ws[cellRef].s.font === undefined && ws[cellRef].s.fill === undefined && ws[cellRef].s.border === undefined)) {
+                        ws[cellRef].s = rowStyle;
+                    }
+                }
+            }
+        }
+    };
+
+    const totalFaltantesPeriodo = Object.values(reportParaExcel.secciones).reduce((sum, sec) => sum + (sec.faltantes || 0), 0);
+    const totalExcedentesPeriodo = Object.values(reportParaExcel.secciones).reduce((sum, sec) => sum + (sec.excedentes || 0), 0);
+    const piezasEsperadas = reportParaExcel.totalSAP;
+    const piezasEncontradas = piezasEsperadas - totalFaltantesPeriodo;
+    const avanceGeneral = piezasEsperadas > 0 ? piezasEncontradas / piezasEsperadas : 1;
+
+    const initialDashData = [
+        [{ v: "📊 Dashboard Ejecutivo de Rendimiento", s: styles.title }],
+        [{ v: `Periodo: ${reportParaExcel.startDate} a ${reportParaExcel.endDate} | Generado: ${fechaReporte}`, s: styles.subtitle }],
+        [],
+        [{ v: "📈 INDICADORES CLAVE DE RENDIMIENTO (KPIs)", s: styles.header }],
+        [],
+        ["AVANCE GENERAL", "PIEZAS ENCONTRADAS (DE SAP)", "FALTANTES", "EXCEDENTES", "MANIFIESTOS PROCESADOS"],
+        [
+            { v: avanceGeneral, t: 'n', z: '0.0%', s: avanceGeneral >= 0.95 ? styles.kpiValueGreen : avanceGeneral >= 0.85 ? styles.kpiValueYellow : avanceGeneral >= 0.5 ? styles.kpiValueYellow : styles.kpiValueRed },
+            { v: piezasEncontradas, t: 'n', z: '#,##0', s: styles.kpiValueGreen },
+            { v: totalFaltantesPeriodo, t: 'n', z: '#,##0', s: styles.kpiValueRed },
+            { v: totalExcedentesPeriodo, t: 'n', z: '#,##0', s: styles.kpiValueYellow },
+            { v: Object.keys(reportParaExcel.manifiestos).length, t: 'n', z: '#,##0', s: styles.kpiValue }
+        ],
+        [],
+        [{ v: "🚨 ÁREAS CRÍTICAS (JEFATURAS CON MÁS FALTANTES)", s: styles.header }],
+    ];
+    const wsDash = XLSX.utils.aoa_to_sheet(initialDashData, { cellStyles: true });
+
+    ['A6', 'B6', 'C6', 'D6', 'E6'].forEach(cellRef => {
+        if (wsDash[cellRef]) wsDash[cellRef].s = styles.kpiLabel;
+    });
+
+    const jefaturasPorFaltantes = Object.entries(reportParaExcel.jefaturas).sort(([, a], [, b]) => b.faltantes - a.faltantes).slice(0, 5);
+
+    XLSX.utils.sheet_add_aoa(wsDash, [["Jefatura", "Piezas Faltantes", "% Avance"]], { origin: "A10" });
+
+    ['A10', 'B10', 'C10'].forEach(cellRef => {
+        if (wsDash[cellRef]) wsDash[cellRef].s = styles.tableHeader;
+    });
+
+    const topJefaturasData = jefaturasPorFaltantes.map(([jefe, data]) => {
+        const avance = data.sap > 0 ? (data.sap - data.faltantes) / data.sap : 1;
+        return [{ v: jefe, s: { font: { bold: true } } }, { v: data.faltantes, t: 'n', z: '#,##0', s: styles.cellRed }, { v: avance, t: 'n', z: '0.0%', s: (avance > 0.95 ? styles.cellGreen : avance > 0.85 ? styles.cellYellow : styles.cellRed) }];
+    });
+    XLSX.utils.sheet_add_aoa(wsDash, topJefaturasData, { origin: "A11", cellStyles: true });
+
+    wsDash['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } },
+        { s: { r: 3, c: 0 }, e: { r: 3, c: 4 } },
+        { s: { r: 8, c: 0 }, e: { r: 8, c: 4 } }
+    ];
+    wsDash['!cols'] = [{ wch: 25 }, { wch: 28 }, { wch: 25 }, { wch: 25 }, { wch: 30 }];
+
+    const startRowManifestsSection = 11 + topJefaturasData.length + 2;
+
+    const includedManifests = Object.values(reportParaExcel.manifiestos).map(m => ([
+        `${m.numero || 'N/A'} (ID: ${String(m.id || 'N/A').substring(0, 8)}...)`,
+        `${(m.contenedores || []).length} Cont.`
+    ]));
+
+    XLSX.utils.sheet_add_aoa(wsDash, [
+        [],
+        [{ v: "🧾 MANIFIESTOS INCLUIDOS EN EL REPORTE", s: styles.header }],
+        ["Número de Manifiesto", "Contenedores"],
+        ...includedManifests
+    ], { origin: `A${startRowManifestsSection}`, cellStyles: true });
+
+    const headerRowForManifests = startRowManifestsSection + 1;
+    if (wsDash[`A${headerRowForManifests}`]) wsDash[`A${headerRowForManifests}`].s = styles.tableHeader;
+    if (wsDash[`B${headerRowForManifests}`]) wsDash[`B${headerRowForManifests}`].s = styles.tableHeader;
+
+    const titleRowForManifests = startRowManifestsSection;
+    wsDash['!merges'].push({ s: { r: titleRowForManifests, c: 0 }, e: { r: titleRowForManifests, c: 4 } });
+
+    XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard Ejecutivo");
+
+    const analisisManifiestoData = [];
+    const manifiestosOrdenados = Object.values(reportParaExcel.manifiestos).sort((a, b) => (a.numero || "").localeCompare(b.numero || ""));
+    manifiestosOrdenados.forEach(man => {
+        analisisManifiestoData.push([]);
+        analisisManifiestoData.push([]);
+        analisisManifiestoData.push([{ v: `ANÁLISIS DETALLADO DEL MANIFIESTO: ${man.numero || man.id}`, s: styles.manifestHeader, z: '@' }]);
+        analisisManifiestoData.push(["ID Manifiesto", "Número de Manifiesto", "Piezas SAP Total", "Piezas Escaneadas Total", "Contenedores Únicos"]);
+
+        const manTotalSAP = Object.values(man.seccionesResumen).reduce((sum, s) => sum + (s.totalSap || 0), 0);
+        const manTotalSCAN = Object.values(man.seccionesResumen).reduce((sum, s) => sum + (s.totalScan || 0), 0);
+
+        analisisManifiestoData.push([
+            { v: man.id, s: styles.dataRowEven, z: '@' },
+            { v: man.numero, s: styles.dataRowEven, z: '@' },
+            { v: manTotalSAP, t: 'n', z: '#,##0', s: styles.dataRowEven },
+            { v: manTotalSCAN, t: 'n', z: '#,##0', s: styles.dataRowEven },
+            { v: (man.contenedores || []).length, t: 'n', z: '0', s: styles.dataRowEven }
+        ]);
+        analisisManifiestoData.push([]);
+
+        const jefesEnManifiesto = {};
+        Object.entries(man.seccionesResumen).forEach(([nombreSeccion, dataSeccion]) => {
+            const jefe = dataSeccion.jefatura;
+            if (!jefesEnManifiesto[jefe]) { jefesEnManifiesto[jefe] = { sap: 0, scan: 0, faltantes: 0, excedentes: 0, secciones: [] }; }
+            const secTotals = { sap: dataSeccion.totalSap, scan: dataSeccion.totalScan, faltantes: 0, excedentes: 0 };
+            Object.values(dataSeccion.byContenedor).forEach(cont => { secTotals.faltantes += cont.faltantes; secTotals.excedentes += cont.excedentes; });
+
+            jefesEnManifiesto[jefe].sap += secTotals.sap;
+            jefesEnManifiesto[jefe].scan += secTotals.scan;
+            jefesEnManifiesto[jefe].faltantes += secTotals.faltantes;
+            jefesEnManifiesto[jefe].excedentes += secTotals.excedentes;
+            jefesEnManifiesto[jefe].secciones.push({ nombre: nombreSeccion, ...secTotals });
+        });
+
+        Object.entries(jefesEnManifiesto).forEach(([jefe, dataJefe]) => {
+            analisisManifiestoData.push([{ v: `   Jefatura: ${jefe}`, s: styles.jefeHeader }]);
+            analisisManifiestoData.push(["   Sección", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "Avance (%)", "Contenedores con Desviación"]);
+            dataJefe.secciones.sort((a, b) => b.faltantes - a.faltantes).forEach(sec => {
+                const secAvance = sec.sap > 0 ? (sec.sap - sec.faltantes) / sec.sap : 1;
+
+                const containersWithDeviation = Object.entries(man.seccionesResumen[sec.nombre]?.byContenedor || {})
+                    .filter(([, cData]) => cData.faltantes > 0 || cData.excedentes > 0)
+                    .map(([cName, cData]) => {
+                        let dev = [];
+                        if (cData.faltantes > 0) dev.push(`F:${cData.faltantes}`);
+                        if (cData.excedentes > 0) dev.push(`E:${cData.excedentes}`);
+                        return `${cName} (${dev.join(', ')})`;
+                    })
+                    .join('; ') || 'N/A';
+
+                analisisManifiestoData.push([
+                    `   ${sec.nombre}`,
+                    { t: 'n', v: sec.sap, z: '#,##0' },
+                    { t: 'n', v: sec.scan, z: '#,##0' },
+                    { t: 'n', v: sec.faltantes, z: '#,##0', s: styles.cellRed },
+                    { t: 'n', v: sec.excedentes, z: '#,##0', s: styles.cellYellow },
+                    { t: 'n', v: secAvance, z: '0.00%', s: (secAvance >= 0.995) ? styles.avanceGood : styles.avanceDanger },
+                    containersWithDeviation
+                ]);
+            });
+        });
+    });
+
+    const wsAnalisisManifiesto = XLSX.utils.aoa_to_sheet(analisisManifiestoData, { cellStyles: true });
+    const mergesAnalisis = [];
+    let currentRowForStyleAnalysis = 0;
+    analisisManifiestoData.forEach((row, index) => {
+        if (row.length === 1 && row[0].v && (row[0].v.startsWith("ANÁLISIS DETALLADO") || row[0].v.startsWith("    Jefatura:"))) {
+            mergesAnalisis.push({ s: { r: index, c: 0 }, e: { r: index, c: 6 } });
+            if (row[0].v.startsWith("ANÁLISIS DETALLADO")) {
+                for (let C = 0; C < 7; C++) { const cellRef = XLSX.utils.encode_cell({ c: C, r: index }); if (wsAnalisisManifiesto[cellRef]) wsAnalisisManifiesto[cellRef].s = styles.manifestHeader; }
+            } else if (row[0].v.startsWith("    Jefatura:")) {
+                for (let C = 0; C < 7; C++) { const cellRef = XLSX.utils.encode_cell({ c: C, r: index }); if (wsAnalisisManifiesto[cellRef]) wsAnalisisManifiesto[cellRef].s = styles.jefeHeader; }
+            }
+            currentRowForStyleAnalysis = 0;
+        }
+        else if (row.length > 1 && (row[0].toString().trim() === "ID Manifiesto" || row[0].toString().trim() === "Sección")) {
+            const numColsToStyle = (row[0].toString().trim() === "ID Manifiesto") ? 5 : 7;
+            for (let C = 0; C < numColsToStyle; C++) { const cellRef = XLSX.utils.encode_cell({ c: C, r: index }); if (wsAnalisisManifiesto[cellRef]) wsAnalisisManifiesto[cellRef].s = styles.tableHeader; }
+        }
+        else if (row.length > 1 && row[0].v !== undefined && row[0].v !== null && row[0].v !== "") { // Data rows
+            const rowStyle = (currentRowForStyleAnalysis++ % 2 === 0) ? styles.dataRowEven : styles.dataRowOdd;
+            const numColsToStyle = 7;
+            for (let C = 0; C < numColsToStyle; C++) {
+                const cellRef = XLSX.utils.encode_cell({ c: C, r: index });
+                if (wsAnalisisManifiesto[cellRef]) {
+                    wsAnalisisManifiesto[cellRef].s = wsAnalisisManifiesto[cellRef].s ? { ...rowStyle, ...wsAnalisisManifiesto[cellRef].s } : rowStyle;
+                }
+            }
+        }
+        else {
+        }
+    });
+    wsAnalisisManifiesto['!merges'] = mergesAnalisis;
+    wsAnalisisManifiesto['!cols'] = [{ wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 50 }];
+    XLSX.utils.book_append_sheet(wb, wsAnalisisManifiesto, "Análisis por Manifiesto");
+
+    const desgloseData = [["Jefatura / Sección", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "Avance (%)"]];
+    const jefaturasOrdenadas = Object.entries(reportParaExcel.jefaturas).sort(([, a], [, b]) => b.faltantes - a.faltantes);
+    jefaturasOrdenadas.forEach(([nombreJefe, dataJefe]) => {
+        if (dataJefe.sap === 0 && dataJefe.scan === 0) return;
+        const avanceJefe = dataJefe.sap > 0 ? (dataJefe.sap - dataJefe.faltantes) / dataJefe.sap : 1;
+        desgloseData.push([{ v: nombreJefe, s: styles.jefeHeader }, { v: dataJefe.sap, t: 'n', z: '#,##0', s: styles.jefeHeader }, { v: dataJefe.scan, t: 'n', z: '#,##0', s: styles.jefeHeader }, { v: dataJefe.faltantes, t: 'n', z: '#,##0', s: styles.jefeHeader }, { v: dataJefe.excedentes, t: 'n', z: '#,##0', s: styles.jefeHeader }, { v: avanceJefe, t: 'n', z: '0.00%', s: styles.jefeHeader }]);
+        const seccionesDelJefe = Object.entries(reportParaExcel.secciones).filter(([, data]) => data.jefatura === nombreJefe && (data.sap > 0 || data.scan > 0)).sort(([, a], [, b]) => b.faltantes - a.faltantes);
+        seccionesDelJefe.forEach(([nombreSeccion, dataSeccion], index) => {
+            const avanceSeccion = dataSeccion.sap > 0 ? (dataSeccion.sap - dataSeccion.faltantes) / dataSeccion.sap : 1;
+            const rowStyle = index % 2 === 0 ? styles.dataRowEven : styles.dataRowOdd;
+            desgloseData.push([{ v: `    ${nombreSeccion}`, s: rowStyle }, { t: 'n', v: dataSeccion.sap, z: '#,##0', s: rowStyle }, { t: 'n', v: dataSeccion.scan, z: '#,##0', s: rowStyle }, { t: 'n', v: dataSeccion.faltantes, z: '#,##0', s: { ...rowStyle, ...styles.cellRed } }, { t: 'n', v: dataSeccion.excedentes, z: '#,##0', s: { ...rowStyle, ...styles.cellYellow } }, { t: 'n', v: avanceSeccion, z: '0.00%', s: (avanceSeccion >= 0.995) ? { ...rowStyle, ...styles.avanceGood } : (avanceSeccion >= 0.90) ? { ...rowStyle, ...styles.avanceWarning } : { ...rowStyle, ...styles.avanceDanger } }]);
+        });
+    });
+    const wsJefaturas = XLSX.utils.aoa_to_sheet(desgloseData, { cellStyles: true });
+    wsJefaturas["A1"].s = styles.tableHeader;
+    wsJefaturas['!cols'] = [{ wch: 40 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    wsJefaturas['!autofilter'] = { ref: `A1:F${desgloseData.length}` };
+    wsJefaturas['!freeze'] = { ySplit: 1 };
+    XLSX.utils.book_append_sheet(wb, wsJefaturas, "Resumen por Jefatura");
+
+    const desgloseDetalladoSheetData = [];
+    Object.keys(reportParaExcel.jefaturas).sort().forEach(jefe => {
+        if (jefe === "Sin Asignar") return;
+        let itemsConDiferencia = [];
+        Object.values(reportParaExcel.manifiestos).forEach(man => {
+            man.data.forEach(row => {
+                const seccion = String(getProp(row, 'SECCION') || 'N/A');
+                let jefaturaActual = (seccionesMap.get(seccion.toUpperCase()) || {}).jefatura || 'Sin Asignar';
+                // La lógica de reasignación ha sido eliminada.
+                // Ahora, jefaturaActual contendrá el valor directamente del mapa.
+
+                if (jefaturaActual === jefe) {
+                    const sap = Number(getProp(row, 'SAP')) || 0;
+                    const scan = Number(getProp(row, 'SCANNER')) || 0;
+                    if (sap !== scan) {
+                        itemsConDiferencia.push({ seccion, manifiesto: man.numero, contenedor: getProp(row, 'CONTENEDOR'), sku: getProp(row, 'SKU'), descripcion: getProp(row, 'DESCRIPCION'), faltante: Math.max(0, sap - scan), excedente: Math.max(0, scan - sap) });
+                    }
+                }
+            });
+        });
+        if (itemsConDiferencia.length > 0) {
+            desgloseDetalladoSheetData.push([{ v: `Jefatura: ${jefe}`, s: styles.jefeHeader }]);
+            desgloseDetalladoSheetData.push(["Sección", "Manifiesto", "Contenedor", "SKU", "Descripción", "Faltantes", "Excedentes"]);
+            itemsConDiferencia.sort((a, b) => a.seccion.localeCompare(b.seccion) || b.faltante - a.faltante);
+            itemsConDiferencia.forEach(item => { desgloseDetalladoSheetData.push([item.seccion, item.manifiesto, item.contenedor, item.sku, item.descripcion, { t: 'n', v: item.faltante, z: '#,##0', s: styles.cellRed }, { t: 'n', v: item.excedente, z: '#,##0', s: styles.cellYellow }]); });
+            desgloseDetalladoSheetData.push([]);
+        }
+    });
+
+    const wsDesgloseDetallado = XLSX.utils.aoa_to_sheet(desgloseDetalladoSheetData, { cellStyles: true });
+    const mergesDetalle = [];
+    let currentRowForStyleDetail = 0;
+    desgloseDetalladoSheetData.forEach((row, index) => {
+        if (row.length === 1 && row[0].v && row[0].v.startsWith("Jefatura:")) {
+            mergesDetalle.push({ s: { r: index, c: 0 }, e: { r: index, c: 6 } });
+            for (let C = 0; C < 7; C++) { const cellRef = XLSX.utils.encode_cell({ c: C, r: index + 1 }); if (wsDesgloseDetallado[cellRef]) wsDesgloseDetallado[cellRef].s = styles.tableHeader; }
+        } else if (row.length > 1) {
+            const rowStyle = (currentRowForStyleDetail++ % 2 === 0) ? styles.dataRowEven : styles.dataRowOdd;
+            const numColsToStyle = 7;
+            for (let C = 0; C < numColsToStyle; C++) { const cellRef = XLSX.utils.encode_cell({ c: C, r: index }); if (wsDesgloseDetallado[cellRef]) wsDesgloseDetallado[cellRef].s = wsDesgloseDetallado[cellRef].s ? { ...rowStyle, ...wsDesgloseDetallado[cellRef].s } : rowStyle; }
+        } else { currentRowForStyleDetail = 0; }
+    });
+    wsDesgloseDetallado['!merges'] = mergesDetalle;
+    wsDesgloseDetallado['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 45 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsDesgloseDetallado, "Desglose Detallado por Jefe");
+
+    const desviaciones = [];
+    Object.values(reportParaExcel.manifiestos).forEach(man => {
+        const contenedoresEnManifiesto = {};
+        Object.entries(man.seccionesResumen).forEach(([nombreSeccion, seccion]) => {
+            Object.entries(seccion.byContenedor).forEach(([nombreContenedor, dataContenedor]) => {
+                if (!contenedoresEnManifiesto[nombreContenedor]) { contenedoresEnManifiesto[nombreContenedor] = { sap: 0, scan: 0, faltantes: 0, excedentes: 0, jefaturas: new Set() }; }
+                const c = contenedoresEnManifiesto[nombreContenedor];
+                c.sap += dataContenedor.sap; c.scan += dataContenedor.scan; c.faltantes += dataContenedor.faltantes; c.excedentes += dataContenedor.excedentes;
+                if (seccion.jefatura && seccion.jefatura !== 'Sin Asignar') { c.jefaturas.add(seccion.jefatura); }
+            });
+        });
+        Object.entries(contenedoresEnManifiesto).forEach(([contenedor, data]) => {
+            let estado = 'COMPLETO', priority = 5;
+            if (data.sap > 0 && data.scan === 0) { estado = 'NO ESCANEADO'; priority = 1; }
+            else if (data.faltantes > 0 && data.excedentes > 0) { estado = 'MIXTO (FALTANTES Y EXCEDENTES)'; priority = 2; }
+            else if (data.faltantes > 0) { estado = 'CON FALTANTES'; priority = 3; }
+            else if (data.excedentes > 0) { estado = 'CON EXCEDENTES'; priority = 4; }
+            desviaciones.push({ manifiesto: man.numero, contenedor, estado, sap: data.sap, scan: data.scan, faltantes: data.faltantes, excedentes: data.excedentes, jefaturas: Array.from(data.jefaturas).join(', '), priority });
+        });
+    });
+    desviaciones.sort((a, b) => a.priority - b.priority || b.faltantes - a.faltantes);
+    const desviacionesSheetData = desviaciones.map(d => [d.manifiesto, d.contenedor, { v: d.estado, s: d.estado === 'COMPLETO' ? styles.statusOk : d.estado === 'NO ESCANEADO' ? styles.statusCritico : d.estado.includes('FALTANTES') ? styles.statusAlerta : styles.statusInfo }, { t: 'n', v: d.sap, z: '#,##0' }, { t: 'n', v: d.scan, z: '#,##0' }, { t: 'n', v: d.faltantes, z: '#,##0', s: styles.cellRed }, { t: 'n', v: d.excedentes, z: '#,##0', s: styles.cellYellow }, d.jefaturas]);
+    const wsDesviaciones = XLSX.utils.aoa_to_sheet([["Manifiesto", "Contenedor", "Estado", "Piezas SAP", "Piezas Escaneadas", "Faltantes", "Excedentes", "Jefatura(s) Responsable(s)"], ...desviacionesSheetData], { cellStyles: true });
+    formatSheet(wsDesviaciones, [20, 25, 30, 15, 18, 15, 15, 40], desviaciones.length + 1, 8);
+    XLSX.utils.book_append_sheet(wb, wsDesviaciones, "Reporte de Desviaciones");
+
+    reportParaExcel.skusConExcedentes.sort((a, b) => b.excedente - a.excedente);
+    const excedentesSheetData = reportParaExcel.skusConExcedentes.map(item => [item.jefatura, item.seccion, item.manifiesto.numero, item.contenedor, item.sku, item.desc, { t: 'n', v: item.excedente, z: '#,##0', s: styles.cellYellow }]);
+    const wsExcedentes = XLSX.utils.aoa_to_sheet([["Jefatura", "Sección", "Manifiesto", "Contenedor", "SKU", "Descripción", "Cantidad Excedente"], ...excedentesSheetData], { cellStyles: true });
+    formatSheet(wsExcedentes, [30, 30, 25, 25, 20, 45, 20], reportParaExcel.skusConExcedentes.length + 1, 7);
+    XLSX.utils.book_append_sheet(wb, wsExcedentes, "Oportunidades (Excedentes)");
+
+    const operadoresSorted = Object.entries(reportParaExcel.usuarios).sort(([, a], [, b]) => b.scans - a.scans);
+    const totalScansOverall = Object.values(reportParaExcel.usuarios).reduce((sum, user) => sum + user.scans, 0);
+
+    const operadoresSheetData = operadoresSorted.map(([email, data], index) => {
+        const participationPercentage = totalScansOverall > 0 ? (data.scans / totalScansOverall) : 0;
+        return [
+            index + 1,
+            email,
+            { t: 'n', v: data.scans, z: '#,##0' },
+            { t: 'n', v: participationPercentage, z: '0.00%' },
+            data.manifests.size
+        ];
+    });
+    const wsOperadores = XLSX.utils.aoa_to_sheet([["Ranking", "Operador", "Piezas Escaneadas", "Participación (%)", "Manifiestos Trabajados"], ...operadoresSheetData], { cellStyles: true });
+    formatSheet(wsOperadores, [10, 40, 25, 20, 25], operadoresSorted.length + 1, 5);
+    XLSX.utils.book_append_sheet(wb, wsOperadores, "Ranking Operadores");
+
+    if (reportParaExcel.failedManifests && reportParaExcel.failedManifests.length > 0) {
+        const erroresSheetData = reportParaExcel.failedManifests.map(error => [error.id || 'Desconocido', error.error || 'Sin detalle']);
+        const wsErrores = XLSX.utils.aoa_to_sheet([["ID Manifiesto con Error", "Detalle del Error"], ...erroresSheetData]);
+        formatSheet(wsErrores, [40, 80], reportParaExcel.failedManifests.length + 1, 2);
+        XLSX.utils.book_append_sheet(wb, wsErrores, "Errores de Proceso");
+    }
+
+    XLSX.writeFile(wb, `Reporte_Ejecutivo_Rendimiento_${reportParaExcel.startDate}_a_${reportParaExcel.endDate}.xlsx`);
+    Swal.close();
+};
 // ==============================================================================
 // === Logic to check authentication and run summary on page load ===
 // ==============================================================================
+// Función para mostrar el detalle de faltantes de una sección en un modal.
+window.mostrarDetalleFaltantes = (nombreJefe, nombreSeccion) => {
+    const faltantesDeSeccion = report.skusSinEscanear.filter(item =>
+        String(item.seccion || 'N/A').trim() === nombreSeccion && String(item.jefatura || 'N/A').trim() === nombreJefe
+    );
+
+    const seccionDataResumen = report.secciones[nombreSeccion] || {};
+    const totalFaltantes = seccionDataResumen.faltantes || 0;
+    const totalExcedentes = seccionDataResumen.excedentes || 0;
+
+    if (faltantesDeSeccion.length === 0) {
+        Swal.fire({
+            icon: 'success',
+            title: '¡Sin Faltantes!',
+            text: `La sección ${nombreSeccion} (Jefatura: ${nombreJefe}) no tiene artículos faltantes en este periodo.`,
+            confirmButtonText: '¡Excelente!',
+        });
+        return;
+    }
+
+    const faltantesAgrupados = {};
+    faltantesDeSeccion.forEach(item => {
+        const key = `${item.sku}-${item.manifiesto.numero}-${item.contenedor}`;
+        if (!faltantesAgrupados[key]) {
+            faltantesAgrupados[key] = { ...item };
+        }
+    });
+    const itemsParaMostrar = Object.values(faltantesAgrupados).sort((a, b) => b.faltante - a.faltante);
+
+    const renderItems = (items) => {
+        if (items.length === 0) {
+            return `<li class="faltantes-item-empty">No se encontraron artículos que coincidan con la búsqueda.</li>`;
+        }
+        return items.map(item => `
+            <li class="faltantes-item">
+                <div class="faltantes-item-header">
+                    <span class="faltantes-item-sku">SKU: ${String(item.sku).trim()}</span>
+                    <span class="faltantes-item-cantidad">Faltan: ${item.faltante}</span>
+                </div>
+                <div class="faltantes-item-body">
+                    <p class="faltantes-item-desc">${String(item.desc || 'Sin descripción').trim()}</p>
+                    <div class="faltantes-item-meta">
+                        <span><i class="bi bi-file-earmark-text"></i> ${String(item.manifiesto.numero || 'N/A').trim()}</span>
+                        <span><i class="bi bi-box-seam"></i> ${String(item.contenedor || 'N/A').trim()}</span>
+                    </div>
+                </div>
+            </li>`).join('');
+    };
+
+    const modalHTML = `
+        <style>
+            .swal2-popup .swal2-html-container { margin: 0 !important; }
+            .faltantes-container { text-align: left; padding: 0 1rem; }
+            .faltantes-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+            .summary-card { padding: 1rem; border-radius: 0.75rem; text-align: center; }
+            .summary-card.faltantes { background-color: #f8d7da; color: #721c24; }
+            .summary-card.excedentes { background-color: #fff3cd; color: #856404; }
+            .summary-card .label { font-weight: 600; display: block; font-size: 0.9rem; }
+            .summary-card .value { font-weight: 700; font-size: 1.75rem; }
+            .faltantes-search-wrapper { position: relative; margin-bottom: 1rem; }
+            .faltantes-search-wrapper .bi-search { position: absolute; top: 50%; left: 1rem; transform: translateY(-50%); color: #6c757d; }
+            #faltantes-search-input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border-radius: 2rem; border: 1px solid #ced4da; font-size: 1rem; }
+            .faltantes-list { list-style: none; padding: 0; margin: 0; max-height: 45vh; overflow-y: auto; }
+            .faltantes-item { background-color: #f8f9fa; border-radius: 0.5rem; padding: 1rem; margin-bottom: 0.75rem; border-left: 4px solid #dc3545; }
+            .faltantes-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+            .faltantes-item-sku { font-weight: 600; color: var(--liverpool-dark); }
+            .faltantes-item-cantidad { font-weight: 700; color: #dc3545; background-color: #f8d7da; padding: 0.2rem 0.5rem; border-radius: 0.25rem; }
+            .faltantes-item-body .faltantes-item-desc { color: #495057; margin: 0 0 0.5rem 0; font-size: 0.9rem; }
+            .faltantes-item-meta { display: flex; gap: 1rem; font-size: 0.85rem; color: #6c757d; }
+            .faltantes-item-meta i { color: var(--liverpool-pink); }
+            .faltantes-item-empty { text-align: center; padding: 2rem; color: #6c757d; }
+        </style>
+        <div class="faltantes-container">
+            <div class="faltantes-summary">
+                <div class="summary-card faltantes">
+                    <span class="label">Total Faltantes</span>
+                    <span class="value">${totalFaltantes.toLocaleString('es-MX')}</span>
+                </div>
+                <div class="summary-card excedentes">
+                    <span class="label">Total Excedentes</span>
+                    <span class="value">${totalExcedentes.toLocaleString('es-MX')}</span>
+                </div>
+            </div>
+            <div class="faltantes-search-wrapper">
+                <i class="bi bi-search"></i>
+                <input type="text" id="faltantes-search-input" placeholder="Buscar por SKU, Manifiesto o Contenedor...">
+            </div>
+            <ul class="faltantes-list" id="faltantes-list-ul">${renderItems(itemsParaMostrar)}</ul>
+        </div>`;
+
+    Swal.fire({
+        title: `<i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Reporte de Faltantes`,
+        html: modalHTML,
+        width: 'clamp(350px, 90vw, 700px)',
+        confirmButtonText: 'Cerrar',
+        footer: `<div class="text-center w-100"><strong>Sección:</strong> ${nombreSeccion} | <strong>Jefatura:</strong> ${nombreJefe}</div>`,
+        didOpen: () => {
+            const searchInput = document.getElementById('faltantes-search-input');
+            const listUl = document.getElementById('faltantes-list-ul');
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                const filteredItems = itemsParaMostrar.filter(item =>
+                    String(item.sku).toLowerCase().includes(searchTerm) ||
+                    String(item.manifiesto.numero).toLowerCase().includes(searchTerm) ||
+                    String(item.contenedor).toLowerCase().includes(searchTerm)
+                );
+                listUl.innerHTML = renderItems(filteredItems);
+            });
+            searchInput.focus();
+        }
+    });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(async (user) => {
         if (!user) {
