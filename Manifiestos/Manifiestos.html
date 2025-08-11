@@ -144,12 +144,17 @@
                         <div class="col-lg-5">
                             <div class="p-3 text-center">
                                 <p class="form-label mb-3">Buscar un manifiesto existente</p>
-                                <div class="search-input-container mx-auto" style="max-width: 400px;">
-                                    <i class="material-icons">search</i>
-                                    <input type="text" id="inputBusqueda" class="form-control-modern text-center"
-                                        placeholder="Buscar por Contenedor o SKU..."
-                                        aria-label="Buscar manifiesto por Contenedor o SKU">
-                                </div>
+                                
+<div class="input-con-icono mx-auto" style="max-width: 400px;">
+    <i class="material-icons">search</i>
+    <input type="text" id="inputBusqueda" class="form-control-modern text-center"
+        placeholder="Buscar por Contenedor o SKU..."
+        aria-label="Buscar manifiesto por Contenedor o SKU">
+    <button type="button" class="btn-escaner btn-escaner-icono" data-target="#inputBusqueda" title="Escanear código con la cámara">
+        <i class="bi bi-camera-fill"></i>
+    </button>
+</div>
+                                
                                 <div class="d-grid mt-4 mx-auto" style="max-width: 400px;">
                                     <button id="btnVerArchivos" class="btn btn-main btn-secondary-main"
                                         title="Ver todos los archivos de manifiestos"
@@ -199,16 +204,16 @@
                             Registro de Piezas</h2>
                     </div>
                     <div class="card-body">
-                        <input type="text" id="inputScanCode" class="form-control"
-                            placeholder="Escanee o ingrese manualmente el código" disabled>
-                        <small class="text-muted d-block mt-1">Se procesará automáticamente al detectar entre 5 y 10
-                            dígitos o, para código europeo, 12 o más.</small>
+<div class="input-con-icono">
+    <input type="text" id="inputScanCode" class="form-control"
+        placeholder="Escanee o ingrese el código" disabled>
+    <button type="button" class="btn-escaner btn-escaner-icono" data-target="#inputScanCode" title="Escanear pieza con la cámara">
+        <i class="bi bi-camera-fill"></i>
+    </button>
+</div>
+                        <small class="text-muted d-block mt-1">Se procesará automáticamente al detectar un código válido.</small>
                     </div>
-                    <div class="card-footer text-end bg-white">
-                        <button id="btnRegistrarManual" class="btn btn-primary btn-sm"
-                            title="Registrar pieza manualmente" aria-label="Registrar pieza manualmente"><i
-                                class="material-icons">edit_note</i> Registrar Manual</button>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -245,37 +250,48 @@
             </div>
         </div>
     </div>
+    
+<div id="modal-escaner" style="display: none;">
+    <div class="modal-contenido">
+        <h2>Escanear Código</h2>
+        <div class="contenedor-video-escaner">
+            <video id="video-escaner"></video>
+            <div class="barra-escaner"></div>
+
+            <div class="esquina-escaner esquina-top-left"></div>
+            <div class="esquina-escaner esquina-top-right"></div>
+            <div class="esquina-escaner esquina-bottom-left"></div>
+            <div class="esquina-escaner esquina-bottom-right"></div>
+        </div>
+        <button id="btn-cerrar-modal" class="btn btn-danger mt-3">Cancelar</button>
+    </div>
+</div>
 
     <canvas id="hiddenChartCanvas" width="400" height="200" style="display: none;"></canvas>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
-
     <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@sheet/xlsx-style@0.15.8/dist/xlsx.bundle.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
     <script src="../libs/vfs_fonts.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <script src="script.js" type="module"></script>
-</body>
+    
+<!-- ZXing (UMD, global window.ZXing) -->
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js" defer></script>
+    
+    <script src="script.js?v=1.0" type="module"></script>
 
+</body>
 </html>

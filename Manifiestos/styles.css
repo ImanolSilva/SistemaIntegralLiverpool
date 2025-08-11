@@ -3469,3 +3469,329 @@ body {
         /* Dispositivos que soportan vibración tendrán feedback adicional */
     }
 }
+/* ============================================================== */
+/* === CÓDIGO DEFINITIVO PARA ESCÁNER DE CÁMARA PROFESIONAL === */
+/* ============================================================== */
+
+/* --- 1. Estilos para el Input con Iconos Integrados --- */
+
+/* Contenedor principal que permite posicionar iconos dentro */
+.input-con-icono {
+    position: relative;
+}
+
+/* Posiciona el icono de LUPA (que ya tenías) a la izquierda */
+.input-con-icono > .material-icons {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    font-size: 24px;
+    pointer-events: none; /* Evita que el icono bloquee el clic en el input */
+}
+
+/* Añade espacio a la IZQUIERDA en los inputs para que no se tapen con la lupa */
+#inputBusqueda.form-control-modern {
+    padding-left: 50px !important;
+}
+
+/* Añade espacio a la DERECHA en AMBOS inputs para el nuevo botón de cámara */
+#inputBusqueda,
+#inputScanCode {
+    padding-right: 60px !important;
+}
+
+/* El nuevo estilo definitivo para el BOTÓN de la cámara */
+.btn-escaner-icono {
+    position: absolute;
+    top: 50%;
+    right: 8px; /* Espacio desde el borde derecho */
+    transform: translateY(-50%); /* Centrado vertical perfecto */
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 0;
+    background: var(--rosa-principal);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(var(--rosa-principal-rgb), 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    z-index: 3; /* Asegura que esté por encima del input */
+}
+
+.btn-escaner-icono:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 16px rgba(var(--rosa-principal-rgb), 0.4);
+    filter: brightness(1.1);
+}
+
+.btn-escaner-icono .bi-camera-fill {
+    font-size: 1.1rem;
+}
+
+/* --- 2. Estilos para la Ventana de Cámara (Modal) Profesional --- */
+
+/* Contenedor principal que oscurece el fondo */
+#modal-escaner {
+    position: fixed; /* ¡ESTO ES LO MÁS IMPORTANTE PARA QUE FLOTE! */
+    z-index: 9999; /* Un z-index muy alto para que nada lo tape */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    /* Usa Flexbox para centrar el contenido perfectamente */
+    display: none; /* Se activa con JavaScript */
+    align-items: center;
+    justify-content: center;
+}
+
+/* La tarjeta blanca donde va la cámara */
+#modal-escaner .modal-contenido {
+    background: white;
+    padding: 25px;
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.3s ease-out;
+}
+
+#modal-escaner h2 {
+    font-weight: 700;
+    color: var(--texto-principal);
+    margin-bottom: 20px;
+}
+
+/* Contenedor que envuelve el video y las animaciones */
+.contenedor-video-escaner {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    aspect-ratio: 4 / 3;
+    margin: 0 auto 20px;
+    background: #000;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+.contenedor-video-escaner video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* La barra de escaneo rosa */
+.barra-escaner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--rosa-principal);
+    box-shadow: 0 0 15px 2px var(--rosa-principal);
+    border-radius: 4px;
+    animation: escanear-vertical 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes escanear-vertical {
+    from { top: 0; }
+    to { top: calc(100% - 4px); }
+}
+
+/* Estilos para las esquinas de puntería */
+.esquina-escaner {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border-style: solid;
+    border-color: var(--rosa-principal);
+    animation: pulso-esquina 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes pulso-esquina {
+    from { box-shadow: 0 0 8px 0px var(--rosa-principal); }
+    to { box-shadow: 0 0 18px 5px var(--rosa-principal); }
+}
+
+.esquina-top-left { top: 10px; left: 10px; border-width: 5px 0 0 5px; border-top-left-radius: 10px; }
+.esquina-top-right { top: 10px; right: 10px; border-width: 5px 5px 0 0; border-top-right-radius: 10px; }
+.esquina-bottom-left { bottom: 10px; left: 10px; border-width: 0 0 5px 5px; border-bottom-left-radius: 10px; }
+.esquina-bottom-right { bottom: 10px; right: 10px; border-width: 0 5px 5px 0; border-bottom-right-radius: 10px; }
+/* ======================================================= */
+/* === ESTILOS DEFINITIVOS PARA ALERTAS PROFESIONALES === */
+/* ======================================================= */
+
+.swal2-popup.swal-modal-pro {
+    width: 90vw !important; /* Ancho flexible */
+    max-width: 580px !important; /* Ancho máximo para escritorio */
+    padding: 0 !important;
+    border-radius: var(--border-radius-xl) !important;
+    overflow: hidden;
+    background: var(--blanco);
+    border: 1px solid var(--gris-borde);
+}
+
+.modal-pro-header {
+    padding: 2rem 1.5rem;
+    color: white;
+    text-align: center;
+}
+
+.modal-pro-header i {
+    font-size: 3.5rem; /* Icono grande y visible */
+    line-height: 1;
+    text-shadow: 0 4px 15px rgba(0,0,0,0.25);
+}
+
+/* Colores de fondo dinámicos para la cabecera */
+.modal-pro-header.bg-danger { background: linear-gradient(135deg, #e53935, #b71c1c); }
+.modal-pro-header.bg-success { background: linear-gradient(135deg, #43A047, #1B5E20); }
+.modal-pro-header.bg-info { background: linear-gradient(135deg, #0d6efd, #0a58ca); }
+
+.modal-pro-content {
+    padding: 1.5rem 2rem 2rem;
+    text-align: center;
+}
+
+.modal-pro-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--texto-principal);
+    margin-bottom: 1rem;
+}
+
+.modal-pro-summary {
+    background-color: var(--gris-claro);
+    border-radius: var(--border-radius-md);
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border: 1px solid var(--gris-borde);
+}
+
+.modal-pro-summary h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--texto-secundario);
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.summary-grid-pro {
+    display: grid;
+    /* Columnas flexibles que se adaptan al contenido */
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+}
+
+.summary-item-pro .label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gris-oscuro);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.summary-item-pro .value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--texto-principal);
+    line-height: 1.2;
+}
+
+.summary-item-pro .value.is-missing { color: var(--rojo-peligro); }
+.summary-item-pro .value.is-excess { color: var(--naranja-advertencia); }
+.summary-item-pro .value.is-ok { color: var(--verde-exito); }
+
+.modal-pro-question {
+    font-size: 1.1rem;
+    color: var(--texto-secundario);
+    font-weight: 500;
+    margin-top: 1.5rem;
+}
+
+/* --- Media Queries para Responsividad PERFECTA en celulares --- */
+@media (max-width: 600px) {
+    .modal-pro-content {
+        padding: 1.5rem 1.2rem;
+    }
+    .modal-pro-title {
+        font-size: 1.5rem;
+    }
+    /* La clave para que no se corte: 2 columnas en móvil */
+    .summary-grid-pro {
+        grid-template-columns: 1fr 1fr;
+    }
+    .summary-item-pro .value {
+        font-size: 1.4rem;
+    }
+}
+/* Ajustes para los items del resumen con iconos */
+.summary-item-pro {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem; /* Espacio entre el icono y el texto */
+    text-align: left;
+    background-color: #fff; /* Fondo blanco para resaltar dentro del modal */
+    padding: 0.75rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid #e0e0e0;
+}
+
+.summary-item-pro i {
+    font-size: 1.8rem; /* Tamaño del icono */
+    color: var(--rosa-principal); /* Color base del icono */
+}
+
+/* Colores específicos para los iconos de Faltantes y Excedentes */
+.summary-item-pro i.icon-missing {
+    color: var(--rojo-peligro);
+}
+.summary-item-pro i.icon-excess {
+    color: var(--naranja-advertencia);
+}
+/* Estilos para el nuevo banner de estado del modal */
+.modal-pro-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--border-radius-pill);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    border: 2px solid;
+}
+
+.modal-pro-status i {
+    font-size: 1.2rem;
+}
+
+/* Verde para Completo */
+.modal-pro-status.status-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border-color: #a3cfbb;
+}
+
+/* Rojo para Incompleto */
+.modal-pro-status.status-danger {
+    background-color: #f8d7da;
+    color: #842029;
+    border-color: #f5c2c7;
+}
+
+/* Naranja/Amarillo para Excedentes */
+.modal-pro-status.status-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+    border-color: #ffecb5;
+}
