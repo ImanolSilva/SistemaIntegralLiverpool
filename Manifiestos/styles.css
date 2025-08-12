@@ -3795,3 +3795,33 @@ body {
     color: #664d03;
     border-color: #ffecb5;
 }
+/* Banner de estado del modal (SweetAlert) */
+.swal2-popup .modal-pro-status.status-gray { 
+  background: #6c757d14; 
+  border-left: 4px solid #6c757d; 
+  color: #6c757d; 
+}
+.swal2-popup .modal-pro-status.status-green  { background:#2ecc7014; border-left:4px solid #2ecc71; color:#2ecc71; }
+.swal2-popup .modal-pro-status.status-yellow { background:#f1c40f14; border-left:4px solid #f1c40f; color:#f1c40f; }
+.swal2-popup .modal-pro-status.status-red    { background:#e74c3c14; border-left:4px solid #e74c3c; color:#e74c3c; }
+/* --- NUEVOS ESTILOS PARA LA BARRA DE PROGRESO --- */
+
+/* Color ROJO para progreso bajo (0-39%) */
+.progreso-rojo {
+    background: linear-gradient(90deg, #dc3545, #f87d8a);
+}
+
+/* Color NARANJA para progreso medio (40-74%) */
+.progreso-naranja {
+    background: linear-gradient(90deg, #fd7e14, #ffac6a);
+}
+
+/* Color AMARILLO para progreso avanzado (75-99%) */
+.progreso-amarillo {
+    background: linear-gradient(90deg, #ffc107, #ffe08a);
+}
+
+/* Color VERDE para progreso completo (100%) */
+.progreso-verde {
+    background: linear-gradient(90deg, #198754, #52c58a);
+}

@@ -47,6 +47,14 @@
         }
     };
 
+    // Helper global (una única vez)
+    const getPropCaseInsensitive = (obj, key) => {
+        if (!obj) return undefined;
+        const lk = String(key).toLowerCase();
+        const realKey = Object.keys(obj).find(k => k.toLowerCase() === lk);
+        return realKey ? obj[realKey] : undefined;
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.main-container').removeAttribute('aria-hidden');
         AOS.init();
@@ -166,8 +174,8 @@
             });
 
             // El avance debe calcularse en función de `tSCAN_for_expected` (lo escaneado correctamente)
-            const av = tSAP ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
-
+            // MEJORA: Cambia Math.round por Math.floor para un porcentaje preciso.
+            const av = tSAP ? Math.floor((tSCAN_for_expected / tSAP) * 100) : 0;
             const getTopItems = (obj) => Object.entries(obj)
                 .sort(([, a], [, b]) => b - a);
 
@@ -185,28 +193,7 @@
             };
         };
 
-        function formatFecha(d) {
-            if (d instanceof Date && !isNaN(d.getTime())) {
-                const dd = String(d.getDate()).padStart(2, "0");
-                const mm = String(d.getMonth() + 1).padStart(2, "0");
-                const yy = d.getFullYear();
-                return `${dd}/${mm}/${yy}`;
-            }
-            if (typeof d === "string") {
-                let dateObj = new Date(d);
-                if (!isNaN(dateObj.getTime())) {
-                    let correctedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
-                    return `${String(correctedDate.getDate()).padStart(2, "0")}/${String(correctedDate.getMonth() + 1).padStart(2, "0")}/${correctedDate.getFullYear()}`;
-                }
-                return d;
-            }
-            if (typeof d === "number") {
-                let dateObj = new Date(Math.round((d - 25569) * 86400 * 1000));
-                let correctedDate = new Date(dateObj.getTime() + dateObj.getTimezoneOffset() * 60000);
-                return `${String(correctedDate.getDate()).padStart(2, "0")}/${String(correctedDate.getMonth() + 1).padStart(2, "0")}/${correctedDate.getFullYear()}`;
-            }
-            return "";
-        }
+
         async function reconstructManifestDataFromFirebase(manifestoId) {
             try {
                 const manifestDoc = await db.collection('manifiestos').doc(manifestoId).get();
@@ -1155,31 +1142,31 @@
             }
         }
 
-/**
- * Crea el HTML para la cuadrícula de resumen del contenedor.
- * @param {Array} records - Los registros del contenedor actual.
- * @returns {string} - El HTML de la cuadrícula de resumen.
- */
-// CÓDIGO NUEVO Y MEJORADO CON ICONOS
-function getContainerSummaryGridHTML(records) {
-    let sapSum = 0;
-    let missingSum = 0;
-    let excessSum = 0;
+        /**
+         * Crea el HTML para la cuadrícula de resumen del contenedor.
+         * @param {Array} records - Los registros del contenedor actual.
+         * @returns {string} - El HTML de la cuadrícula de resumen.
+         */
+        // CÓDIGO NUEVO Y MEJORADO CON ICONOS
+        function getContainerSummaryGridHTML(records) {
+            let sapSum = 0;
+            let missingSum = 0;
+            let excessSum = 0;
 
-    records.forEach(r => {
-        const sap = Number(r.SAP) || 0;
-        const scanner = Number(r.SCANNER) || 0;
-        sapSum += sap;
-        const diff = scanner - sap;
-        if (diff < 0) {
-            missingSum += Math.abs(diff);
-        } else if (diff > 0) {
-            excessSum += diff;
-        }
-    });
+            records.forEach(r => {
+                const sap = Number(r.SAP) || 0;
+                const scanner = Number(r.SCANNER) || 0;
+                sapSum += sap;
+                const diff = scanner - sap;
+                if (diff < 0) {
+                    missingSum += Math.abs(diff);
+                } else if (diff > 0) {
+                    excessSum += diff;
+                }
+            });
 
-    // La nueva estructura incluye un <i> para el icono en cada item
-    return `
+            // La nueva estructura incluye un <i> para el icono en cada item
+            return `
         <div class="summary-item-pro">
             <i class="bi bi-tags-fill"></i>
             <div>
@@ -1209,46 +1196,46 @@ function getContainerSummaryGridHTML(records) {
             </div>
         </div>
     `;
-}
-/**
- * Determina el estado de un contenedor (Completo, Incompleto, Con Excedentes).
- * @param {Array} records - Los registros del contenedor.
- * @returns {object} Un objeto con el texto del estado, clase CSS e icono.
- */
-function getContainerStatus(records) {
-    let missingSum = 0;
-    let excessSum = 0;
+        }
+        /**
+         * Determina el estado de un contenedor (Completo, Incompleto, Con Excedentes).
+         * @param {Array} records - Los registros del contenedor.
+         * @returns {object} Un objeto con el texto del estado, clase CSS e icono.
+         */
+        function getContainerStatus(records) {
+            let sapSum = 0, scanSum = 0, excessSum = 0, missingSum = 0;
 
-    records.forEach(r => {
-        const sap = Number(r.SAP) || 0;
-        const scanner = Number(r.SCANNER) || 0;
-        const diff = scanner - sap;
-        if (diff < 0) missingSum += Math.abs(diff);
-        else if (diff > 0) excessSum += diff;
-    });
+            for (const r of records || []) {
+                const sap = Number(r.SAP) || 0;
+                const sc = Number(r.SCANNER) || 0;
+                sapSum += sap;
+                scanSum += sc;
 
-    if (missingSum > 0) {
-        return { 
-            text: 'INCOMPLETO - FALTAN PIEZAS', 
-            colorClass: 'status-danger', 
-            icon: 'bi-exclamation-triangle-fill' 
-        };
-    }
+                if (sc >= sap) {
+                    excessSum += (sc - sap);
+                } else {
+                    missingSum += (sap - sc);
+                }
+            }
 
-    if (excessSum > 0) {
-        return { 
-            text: 'ATENCIÓN - SOBRAN PIEZAS', 
-            colorClass: 'status-warning', 
-            icon: 'bi-shield-exclamation' 
-        };
-    }
+            // Caso especial: nadie ha escaneado nada
+            if (scanSum === 0) {
+                return {
+                    text: 'AÚN NO MANIFIESTA',
+                    colorClass: 'status-gray',          // usa esta clase en tu CSS
+                    icon: 'bi-hourglass-split'
+                };
+            }
 
-    return { 
-        text: 'COMPLETO Y CORRECTO', 
-        colorClass: 'status-success', 
-        icon: 'bi-check-circle-fill' 
-    };
-}
+            if (missingSum === 0 && excessSum === 0) {
+                return { text: 'COMPLETO', colorClass: 'status-green', icon: 'bi-check-circle-fill' };
+            }
+            if (missingSum === 0 && excessSum > 0) {
+                return { text: 'COMPLETO CON EXCEDENTES', colorClass: 'status-yellow', icon: 'bi-plus-circle-dotted' };
+            }
+            return { text: 'INCOMPLETO', colorClass: 'status-red', icon: 'bi-exclamation-triangle-fill' };
+        }
+
         function renderItems(file, isDestacado) {
             const p = file.progreso;
             const ultimaModificacion = formatFecha(file.createdAt);
@@ -1266,8 +1253,20 @@ function getContainerStatus(records) {
             }
 
             const isOld = diasDesdeSubida > 5;
-            const actionButtons = [];
+            // --- NUEVO CÓDIGO PARA COLORES DINÁMICOS ---
+            let progressColorClass = '';
+            if (p.avance >= 100) {
+                progressColorClass = 'progreso-verde'; // Verde (Completo)
+            } else if (p.avance >= 75) {
+                progressColorClass = 'progreso-amarillo'; // Amarillo (Avanzado)
+            } else if (p.avance >= 40) {
+                progressColorClass = 'progreso-naranja'; // Naranja (En progreso)
+            } else {
+                progressColorClass = 'progreso-rojo'; // Rojo (Iniciado)
+            }
+            // --- FIN DEL NUEVO CÓDIGO ---
 
+            const actionButtons = [];
             if (permissions.canScan) {
                 actionButtons.push(`<button class="btn btn-sm btn-primary" onclick="verDashboardArchivo('${file.folder}','${file.name}')" title="Ver análisis detallado y abrir contenedor" aria-label="Abrir ${file.name}">
             <i class="bi bi-box-arrow-in-right fs-5"></i>
@@ -1293,20 +1292,7 @@ function getContainerStatus(records) {
 
             let statusClass = isOld ? 'is-archivable' : `status-${estadoInfo.clase}`;
 
-            // Calcular el total escaneado correcto (sin excedente)
-            let totalScanCorrecto = p.totalSCAN;
-            if (file.data && Array.isArray(file.data)) {
-                file.data.forEach(row => {
-                    const sap = Number(row.SAP) || 0;
-                    const scan = Number(row.SCANNER) || 0;
-                    totalScanCorrecto += Math.min(scan, sap);
-                });
-            } else if (p.totalSCAN && p.totalSAP) {
-                // Fallback si no hay data detallada, usar el menor valor
-                totalScanCorrecto = Math.min(p.totalSCAN, p.totalSAP);
-            } else {
-                totalScanCorrecto = p.totalSCAN || 0;
-            }
+
 
             return `
         <div class="manifest-card-pro ${statusClass}">
@@ -1323,12 +1309,11 @@ function getContainerStatus(records) {
                         <span>${p.avance}%</span>
                     </div>
                     <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: ${p.avance}%;"></div>
-                    </div>
+<div class="progress-bar-fill ${progressColorClass}" style="width: ${p.avance}%;"></div>                    </div>
                 </div>
                 <div class="card-stats">
                     <div>
-                        <div class="stat-value">${totalScanCorrecto.toLocaleString()} / ${p.totalSAP.toLocaleString()}</div>
+<div class="stat-value">${p.totalSCAN.toLocaleString()} / ${p.totalSAP.toLocaleString()}</div>
                         <div class="stat-label">Escaneado vs. SAP</div>
                     </div>
                     <div>
@@ -1385,62 +1370,40 @@ function getContainerStatus(records) {
         };
         window.verDashboardArchivo = async (folder, fileName) => {
             try {
-                // --- INICIO DE LA FUNCIÓN CORREGIDA ---
+                // --- FUNCIÓN INTERNA DE CÁLCULO (YA CORREGIDA) ---
                 const calculateProStatistics = (data) => {
-                    let tSAP = 0;
-                    let tSCAN_for_expected = 0; // Escaneos correctos (de piezas con SAP > 0)
-                    let exc = 0; // Excedentes totales
-
-                    const faltantesPorSeccion = {};
-                    const excedentesPorSeccion = {};
-
+                    let tSAP = 0, tSCAN_for_expected = 0, exc = 0;
+                    const faltantesPorSeccion = {}, excedentesPorSeccion = {};
                     data.forEach(r => {
-                        const sap = Number(r.SAP) || 0;
-                        const scan = Number(r.SCANNER) || 0;
-                        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim();
-                        const sec = (r.SECCION || 'Sin sección').toString().trim();
-
+                        const sap = Number(r.SAP) || 0, scan = Number(r.SCANNER) || 0;
+                        const cont = (r.CONTENEDOR || 'SIN NOMBRE').toUpperCase().trim(), sec = (r.SECCION || 'Sin sección').toString().trim();
                         tSAP += sap;
-
                         if (sap > 0) {
-                            // Es un artículo esperado
-                            const found_expected = Math.min(scan, sap);
-                            tSCAN_for_expected += found_expected;
-
+                            tSCAN_for_expected += Math.min(scan, sap);
                             if (scan > sap) {
                                 const excess_amount = scan - sap;
                                 exc += excess_amount;
-                                if (!excedentesPorSeccion[sec]) {
-                                    excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
-                                }
+                                if (!excedentesPorSeccion[sec]) excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
                                 excedentesPorSeccion[sec].total += excess_amount;
                                 excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + excess_amount;
                             }
                         } else {
-                            // Es un artículo nuevo/excedente (SAP = 0)
                             exc += scan;
                             if (scan > 0) {
-                                if (!excedentesPorSeccion[sec]) {
-                                    excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
-                                }
+                                if (!excedentesPorSeccion[sec]) excedentesPorSeccion[sec] = { total: 0, contenedores: {} };
                                 excedentesPorSeccion[sec].total += scan;
                                 excedentesPorSeccion[sec].contenedores[cont] = (excedentesPorSeccion[sec].contenedores[cont] || 0) + scan;
                             }
                         }
-
                         if (scan < sap) {
                             const missing_amount = sap - scan;
-                            if (!faltantesPorSeccion[sec]) {
-                                faltantesPorSeccion[sec] = { total: 0, contenedores: {} };
-                            }
+                            if (!faltantesPorSeccion[sec]) faltantesPorSeccion[sec] = { total: 0, contenedores: {} };
                             faltantesPorSeccion[sec].total += missing_amount;
                             faltantesPorSeccion[sec].contenedores[cont] = (faltantesPorSeccion[sec].contenedores[cont] || 0) + missing_amount;
                         }
                     });
-
-                    const falt = tSAP - tSCAN_for_expected; // Los faltantes se calculan sobre lo esperado
-                    const av = tSAP > 0 ? Math.round((tSCAN_for_expected / tSAP) * 100) : 0;
-
+                    const falt = tSAP - tSCAN_for_expected;
+                    const av = tSAP > 0 ? Math.floor((tSCAN_for_expected / tSAP) * 100) : 0; // ✅ CORRECCIÓN 1: Cálculo preciso
                     const sortDetailedBreakdown = (obj) => {
                         const sortedSections = Object.entries(obj).sort(([, a], [, b]) => b.total - a.total);
                         sortedSections.forEach(([, sectionData]) => {
@@ -1448,24 +1411,18 @@ function getContainerStatus(records) {
                         });
                         return sortedSections;
                     };
-
                     return {
-                        totalSAP: tSAP,
-                        totalSCAN: tSCAN_for_expected, // Devolvemos el conteo correcto de escaneos esperados
-                        faltantes: falt,
-                        excedentes: exc,
-                        avance: av, // Devolvemos el avance correcto
-                        totalSKUs: data.length,
-                        faltantesDetallado: sortDetailedBreakdown(faltantesPorSeccion),
+                        totalSAP: tSAP, totalSCAN: tSCAN_for_expected, faltantes: falt, excedentes: exc, avance: av,
+                        totalSKUs: data.length, faltantesDetallado: sortDetailedBreakdown(faltantesPorSeccion),
                         excedentesDetallado: sortDetailedBreakdown(excedentesPorSeccion),
                     };
                 };
-                // --- FIN DE LA FUNCIÓN CORREGIDA ---
 
                 await reconstructManifestDataFromFirebase(fileName);
                 const datos = excelDataGlobal[fileName].data;
                 const stats = calculateProStatistics(datos);
 
+                // --- FUNCIONES AUXILIARES PARA CREAR EL HTML (ASEGÚRATE DE QUE ESTÉN PRESENTES) ---
                 const statColors = {
                     total: { bg: 'linear-gradient(135deg, #E6007E 0%, #fff 100%)', icon: 'apps', color: '#E6007E' },
                     expected: { bg: 'linear-gradient(135deg, #6f42c1 0%, #fff 100%)', icon: 'inventory', color: '#6f42c1' },
@@ -1476,81 +1433,19 @@ function getContainerStatus(records) {
 
                 const createProStatCard = (title, value, iconKey, className) => {
                     const colorObj = statColors[className] || statColors.total;
-                    return `
-                        <div class="stat-card ${className} animate__animated animate__fadeInUp" style="
-                                display: flex; align-items: center; justify-content: center;
-                                gap: 1.2rem; box-shadow: 0 8px 24px rgba(0,0,0,0.10);
-                                border-left: 8px solid ${colorObj.color}; background: ${colorObj.bg};
-                                transition: transform 0.3s cubic-bezier(.4,2,.3,1); text-align: center;">
-                            <div class="stat-icon d-flex align-items-center justify-content-center" style="
-                                    background: ${colorObj.bg}; border-radius: 50%; width: 56px; height: 56px;
-                                    box-shadow: 0 4px 16px ${colorObj.color}22; animation: bounceIn 1s;">
-                                <i class="material-icons" style="font-size: 2.5rem; color: ${colorObj.color}; filter: drop-shadow(0 2px 4px ${colorObj.color}33);">${colorObj.icon}</i>
-                            </div>
-                            <div class="stat-info" style="flex: 1;">
-                                <div class="stat-value" style="font-size: 2.5rem; font-weight: 800; color: #343a40; margin-bottom: 4px; letter-spacing: 1px; text-shadow: 0 2px 8px ${colorObj.color}11; animation: pulse 1.2s;">
-                                    ${value.toLocaleString('es-MX')}
-                                </div>
-                                <div class="stat-title" style="font-size: 1.05rem; color: ${colorObj.color}; font-weight: 700; letter-spacing: 0.5px;">
-                                    ${title}
-                                </div>
-                            </div>
-                        </div>
-                        <style>
-                            @keyframes bounceIn { 0% { transform: scale(0.7); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 80% { transform: scale(0.95); } 100% { transform: scale(1); } }
-                            @keyframes pulse { 0% { text-shadow: 0 0 0 #e6007e11; } 50% { text-shadow: 0 4px 16px #e6007e33; } 100% { text-shadow: 0 2px 8px #e6007e11; } }
-                        </style>`;
+                    return `<div class="stat-card ${className} animate__animated animate__fadeInUp" style="display:flex;align-items:center;justify-content:center;gap:1.2rem;box-shadow:0 8px 24px rgba(0,0,0,0.10);border-left:8px solid ${colorObj.color};background:${colorObj.bg};transition:transform 0.3s cubic-bezier(.4,2,.3,1);text-align:center;"><div class="stat-icon d-flex align-items-center justify-content-center" style="background:${colorObj.bg};border-radius:50%;width:56px;height:56px;box-shadow:0 4px 16px ${colorObj.color}22;animation:bounceIn 1s;"><i class="material-icons" style="font-size:2.5rem;color:${colorObj.color};filter:drop-shadow(0 2px 4px ${colorObj.color}33);">${colorObj.icon}</i></div><div class="stat-info" style="flex:1;"><div class="stat-value" style="font-size:2.5rem;font-weight:800;color:#343a40;margin-bottom:4px;letter-spacing:1px;text-shadow:0 2px 8px ${colorObj.color}11;animation:pulse 1.2s;">${value.toLocaleString('es-MX')}</div><div class="stat-title" style="font-size:1.05rem;color:${colorObj.color};font-weight:700;letter-spacing:0.5px;">${title}</div></div></div><style>@keyframes bounceIn{0%{transform:scale(0.7);opacity:0}60%{transform:scale(1.15);opacity:1}80%{transform:scale(0.95)}100%{transform:scale(1)}}@keyframes pulse{0%{text-shadow:0 0 0 #e6007e11}50%{text-shadow:0 4px 16px #e6007e33}100%{text-shadow:0 2px 8px #e6007e11}}</style>`;
                 };
 
                 const createKeyInsightsPanel = (stats) => {
                     const createAccordionItems = (items, type) => {
                         if (items.length === 0) return `<div class="text-center p-3 text-muted">No hay ${type === 'faltantes' ? 'faltantes' : 'excedentes'} que reportar.</div>`;
-
                         return items.map(([sectionName, data], index) => {
-                            const accordionId = `accordion-${type}-${index}`;
-                            const color = type === 'faltantes' ? '#dc3545' : '#ffc107';
-                            const icon = type === 'faltantes' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle';
-
-                            const containerList = data.contenedores.map(([contName, qty]) => `
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span><i class="bi bi-box-seam me-2"></i>${contName}</span>
-                                    <span class="badge" style="background-color: ${color};">${qty.toLocaleString('es-MX')} pz.</span>
-                                </li>
-                            `).join('');
-
-                            return `
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading-${accordionId}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" aria-expanded="false" aria-controls="collapse-${accordionId}">
-                                            <i class="bi ${icon} me-2" style="color: ${color};"></i>
-                                            <strong>${sectionName}</strong>
-                                            <span class="ms-auto me-3 badge rounded-pill" style="background-color: ${color}; font-size: 0.9rem;">Total: ${data.total.toLocaleString('es-MX')} pz.</span>
-                                        </button>
-                                    </h2>
-                                    <div id="collapse-${accordionId}" class="accordion-collapse collapse" aria-labelledby="heading-${accordionId}">
-                                        <div class="accordion-body">
-                                            <h6 class="text-muted">Desglose por Contenedor:</h6>
-                                            <ul class="list-group list-group-flush">${containerList}</ul>
-                                        </div>
-                                    </div>
-                                </div>`;
+                            const accordionId = `accordion-${type}-${index}`, color = type === 'faltantes' ? '#dc3545' : '#ffc107', icon = type === 'faltantes' ? 'bi-arrow-down-circle' : 'bi-arrow-up-circle';
+                            const containerList = data.contenedores.map(([contName, qty]) => `<li class="list-group-item d-flex justify-content-between align-items-center"><span><i class="bi bi-box-seam me-2"></i>${contName}</span><span class="badge" style="background-color:${color};">${qty.toLocaleString('es-MX')} pz.</span></li>`).join('');
+                            return `<div class="accordion-item"><h2 class="accordion-header" id="heading-${accordionId}"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${accordionId}" aria-expanded="false" aria-controls="collapse-${accordionId}"><i class="bi ${icon} me-2" style="color:${color};"></i><strong>${sectionName}</strong><span class="ms-auto me-3 badge rounded-pill" style="background-color:${color};font-size:0.9rem;">Total: ${data.total.toLocaleString('es-MX')} pz.</span></button></h2><div id="collapse-${accordionId}" class="accordion-collapse collapse" aria-labelledby="heading-${accordionId}"><div class="accordion-body"><h6 class="text-muted">Desglose por Contenedor:</h6><ul class="list-group list-group-flush">${containerList}</ul></div></div></div>`;
                         }).join('');
                     };
-
-                    return `
-                        <div class="key-insights-panel" style="background: linear-gradient(135deg,#f8f9fa 80%,#e6007e08 100%); border-radius: 18px; box-shadow: 0 8px 32px rgba(230,0,126,0.07); padding: 2rem 1.5rem; margin-top: 1rem;">
-                            <h4 style="display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:800;color:#E6007E;margin-bottom:2rem;justify-content:center;"><i class="bi bi-lightbulb" style="font-size:2rem;color:#E6007E;opacity:0.7;"></i> Insights Clave del Manifiesto</h4>
-                            <div class="row gx-5">
-                                <div class="col-lg-6">
-                                    <h5 class="text-center mb-3" style="color: #dc3545;">Análisis de Faltantes</h5>
-                                    <div class="accordion" id="accordionFaltantes">${createAccordionItems(stats.faltantesDetallado, 'faltantes')}</div>
-                                </div>
-                                <div class="col-lg-6 mt-4 mt-lg-0">
-                                    <h5 class="text-center mb-3" style="color: #ffc107;">Análisis de Excedentes</h5>
-                                    <div class="accordion" id="accordionExcedentes">${createAccordionItems(stats.excedentesDetallado, 'excedentes')}</div>
-                                </div>
-                            </div>
-                        </div>`;
+                    return `<div class="key-insights-panel" style="background:linear-gradient(135deg,#f8f9fa 80%,#e6007e08 100%);border-radius:18px;box-shadow:0 8px 32px rgba(230,0,126,0.07);padding:2rem 1.5rem;margin-top:1rem;"><h4 style="display:flex;align-items:center;gap:12px;font-size:1.5rem;font-weight:800;color:#E6007E;margin-bottom:2rem;justify-content:center;"><i class="bi bi-lightbulb" style="font-size:2rem;color:#E6007E;opacity:0.7;"></i> Insights Clave del Manifiesto</h4><div class="row gx-5"><div class="col-lg-6"><h5 class="text-center mb-3" style="color:#dc3545;">Análisis de Faltantes</h5><div class="accordion" id="accordionFaltantes">${createAccordionItems(stats.faltantesDetallado, 'faltantes')}</div></div><div class="col-lg-6 mt-4 mt-lg-0"><h5 class="text-center mb-3" style="color:#ffc107;">Análisis de Excedentes</h5><div class="accordion" id="accordionExcedentes">${createAccordionItems(stats.excedentesDetallado, 'excedentes')}</div></div></div></div>`;
                 };
 
                 const isComplete = stats.avance >= 100 && stats.faltantes === 0;
@@ -1559,48 +1454,47 @@ function getContainerStatus(records) {
 
                 const canvasId = `grafico_pro_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
                 const dashboardHTML = `
-                    <div class="analisis-dashboard-pro" style="max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);">
-                        <div class="status-message ${statusClass}" style="justify-content:center;text-align:center;font-size:1.25rem;border-radius:12px;margin-bottom:2rem;box-shadow:0 2px 8px #e6007e11;">${statusMessage}</div>
-                        <div class="stats-grid stats-grid-responsive" style="margin:0 auto;max-width:950px;gap:2rem;">
-                            ${createProStatCard('SKUs Totales', stats.totalSKUs, 'apps', 'total')}
-                            ${createProStatCard('Piezas Esperadas (SAP)', stats.totalSAP, 'inventory', 'expected')}
-                            ${createProStatCard('Piezas Escaneadas', stats.totalSCAN, 'task_alt', 'scanned')}
-                            ${createProStatCard('Piezas Faltantes', stats.faltantes, 'error', 'missing')}
-                            ${createProStatCard('Piezas Excedentes', stats.excedentes, 'add_shopping_cart', 'excess')}
-                        </div>
-                        <div class="progress-container" style="margin:2.5rem auto 2.5rem auto;max-width:520px;height:32px;box-shadow:0 2px 8px #e6007e11;">
-                            <div class="progress-fill ${isComplete ? 'bg-success' : 'bg-primary'}" style="width:${stats.avance}%;font-size:1.25rem;justify-content:center;align-items:center;height:100%;border-radius:32px;"><span style="font-weight:700;">${stats.avance}%</span></div>
-                        </div>
-                        <div class="dashboard-main-layout" style="display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.5rem;">
-                            <div class="chart-container" style="flex:1 1 350px;max-width:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;">
-                                <canvas id="${canvasId}" style="margin:0 auto;display:block;max-width:340px;max-height:340px;"></canvas>
-                                <div style="text-align:center;margin-top:1.2rem;font-size:1.05rem;color:#6c757d;"><i class="material-icons" style="vertical-align:middle;color:#0d6efd;">pie_chart</i><span>Distribución de piezas</span></div>
-                            </div>
-                            <div style="flex:2 1 600px;max-width:700px;">${createKeyInsightsPanel(stats)}</div>
-                        </div>
+            <div class="analisis-dashboard-pro" style="max-width:1200px;margin:0 auto;padding:2.5rem 1.5rem;background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);">
+                <div class="status-message ${statusClass}" style="justify-content:center;text-align:center;font-size:1.25rem;border-radius:12px;margin-bottom:2rem;box-shadow:0 2px 8px #e6007e11;">${statusMessage}</div>
+                <div class="stats-grid stats-grid-responsive" style="margin:0 auto;max-width:950px;gap:2rem;">
+                    ${createProStatCard('SKUs Totales', stats.totalSKUs, 'apps', 'total')}
+                    ${createProStatCard('Piezas Esperadas (SAP)', stats.totalSAP, 'inventory', 'expected')}
+                    ${createProStatCard('Piezas Escaneadas', stats.totalSCAN, 'task_alt', 'scanned')}
+                    ${createProStatCard('Piezas Faltantes', stats.faltantes, 'error', 'missing')}
+                    ${createProStatCard('Piezas Excedentes', stats.excedentes, 'add_shopping_cart', 'excess')}
+                </div>
+                <div class="progress-container" style="margin:2.5rem auto 2.5rem auto;max-width:520px;height:32px;box-shadow:0 2px 8px #e6007e11;border-radius:32px;background:#f8f9fa;overflow:hidden">
+                    <div class="progress-fill" style="width:${stats.avance}%;font-size:1.25rem;display:flex;align-items:center;justify-content:center;height:100%;border-radius:32px;color:#fff;font-weight:700;transition:width .5s cubic-bezier(.4,2,.3,1);
+                        background: linear-gradient(90deg, 
+                        ${stats.avance < 40 ? '#dc3545, #f87d8a' :
+                        stats.avance < 75 ? '#fd7e14, #ffac6a' :
+                            stats.avance < 100 ? '#ffc107, #ffe08a' :
+                                '#198754, #52c58a'});">
+                        <span style="font-weight:700;">${stats.avance}%</span>
                     </div>
-                    <style>
-                        .analisis-dashboard-pro{background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);padding:2.5rem 1.5rem}.stats-grid.stats-grid-responsive{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2rem;justify-content:center;margin-bottom:2rem}.stat-card{min-width:210px;max-width:260px;width:100%;padding:1.2rem 1rem;margin:0 auto;box-sizing:border-box}.stat-card .stat-value{font-size:2.2rem!important;font-weight:800;color:#343a40;margin-bottom:4px;letter-spacing:1px;text-shadow:0 2px 8px #e6007e11;animation:pulse 1.2s}.stat-card .stat-title{font-size:1rem!important;color:inherit;font-weight:700;letter-spacing:.5px}.stat-card .stat-icon{width:48px!important;height:48px!important;font-size:2rem!important}.progress-container{box-shadow:0 2px 8px #e6007e11;height:32px;border-radius:32px;background:#f8f9fa;overflow:hidden}.progress-fill{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.25rem;transition:width .5s cubic-bezier(.4,2,.3,1);background:linear-gradient(90deg,#e6007e 0%,#0d6efd 100%)}.dashboard-main-layout{margin-top:2rem;gap:2.5rem}.chart-container{background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;min-width:320px}@media (max-width:900px){.dashboard-main-layout{flex-direction:column;gap:1.5rem}.chart-container,.key-insights-panel{max-width:100%!important}.analisis-dashboard-pro{padding:1.2rem .5rem}.stats-grid.stats-grid-responsive{grid-template-columns:1fr 1fr;gap:1rem}.stat-card{min-width:160px;max-width:100%;padding:1rem .5rem}}@media (max-width:600px){.stats-grid.stats-grid-responsive{grid-template-columns:1fr;gap:.7rem}.stat-card{min-width:120px;padding:.7rem .3rem}}
-                    </style>`;
+                </div>
+                <div class="dashboard-main-layout" style="display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:2.5rem;">
+                    <div class="chart-container" style="flex:1 1 350px;max-width:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;">
+                        <canvas id="${canvasId}" style="margin:0 auto;display:block;max-width:340px;max-height:340px;"></canvas>
+                        <div style="text-align:center;margin-top:1.2rem;font-size:1.05rem;color:#6c757d;"><i class="material-icons" style="vertical-align:middle;color:#0d6efd;">pie_chart</i><span>Distribución de piezas</span></div>
+                    </div>
+                    <div style="flex:2 1 600px;max-width:700px;">${createKeyInsightsPanel(stats)}</div>
+                </div>
+            </div>
+            <style>
+                 .analisis-dashboard-pro{background:linear-gradient(135deg,#fff 80%,#e6007e10 100%);border-radius:32px;box-shadow:0 12px 40px rgba(230,0,126,0.10);padding:2.5rem 1.5rem}.stats-grid.stats-grid-responsive{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:2rem;justify-content:center;margin-bottom:2rem}.stat-card{min-width:210px;max-width:260px;width:100%;padding:1.2rem 1rem;margin:0 auto;box-sizing:border-box}.stat-card .stat-value{font-size:2.2rem!important;font-weight:800;color:#343a40;margin-bottom:4px;letter-spacing:1px;text-shadow:0 2px 8px #e6007e11;animation:pulse 1.2s}.stat-card .stat-title{font-size:1rem!important;color:inherit;font-weight:700;letter-spacing:.5px}.stat-card .stat-icon{width:48px!important;height:48px!important;font-size:2rem!important}.progress-container{box-shadow:0 2px 8px #e6007e11;height:32px;border-radius:32px;background:#f8f9fa;overflow:hidden}.progress-fill{height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1.25rem;transition:width .5s cubic-bezier(.4,2,.3,1);}.dashboard-main-layout{margin-top:2rem;gap:2.5rem}.chart-container{background:#fff;border-radius:20px;box-shadow:0 4px 24px #e6007e11;padding:2rem 1rem;min-width:320px}@media (max-width:900px){.dashboard-main-layout{flex-direction:column;gap:1.5rem}.chart-container,.key-insights-panel{max-width:100%!important}.analisis-dashboard-pro{padding:1.2rem .5rem}.stats-grid.stats-grid-responsive{grid-template-columns:1fr 1fr;gap:1rem}.stat-card{min-width:160px;max-width:100%;padding:1rem .5rem}}@media (max-width:600px){.stats-grid.stats-grid-responsive{grid-template-columns:1fr;gap:.7rem}.stat-card{min-width:120px;padding:.7rem .3rem}}
+            </style>
+        `;
 
                 Swal.fire({
-                    title: `<div style="display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem;">
-                        <i class="bi bi-bar-chart-line-fill" style="font-size: 2.5rem; color: var(--rosa-principal);"></i>
-                        <div>
-                            <h2 style="font-size: 1.7rem; font-weight: 700; color: var(--texto-principal); margin: 0;">Análisis PRO</h2>
-                            <p style="font-size: 1rem; color: #6c757d; margin: 0;">${fileName}</p>
-                        </div>
-                        </div>`,
+                    title: `<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 1rem;"><i class="bi bi-bar-chart-line-fill" style="font-size:2.5rem;color:var(--rosa-principal);"></i><div><h2 style="font-size:1.7rem;font-weight:700;color:var(--texto-principal);margin:0;">Análisis PRO</h2><p style="font-size:1rem;color:#6c757d;margin:0;">${fileName}</p></div></div>`,
                     html: dashboardHTML,
                     width: '98vw',
                     maxWidth: '1400px',
                     padding: '0',
                     showCloseButton: true,
                     showConfirmButton: false,
-                    customClass: {
-                        popup: 'dashboard-modal animate__animated animate__fadeInUp',
-                        header: 'p-3 border-bottom-0'
-                    },
+                    customClass: { popup: 'dashboard-modal animate__animated animate__fadeInUp', header: 'p-3 border-bottom-0' },
                     grow: 'row',
                     didOpen: () => {
                         const chartContainer = document.getElementById(canvasId);
@@ -1625,31 +1519,13 @@ function getContainerStatus(records) {
                                     responsive: true,
                                     maintainAspectRatio: false,
                                     cutout: '75%',
-                                    animation: { duration: 0 }, // Crucial para la captura de pantalla
+                                    animation: { duration: 0 },
                                     plugins: {
                                         legend: {
                                             position: 'bottom',
-                                            labels: {
-                                                padding: 25,
-                                                usePointStyle: true,
-                                                pointStyle: 'rectRounded',
-                                                font: { size: 14, family: 'Poppins', weight: '600' },
-                                                color: '#495057'
-                                            }
+                                            labels: { padding: 25, usePointStyle: true, pointStyle: 'rectRounded', font: { size: 14, family: 'Poppins', weight: '600' }, color: '#495057' }
                                         },
-                                        tooltip: {
-                                            enabled: true,
-                                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                            titleColor: 'var(--rosa-principal)',
-                                            bodyColor: '#ffffff',
-                                            borderColor: 'var(--rosa-principal)',
-                                            borderWidth: 1,
-                                            padding: 12,
-                                            cornerRadius: 8,
-                                            callbacks: {
-                                                label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas`
-                                            }
-                                        }
+                                        tooltip: { enabled: true, backgroundColor: 'rgba(0,0,0,0.8)', titleColor: 'var(--rosa-principal)', bodyColor: '#ffffff', borderColor: 'var(--rosa-principal)', borderWidth: 1, padding: 12, cornerRadius: 8, callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString('es-MX')} piezas` } }
                                     }
                                 },
                                 plugins: [{
@@ -1675,11 +1551,7 @@ function getContainerStatus(records) {
 
             } catch (e) {
                 console.error("Error al generar dashboard PRO:", e);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error Inesperado',
-                    text: 'No se pudo generar el dashboard del archivo.'
-                });
+                Swal.fire({ icon: 'error', title: 'Error Inesperado', text: 'No se pudo generar el dashboard del archivo.' });
             }
         };
         /**
@@ -3010,78 +2882,43 @@ RESUMEN DE CIFRAS
                 const stats = calculateProStatistics(augmentedData);
 
                 // Accessing manifest.createdAt for the upload date
-                // Format: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
                 const uploadDateString = manifest.createdAt;
                 let formattedUploadDate = 'Fecha no disponible';
 
                 if (uploadDateString) {
                     try {
-                        // Parse the string and format it.
-                        // The provided string format is quite specific.
-                        // It's safer to attempt parsing and then formatting.
-                        // Example: "16 de julio de 2025, 4:48:32 p.m. UTC-6"
-                        // Let's try a robust way to parse it, handling potential variations.
-                        // For a specific "DD de MMMM de YYYY, HH:mm:ss a.m./p.m. UTC-X" format, direct parsing might be tricky.
-                        // A more universal approach is to extract components or rely on robust Date parsing.
-                        // Given the format "16 de julio de 2025, 4:48:32 p.m. UTC-6",
-                        // we'll try to create a Date object and then format it to a readable string.
+                        const m = uploadDateString.match(/(\d+) de (.+) de (\d{4}), (\d+):(\d+):(\d+) (a\.m\.|p\.m\.) UTC([+-]\d+)/i);
+                        if (m) {
+                            const [_, d, monthName, y, hh, mm, ss, ampm, utcOff] = m;
+                            const months = { 'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11 };
+                            let H = parseInt(hh, 10);
+                            if (ampm.toLowerCase() === 'p.m.' && H !== 12) H += 12;
+                            if (ampm.toLowerCase() === 'a.m.' && H === 12) H = 0;
 
-                        // For simplicity, if the string format is always consistent and recognized by Date.parse,
-                        // we can do this:
-                        const dateParts = uploadDateString.match(/(\d+) de (.+) de (\d{4}), (\d+):(\d+):(\d+) (a\.m\.|p\.m\.) UTC([+-]\d+)/i);
-                        if (dateParts) {
-                            const day = parseInt(dateParts[1]);
-                            const monthName = dateParts[2].toLowerCase();
-                            const year = parseInt(dateParts[3]);
-                            let hour = parseInt(dateParts[4]);
-                            const minute = parseInt(dateParts[5]);
-                            const second = parseInt(dateParts[6]);
-                            const ampm = dateParts[7];
-                            const utcOffset = dateParts[8]; // e.g., -6
+                            const offset = parseInt(utcOff, 10); // ej. -6
+                            // El string está en UTC-6 => convertimos a UTC sumando 6 horas
+                            const utcMillis = Date.UTC(
+                                parseInt(y, 10),
+                                months[monthName.toLowerCase()],
+                                parseInt(d, 10),
+                                H - offset,
+                                parseInt(mm, 10),
+                                parseInt(ss, 10)
+                            );
+                            const dateObj = new Date(utcMillis);
 
-                            const monthNames = {
-                                'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
-                                'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-                            };
-                            const month = monthNames[monthName];
-
-                            if (ampm === 'p.m.' && hour !== 12) {
-                                hour += 12;
-                            } else if (ampm === 'a.m.' && hour === 12) {
-                                hour = 0; // 12 AM is 00:00
-                            }
-
-                            // Construct a date string that `new Date()` can parse reliably, e.g., "YYYY-MM-DDTHH:mm:ss"
-                            // Adjust hour for UTC offset if needed, but for display, local time is fine.
-                            // For reliable UTC conversion, you might need a library or more complex logic.
-                            // For now, let's form a date string that new Date() can mostly handle.
-                            const dateObj = new Date(year, month, day, hour, minute, second);
-                            // Add the UTC offset (e.g. for UTC-6, add 6 hours to get to UTC)
-                            // This is if you want to store/display in UTC. If you want the local time, Date object handles it.
-                            // dateObj.setHours(dateObj.getHours() - parseInt(utcOffset)); // If you want to convert to UTC from given local time
-
-                            formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: true // To show AM/PM
+                            formattedUploadDate = dateObj.toLocaleString('es-ES', {
+                                dateStyle: 'long',
+                                timeStyle: 'medium',
+                                hour12: true
                             });
-
                         } else {
-                            // Fallback if the specific regex doesn't match, try direct Date parsing
                             const dateObj = new Date(uploadDateString);
-                            if (!isNaN(dateObj)) { // Check if date is valid
-                                formattedUploadDate = dateObj.toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                    hour12: true // To show AM/PM
+                            if (!isNaN(dateObj)) {
+                                formattedUploadDate = dateObj.toLocaleString('es-ES', {
+                                    dateStyle: 'long',
+                                    timeStyle: 'medium',
+                                    hour12: true
                                 });
                             }
                         }
@@ -3121,15 +2958,71 @@ RESUMEN DE CIFRAS
                 wsDash['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }];
                 // Update merges to account for the new date row and shifted content
                 const baseRowShift = 1; // Due to adding one extra line (Fecha de Carga)
-                wsDash['!merges'] = [
-                    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
-                    { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
-                    { s: { r: 2, c: 0 }, e: { r: 2, c: 2 } }, // Merge for the date row
-                    { s: { r: 3 + baseRowShift, c: 0 }, e: { r: 3 + baseRowShift, c: 2 } }, // Shifted 'MÉTRICAS GENERALES'
-                    { s: { r: 9 + baseRowShift, c: 0 }, e: { r: 9 + baseRowShift, c: 2 } }, // Shifted 'PUNTOS CRÍTICOS'
-                    { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + baseRowShift, c: 2 } }, // Shifted 'Secciones:' header
-                    { s: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 0 }, e: { r: 9 + stats.topContenedoresFaltantes.length + 2 + stats.topSeccionesFaltantes.length + 2 + baseRowShift, c: 2 } } // Shifted 'PUNTOS DE OPORTUNIDAD'
-                ];
+                // Después de: const wsDash = XLSX.utils.aoa_to_sheet(dashboardData);
+                wsDash['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }];
+
+                // Merges dinámicos
+                const merges = [];
+                let r = 0;
+
+                // 0: ⭐️ Dashboard de Manifiesto
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+
+                // 1: Archivo
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+
+                // 2: Fecha de Carga
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+
+                // 3: fila vacía
+                r++;
+
+                // 4: 📊 MÉTRICAS GENERALES  (merge a lo ancho)
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+
+                // 5..8: 4 filas de métricas (Total SAP, Total Scan, Diferencia, Progreso)
+                r += 4;
+
+                // 9: fila vacía
+                r++;
+
+                // 10: 🚨 PUNTOS CRÍTICOS (FALTANTES) (merge a lo ancho)
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } }); r++;
+
+                // 11: cabecera "Contenedores / Piezas"
+                r++;
+
+                // 12..: filas de contenedores faltantes
+                const lenCF = (stats.topContenedoresFaltantes || []).length;
+                r += lenCF;
+
+                // +1 fila vacía
+                r++;
+
+                // +1 cabecera "Secciones / Piezas"
+                r++;
+
+                // +N: filas de secciones faltantes
+                const lenSF = (stats.topSeccionesFaltantes || []).length;
+                r += lenSF;
+
+                // +1 fila vacía
+                r++;
+
+                // Aquí viene: 📈 PUNTOS DE OPORTUNIDAD (EXCEDENTES) (merge a lo ancho)
+                merges.push({ s: { r, c: 0 }, e: { r, c: 2 } });
+
+                // (Opcional) Si quieres también seguir bajando y hacer merges en otros headers,
+                // puedes continuar sumando r con estas líneas:
+                //
+                // r++; // cabecera "Contenedores / Piezas" (excedentes)
+                // r += (stats.topContenedoresExcedentes || []).length;
+                // r++; // vacía
+                // r++; // cabecera "Secciones / Piezas" (excedentes)
+                // r += (stats.topSeccionesExcedentes || []).length;
+
+                wsDash['!merges'] = merges;
+
 
                 XLSX.utils.book_append_sheet(wb, wsDash, "Dashboard"); // Add dashboard first
 
@@ -3301,139 +3194,940 @@ RESUMEN DE CIFRAS
             const yy = d.getFullYear();
             return `${dd}/${mm}/${yy}`;
         }
+ /**
+ * ✅ NUEVA FUNCIÓN CENTRALIZADA
+ * Actualiza los metadatos 'lastUser' y 'updatedAt' en Firestore y en la UI.
+ * @param {string} fileName - El ID del documento del manifiesto (nombre del archivo).
+ * @param {string} userEmail - El email del usuario que realiza la acción.
+ */
+async function updateManifestMetadata(fileName, userEmail) {
+    try {
+        const manifestRef = db.collection('manifiestos').doc(fileName);
+        await manifestRef.set({
+            lastUser: userEmail,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
 
-// --- CÓDIGO ACTUALIZADO PARA CAMBIAR CONTENEDOR CON BANNER DE ESTADO ---
-btnCambiarContenedor.addEventListener("click", () => {
-    if (!currentContenedor) return;
+        // Actualiza también la información local para que la UI sea consistente
+        if (excelDataGlobal[fileName]) {
+            excelDataGlobal[fileName].lastUser = userEmail;
+            const lastUserEl = document.getElementById("lastUserUpdate");
+            if (lastUserEl) {
+                lastUserEl.textContent = userEmail;
+            }
+        }
+    } catch (error) {
+        console.error("Error al actualizar metadatos del manifiesto:", error);
+    }
+}
 
-    const status = getContainerStatus(currentContainerRecords); // Obtenemos el estado
+// --- CÓDIGO RENOVADO / UX MEJORADA PARA CAMBIAR CONTENEDOR ---
+btnCambiarContenedor.removeEventListener?.("click", openChangeContainerModal);
+btnCambiarContenedor.addEventListener("click", openChangeContainerModal);
+
+// Atajo: Ctrl+Shift+C
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') {
+        if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+        openChangeContainerModal();
+    }
+});
+
+function openChangeContainerModal() {
+    if (!currentContenedor || !currentFileName) return;
+
+    const status = getContainerStatus(currentContainerRecords);
     const summaryHTML = getContainerSummaryGridHTML(currentContainerRecords);
 
+    const manifest = excelDataGlobal[currentFileName];
+    const allRecords = manifest?.data || [];
+    const containerMap = new Map();
+
+    allRecords.forEach(r => {
+        const c = String(r.CONTENEDOR || '').trim().toUpperCase();
+        if (!c) return;
+        if (!containerMap.has(c)) containerMap.set(c, []);
+        containerMap.get(c).push(r);
+    });
+
+    const otherContainers = [...containerMap.keys()].filter(c => c !== currentContenedor).sort();
+    const totalOthers = otherContainers.length;
+    const totalClosed = otherContainers.reduce((acc, c) => acc + (manifest.closedContainers?.[c] ? 1 : 0), 0);
+
+    const containerCardsHTML = otherContainers.slice(0, 600).map(c => {
+        const recs = containerMap.get(c);
+        const st = getContainerStatus(recs);
+        const closed = manifest.closedContainers?.[c];
+        const sap = recs.reduce((a, b) => a + (Number(b.SAP) || 0), 0);
+        const scan = recs.reduce((a, b) => a + (Number(b.SCANNER) || 0), 0);
+        const avance = sap ? Math.min(100, Math.floor(Math.min(scan, sap) / sap * 100)) : (scan > 0 ? 100 : 0);
+        return `
+        <label class="cc-item" data-cont="${c}" tabindex="0" aria-label="Contenedor ${c}, estado ${st.text}">
+          <input type="radio" name="targetContainer" value="${c}">
+          <div class="cc-body">
+            <div class="cc-head">
+              <span class="cc-name">${c}</span>
+              <span class="cc-badge ${st.colorClass}">
+                <i class="bi ${st.icon}"></i>${st.text}${closed ? ' • CERRADO' : ''}
+              </span>
+            </div>
+            <div class="cc-metrics">
+              <div class="cc-metric">
+                <span class="m-label">SKUs</span>
+                <span class="m-val">${recs.length}</span>
+              </div>
+              <div class="cc-metric">
+                <span class="m-label">SAP</span>
+                <span class="m-val">${sap}</span>
+              </div>
+              <div class="cc-metric">
+                <span class="m-label">AV.</span>
+                <span class="m-val ${avance===100?'good':avance>=50?'mid':'low'}">${avance}%</span>
+              </div>
+            </div>
+            <div class="cc-bar-wrap">
+              <div class="cc-bar">
+                <div class="cc-bar-fill av-${avance>=100?'full':avance>=75?'75':avance>=50?'50':avance>=25?'25':'0'}" style="width:${avance}%;"></div>
+              </div>
+            </div>
+          </div>
+        </label>`;
+    }).join('') || `<div class="no-others">No hay otros contenedores en este manifiesto.</div>`;
+
     Swal.fire({
-        customClass: { popup: 'swal-modal-pro' },
+        customClass: { popup: 'swal-modal-pro cc-modal-responsive cc-theme' },
+        width: 'min(1050px,96vw)',
         html: `
-            <div class="modal-pro-header bg-info">
-                <i class="material-icons">switch_account</i>
+      <style>
+        /* Ajustes específicos para la distribución y evitar que "Manifiesto" se corte */
+        .cc-meta-block{
+          background:#fff;
+          border:1px solid var(--cc-border);
+          border-radius:14px;
+          padding:.85rem .9rem 1rem;
+          display:flex;
+          flex-direction:column;
+          gap:.65rem;
+        }
+        .cc-meta-grid{
+          display:grid;
+          grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+          gap:.6rem .75rem;
+        }
+        .cc-meta-item{
+          display:flex;
+          align-items:flex-start;
+          gap:.45rem;
+          background:var(--cc-soft);
+          border:1px solid #e1e4e7;
+          padding:.55rem .6rem .6rem;
+          border-radius:10px;
+          min-height:60px;
+        }
+        .cc-meta-item i{
+          font-size:1.05rem;
+          color:var(--cc-accent);
+          margin-top:2px;
+          flex-shrink:0;
+        }
+        .cc-meta-item .m-label{
+          font-size:.58rem;
+          font-weight:600;
+          text-transform:uppercase;
+          letter-spacing:.7px;
+          color:#6b7580;
+          white-space:nowrap;
+          display:block;
+          margin-bottom:2px;
+        }
+        .cc-meta-item .m-val{
+          font-size:.68rem;
+          font-weight:600;
+          color:#1e2730;
+          line-height:1.15;
+          word-break:break-word;
+          overflow-wrap:break-word;
+        }
+        /* Nombre del contenedor: evitar salto raro */
+        .cc-current-name{
+          word-break:break-word;
+        }
+      </style>
+      <div class="cc-layout">
+        <aside class="cc-side">
+          <div class="cc-side-header">
+            <div class="cc-current-title">
+              <i class="material-icons">inventory_2</i>
+              <span>Contenedor Actual</span>
             </div>
-            <div class="modal-pro-content">
-                <h2 class="modal-pro-title">Cambiar de Contenedor</h2>
-
-                <div class="modal-pro-status ${status.colorClass}">
-                    <i class="bi ${status.icon}"></i>
-                    <span>${status.text}</span>
-                </div>
-
-                <div class="modal-pro-summary">
-                    <h4>Resumen de <strong>${currentContenedor}</strong></h4>
-                    <div class="summary-grid-pro">${summaryHTML}</div>
-                </div>
-                <p class="modal-pro-question">Se guardarán los cambios y volverás a la pantalla de búsqueda. ¿Deseas continuar?</p>
+            <div class="cc-current-chip ${status.colorClass}">
+              <i class="bi ${status.icon}"></i>${status.text}
             </div>
-        `,
+          </div>
+          <div class="cc-current-name">${currentContenedor}</div>
+
+          <div class="cc-summary-grid">${summaryHTML}</div>
+
+          <div class="cc-meta-block">
+            <div class="cc-meta-grid">
+              <div class="cc-meta-item">
+                <i class="bi bi-database-fill-gear"></i>
+                <div>
+                  <span class="m-label">Manifiesto</span>
+                  <span class="m-val">${currentFileName}</span>
+                </div>
+              </div>
+              <div class="cc-meta-item">
+                <i class="bi bi-box-seam"></i>
+                <div>
+                  <span class="m-label">Otros</span>
+                  <span class="m-val">${totalOthers}</span>
+                </div>
+              </div>
+              <div class="cc-meta-item">
+                <i class="bi bi-lock-fill"></i>
+                <div>
+                  <span class="m-label">Cerrados</span>
+                  <span class="m-val">${totalClosed}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cc-help">
+            <h6>Ayuda Rápida</h6>
+            <ul>
+              <li><i class="bi bi-mouse2"></i> Click / Enter: Seleccionar</li>
+              <li><i class="bi bi-arrow-up-down"></i> ↑ / ↓: Navegar</li>
+              <li><i class="bi bi-slash-circle"></i> ESC: Cerrar</li>
+            </ul>
+          </div>
+        </aside>
+
+        <main class="cc-main cc-scroll-wrapper">
+          <h2 class="modal-pro-title">
+            <i class="material-icons">swap_horiz</i>
+            Cambiar de Contenedor
+          </h2>
+
+          <div class="cc-filter-bar">
+            <div class="cc-filter-group">
+              <i class="bi bi-search"></i>
+              <input id="ccFilter" type="text" class="form-control" placeholder="Filtrar por nombre...">
+              <button id="ccClearFilter" class="btn-clear" type="button" title="Limpiar filtro"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="cc-filter-stats" id="ccFilterStats">
+              <span class="badge-total">${totalOthers}</span> total
+              <span class="sep">|</span>
+              <span class="badge-closed">${totalClosed} cerrados</span>
+            </div>
+          </div>
+
+          <div class="cc-list-wrap">
+            <div class="cc-list" id="ccList" role="listbox" aria-label="Listado de contenedores">
+              ${containerCardsHTML}
+            </div>
+          </div>
+
+          <div id="ccPreview" class="cc-preview d-none" aria-live="polite">
+            <div class="cc-preview-header">
+              <h6 id="ccPreviewTitle"></h6>
+              <button id="ccPreviewClose" class="btn-mini" type="button" title="Ocultar previsualización">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div id="ccPreviewSummary" class="cc-preview-summary"></div>
+          </div>
+
+            <p class="modal-pro-question small mt-3 mb-2">
+              Selecciona otro contenedor para abrirlo directamente o presiona "Salir a Búsqueda" para volver.
+            </p>
+        </main>
+      </div>
+    `,
         showCancelButton: true,
-        confirmButtonText: 'Sí, Cambiar',
+        confirmButtonText: 'Salir a Búsqueda',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#0d6efd',
         cancelButtonColor: '#6c757d',
         showLoaderOnConfirm: true,
-        preConfirm: () => {
-            return true;
+        focusConfirm: false,
+        didOpen: () => {
+            const popup = Swal.getPopup();
+            const listEl = popup.querySelector('#ccList');
+            const filterEl = popup.querySelector('#ccFilter');
+            const clearBtn = popup.querySelector('#ccClearFilter');
+            const previewWrap = popup.querySelector('#ccPreview');
+            const previewTitle = popup.querySelector('#ccPreviewTitle');
+            const previewSummary = popup.querySelector('#ccPreviewSummary');
+            const previewClose = popup.querySelector('#ccPreviewClose');
+            const confirmBtn = Swal.getConfirmButton();
+            const statsEl = popup.querySelector('#ccFilterStats');
+
+            const items = Array.from(listEl.querySelectorAll('.cc-item'));
+            let focusIndex = -1;
+
+            const updateConfirmText = () => {
+                const selected = listEl.querySelector('input[name="targetContainer"]:checked');
+                confirmBtn.textContent = selected ? 'Abrir Seleccionado' : 'Salir a Búsqueda';
+            };
+
+            const updateStats = () => {
+                const visible = items.filter(i => i.style.display !== 'none').length;
+                const closedVisible = items.filter(i => i.style.display !== 'none' && i.querySelector('.cc-badge')?.textContent.includes('CERRADO')).length;
+                statsEl.innerHTML = `<span class="badge-total">${visible}</span> mostrados <span class="sep">|</span> <span class="badge-closed">${closedVisible} cerrados</span>`;
+            };
+
+            const showPreview = (cont) => {
+                const recs = containerMap.get(cont) || [];
+                previewTitle.innerHTML = `Previsualización: <strong>${cont}</strong>`;
+                previewSummary.innerHTML = getContainerSummaryGridHTML(recs);
+                previewWrap.classList.remove('d-none');
+            };
+
+            const hidePreview = () => {
+                previewWrap.classList.add('d-none');
+            };
+
+            listEl.addEventListener('change', () => {
+                const selected = listEl.querySelector('input[name="targetContainer"]:checked');
+                if (selected) {
+                    showPreview(selected.value);
+                } else {
+                    hidePreview();
+                }
+                updateConfirmText();
+            });
+
+            filterEl.addEventListener('input', () => {
+                const term = filterEl.value.trim().toUpperCase();
+                items.forEach((item) => {
+                    const cont = item.getAttribute('data-cont') || '';
+                    const visible = cont.includes(term);
+                    item.style.display = visible ? '' : 'none';
+                    if (!visible && item.querySelector('input:checked')) {
+                        item.querySelector('input').checked = false;
+                        hidePreview();
+                        updateConfirmText();
+                    }
+                });
+                updateStats();
+            });
+
+            clearBtn.addEventListener('click', () => {
+                filterEl.value = '';
+                filterEl.dispatchEvent(new Event('input'));
+                filterEl.focus();
+            });
+
+            previewClose?.addEventListener('click', hidePreview);
+
+            listEl.addEventListener('keydown', (e) => {
+                if (!['ArrowDown', 'ArrowUp', ' ', 'Enter'].includes(e.key)) return;
+                e.preventDefault();
+                const visibleItems = items.filter(i => i.style.display !== 'none');
+                if (visibleItems.length === 0) return;
+                if (e.key === 'ArrowDown') {
+                    focusIndex = (focusIndex + 1) % visibleItems.length;
+                    visibleItems[focusIndex].focus();
+                } else if (e.key === 'ArrowUp') {
+                    focusIndex = (focusIndex - 1 + visibleItems.length) % visibleItems.length;
+                    visibleItems[focusIndex].focus();
+                } else {
+                    const el = document.activeElement;
+                    if (el && el.classList.contains('cc-item')) {
+                        const radio = el.querySelector('input[type="radio"]');
+                        if (radio) {
+                            radio.checked = true;
+                            radio.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+            });
+
+            items.forEach((item, idx) => {
+                item.addEventListener('click', () => {
+                    focusIndex = idx;
+                });
+            });
+
+            const actions = popup.querySelector('.swal2-actions');
+            const scrollWrapper = popup.querySelector('.cc-scroll-wrapper');
+            if (actions && scrollWrapper) {
+                const pad = actions.getBoundingClientRect().height + 20;
+                scrollWrapper.style.paddingBottom = pad + 'px';
+            }
+        },
+        preConfirm: async () => {
+            const selected = Swal.getPopup().querySelector('input[name="targetContainer"]:checked');
+            if (selected) return { action: 'open', container: selected.value };
+            return { action: 'exit' };
         },
         allowOutsideClick: () => !Swal.isLoading()
-    }).then((result) => {
-        if (result.isConfirmed) {
-            currentContenedor = null;
-            currentContainerRecords = [];
-            selectedFileToWorkEl.textContent = "";
+    }).then(async (res) => {
+        if (!res.isConfirmed || !res.value) return;
+        const { action, container } = res.value;
 
-            containerResultsSection.style.display = 'none';
-            scanEntrySection.style.display = 'none';
-            uploadAndSearchSection.style.display = 'block';
-            inputBusqueda.value = '';
-            inputBusqueda.focus();
-            
+        if (currentFileName && currentUser?.email) {
+            await updateManifestMetadata(currentFileName, currentUser.email);
+        }
+
+        if (action === 'open' && container) {
+            Swal.fire({ title: 'Abriendo...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            await realOpenFileManifiesto(currentFileName, container);
             Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: 'success',
-                title: '¡Listo para buscar un nuevo contenedor!',
+                title: `Contenedor ${container} abierto`,
+                timer: 1600,
+                showConfirmButton: false
+            });
+            return;
+        }
+
+        currentContenedor = null;
+        currentContainerRecords = [];
+        selectedFileToWorkEl.textContent = "";
+
+        containerResultsSection.style.display = 'none';
+        scanEntrySection.style.display = 'none';
+        uploadAndSearchSection.style.display = 'block';
+        inputBusqueda.value = '';
+        inputBusqueda.focus();
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Listo para buscar un nuevo contenedor',
+            timer: 1800,
+            showConfirmButton: false
+        });
+    });
+}
+
+// CSS dinámico (solo una vez)
+const ccStyleId = 'cc-modal-style-v2';
+if (!document.getElementById(ccStyleId)) {
+    const st = document.createElement('style');
+    st.id = ccStyleId;
+    st.textContent = `
+    .cc-theme{--cc-gap:1.1rem;--cc-radius:16px;--cc-border:#e3e6ea;--cc-bg:#ffffff;--cc-soft:#f6f7f9;--cc-accent:var(--rosa-principal,#E6007E);--cc-text:#29313a;font-family:'Poppins',system-ui,sans-serif;}
+    .cc-modal-responsive.swal2-popup{padding:0!important;display:flex;flex-direction:column;max-height:100vh;width:min(1050px,96vw);box-sizing:border-box;border-radius:var(--cc-radius);}
+    .cc-layout{display:grid;grid-template-columns:300px 1fr;min-height:65vh;max-height:calc(100vh - 140px);}
+    @media(max-width:900px){.cc-layout{grid-template-columns:1fr;}.cc-side{order:2;}}
+    .cc-side{background:linear-gradient(160deg,#fafbfc,#f0f2f5);border-right:1px solid var(--cc-border);padding:1.1rem;display:flex;flex-direction:column;gap:1rem;overflow:auto;}
+    .cc-side-header{display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
+    .cc-current-title{display:flex;align-items:center;gap:.4rem;font-weight:600;font-size:.9rem;color:var(--cc-text);}
+    .cc-current-title i{font-size:1.2rem;color:var(--cc-accent);}
+    .cc-current-chip{font-size:.55rem;padding:4px 8px;border-radius:40px;display:inline-flex;align-items:center;gap:4px;font-weight:600;letter-spacing:.5px;color:#fff;text-transform:uppercase;}
+    .cc-current-name{font-size:1.05rem;font-weight:700;color:var(--cc-text);letter-spacing:.5px;}
+    .cc-summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:.5rem;font-size:.7rem;}
+    .cc-meta-block{background:#fff;border:1px solid var(--cc-border);border-radius:12px;padding:.75rem .9rem;display:flex;flex-direction:column;gap:.55rem;}
+    .cc-meta-line{display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:#555;}
+    .cc-meta-line i{color:var(--cc-accent);}
+    .cc-help{background:var(--cc-soft);padding:.75rem .9rem;border-radius:12px;}
+    .cc-help h6{margin:0 0 .4rem;font-size:.65rem;font-weight:700;letter-spacing:.5px;color:#555;}
+    .cc-help ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem;}
+    .cc-help li{display:flex;align-items:center;gap:.5rem;font-size:.62rem;color:#555;}
+    .cc-help li i{color:var(--cc-accent);font-size:.75rem;}
+    .cc-main{display:flex;flex-direction:column;overflow:hidden;padding:1.15rem 1.2rem 0;}
+    .cc-main .modal-pro-title{display:flex;align-items:center;gap:.55rem;font-size:1.25rem;margin:0 0 .9rem;font-weight:700;color:var(--cc-text);}
+    .cc-main .modal-pro-title i{color:var(--cc-accent);}
+    .cc-filter-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.8rem;}
+    .cc-filter-group{flex:1;display:flex;align-items:center;gap:.45rem;background:#fff;border:1px solid var(--cc-border);padding:.55rem .75rem;border-radius:50px;box-shadow:0 2px 4px rgba(0,0,0,.04);}
+    .cc-filter-group i{color:#6c7580;font-size:1rem;}
+    .cc-filter-group input{border:none;outline:none;font-size:.8rem;padding:0;width:100%;background:transparent;}
+    .cc-filter-group .btn-clear{background:rgba(0,0,0,.05);border:none;border-radius:40px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#666;transition:.2s;}
+    .cc-filter-group .btn-clear:hover{background:rgba(0,0,0,.1);}
+    .cc-filter-stats{font-size:.65rem;font-weight:600;display:flex;align-items:center;gap:.5rem;color:#555;}
+    .cc-filter-stats .badge-total,.cc-filter-stats .badge-closed{background:#fff;border:1px solid var(--cc-border);padding:4px 8px;border-radius:40px;font-size:.6rem;display:inline-block;font-weight:600;}
+    .cc-filter-stats .sep{opacity:.4;}
+    .cc-list-wrap{flex:1;overflow:auto;border:1px solid var(--cc-border);background:var(--cc-soft);border-radius:14px;padding:.7rem .65rem;position:relative;}
+    .cc-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.7rem;}
+    @media(max-width:700px){.cc-list{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}}
+    .cc-item{position:relative;display:flex;cursor:pointer;border:1px solid #d9dde1;border-radius:13px;background:#fff;transition:.18s;outline:none;}
+    .cc-item:focus-visible{box-shadow:0 0 0 3px #e6007e55;}
+    .cc-item:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);transform:translateY(-2px);}
+    .cc-item input{position:absolute;opacity:0;pointer-events:none;}
+    .cc-item input:checked + .cc-body{outline:2px solid var(--cc-accent);outline-offset:1px;background:linear-gradient(140deg,#fff,#ffe5f3);}
+    .cc-body{flex:1;display:flex;flex-direction:column;gap:.55rem;padding:.65rem .7rem .75rem;}
+    .cc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:.5rem;}
+    .cc-name{font-weight:600;font-size:.78rem;line-height:1.2;word-break:break-word;color:#1d252c;letter-spacing:.4px;}
+    .cc-badge{font-size:.5rem;padding:4px 7px;border-radius:40px;display:inline-flex;align-items:center;gap:4px;font-weight:700;color:#fff;letter-spacing:.5px;text-transform:uppercase;line-height:1;}
+    .cc-badge i{font-size:.75rem;}
+    .cc-badge.status-green{background:#2ECC71;}
+    .cc-badge.status-red{background:#E74C3C;}
+    .cc-badge.status-yellow{background:#F1C40F;color:#222;}
+    .cc-badge.status-gray{background:#95a5a6;}
+    .cc-metrics{display:flex;justify-content:space-between;align-items:center;gap:.35rem;}
+    .cc-metric{flex:1;display:flex;flex-direction:column;align-items:center;background:#f1f3f5;border-radius:10px;padding:4px 4px;}
+    .cc-metric .m-label{font-size:.48rem;font-weight:600;opacity:.6;letter-spacing:.5px;}
+    .cc-metric .m-val{font-size:.68rem;font-weight:700;line-height:1.1;}
+    .cc-metric .m-val.good{color:#2ECC71;}
+    .cc-metric .m-val.mid{color:#F39C12;}
+    .cc-metric .m-val.low{color:#E74C3C;}
+    .cc-bar-wrap{margin-top:.1rem;}
+    .cc-bar{height:6px;width:100%;background:#ecf0f2;border-radius:20px;overflow:hidden;position:relative;}
+    .cc-bar-fill{height:100%;background:linear-gradient(90deg,var(--cc-accent),#ff7bbd);box-shadow:0 0 0 1px #fff inset;}
+    .cc-bar-fill.av-0{background:#e74c3c;}
+    .cc-bar-fill.av-25{background:#fd9644;}
+    .cc-bar-fill.av-50{background:#f1c40f;}
+    .cc-bar-fill.av-75{background:#27ae60;}
+    .cc-bar-fill.av-full{background:#16a085;}
+    .cc-preview{margin-top:1rem;padding:.9rem .95rem 1rem;background:#fff;border:1px solid var(--cc-border);border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.05);}
+    .cc-preview-header{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.55rem;}
+    .cc-preview-header h6{margin:0;font-size:.7rem;font-weight:700;letter-spacing:.6px;color:#555;text-transform:uppercase;}
+    .cc-preview .cc-preview-summary{font-size:.65rem;}
+    .btn-mini{border:none;background:#f1f3f5;width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#555;transition:.2s;}
+    .btn-mini:hover{background:#e2e6ea;}
+    .no-others{padding:1.2rem;text-align:center;font-size:.7rem;color:#777;font-style:italic;background:#fff;border:1px dashed var(--cc-border);border-radius:12px;}
+    .cc-scroll-wrapper{overflow-y:auto;flex:1 1 auto;min-height:0;-webkit-overflow-scrolling:touch;}
+    .cc-scroll-wrapper::-webkit-scrollbar{width:10px;}
+    .cc-scroll-wrapper::-webkit-scrollbar-track{background:transparent;}
+    .cc-scroll-wrapper::-webkit-scrollbar-thumb{background:#cdd2d6;border-radius:30px;}
+    .cc-scroll-wrapper::-webkit-scrollbar-thumb:hover{background:#b6bbc0;}
+    .cc-modal-responsive .swal2-actions{position:sticky;bottom:0;left:0;right:0;background:#ffffff;padding:14px clamp(10px,2vw,20px);gap:.85rem;box-shadow:0 -4px 18px -6px rgba(0,0,0,.08);z-index:5;flex-wrap:wrap;}
+    @supports(padding: max(0px)){.cc-modal-responsive .swal2-actions{padding-bottom:max(14px, env(safe-area-inset-bottom));}}
+    .cc-modal-responsive .swal2-actions button{flex:1 1 200px;min-width:170px;font-weight:600;letter-spacing:.3px;}
+    @media(max-width:540px){
+      .cc-modal-responsive .swal2-actions button{flex:1 1 140px;min-width:140px;font-size:.7rem;padding:.6rem .5rem;}
+      .cc-filter-group{padding:.45rem .65rem;}
+      .cc-filter-group input{font-size:.7rem;}
+      .cc-item{border-radius:11px;}
+    }
+    `;
+    document.head.appendChild(st);
+}
+        // === CERRAR / REABRIR CONTENEDOR (VERSIÓN PRO ULTRA – UI EPIC & RESPONSIVE) =====
+        (() => {
+            let toggleBusy = false;
+
+            async function toggleContainerState() {
+            if (toggleBusy) return;
+            if (!currentContenedor || !currentFileName) {
+                return Swal.fire('Atención', 'No hay un contenedor activo.', 'info');
+            }
+
+            const manifestData = excelDataGlobal[currentFileName];
+            if (!manifestData) {
+                return Swal.fire('Error', 'No se encontró el manifiesto en memoria.', 'error');
+            }
+
+            const isClosed = !!manifestData.closedContainers?.[currentContenedor];
+            const nextState = !isClosed;
+            const actionTxt = isClosed ? 'Reabrir' : 'Cerrar';
+            const icon = isClosed ? 'lock_open' : 'lock';
+            const hdrColor = isClosed ? '#198754' : '#dc3545';
+            const notePlaceholder = isClosed
+                ? 'Motivo (opcional) de reapertura...'
+                : 'Motivo (opcional) de cierre...';
+
+            const status = getContainerStatus(currentContainerRecords || []);
+            const summaryHTML = getContainerSummaryGridHTML(currentContainerRecords || []);
+
+            const { isConfirmed, value } = await Swal.fire({
+                width: 'min(900px,96vw)',
+                customClass: { popup: 'swal-modal-pro toggle-container-modal epic-toggle-modal' },
+                html: `
+        <div class="epic-toggle-wrapper">
+          <div class="epic-header" style="--hdr-color:${hdrColor}">
+            <div class="hdr-left">
+              <div class="icon-wrap">
+            <i class="material-icons">${icon}</i>
+              </div>
+              <div class="titles">
+            <h2>${actionTxt} Contenedor</h2>
+            <p>${currentFileName}</p>
+              </div>
+            </div>
+            <div class="hdr-right">
+              <div class="state-badge ${status.colorClass}">
+            <i class="bi ${status.icon}"></i><span>${status.text}</span>
+              </div>
+              <div class="cont-chip">
+            <i class="bi bi-box-seam"></i> ${currentContenedor}
+              </div>
+            </div>
+          </div>
+
+          <div class="epic-body-scroll">
+            <section class="panel panel-highlight">
+              <h3 class="panel-title">
+            <i class="bi bi-clipboard-data"></i> Resumen Rápido
+              </h3>
+              <div class="quick-grid">
+            ${summaryHTML}
+              </div>
+            </section>
+
+            <section class="panel">
+              <h3 class="panel-title">
+            <i class="bi bi-chat-dots"></i> Comentario (opcional)
+              </h3>
+              <textarea id="containerToggleNote" class="form-control epic-textarea" rows="2" placeholder="${notePlaceholder}"></textarea>
+            </section>
+
+            <section class="panel panel-warning">
+              <h3 class="panel-title">
+            <i class="bi bi-question-circle"></i> Confirmación
+              </h3>
+              <p class="confirm-text">
+            ${isClosed
+                ? 'Al reabrir podrás seguir registrando piezas en este contenedor.'
+                : 'Al cerrar ya no se podrán registrar más piezas (seguirá visible solo en modo lectura).'}
+            <br><strong>¿Confirmas la acción?</strong>
+              </p>
+            </section>
+          </div>
+
+          <div class="epic-footer-hint">
+            <i class="bi bi-info-circle-fill"></i> La acción queda registrada con usuario, fecha y nota.
+          </div>
+        </div>
+        <style>
+          .epic-toggle-modal.swal2-popup{
+            padding:0;
+            overflow:hidden;
+            background:#f5f7fa;
+            border-radius:20px;
+            box-shadow:0 15px 45px -10px rgba(0,0,0,.25);
+          }
+          .epic-toggle-wrapper{
+            display:flex;
+            flex-direction:column;
+            max-height:78vh;
+            position:relative;
+          }
+          .epic-header{
+            display:flex;
+            justify-content:space-between;
+            gap:1rem;
+            padding:1rem 1.4rem 1rem;
+            background:linear-gradient(135deg,var(--hdr-color) 0%, #1f1f1f 150%);
+            color:#fff;
+          }
+          .hdr-left{display:flex;align-items:center;gap:1rem;min-width:0;}
+          .icon-wrap{
+            width:62px;
+            height:62px;
+            border-radius:18px;
+            background:rgba(255,255,255,.12);
+            backdrop-filter:blur(4px);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow:0 4px 14px -4px rgba(0,0,0,.5) inset,0 0 0 1px rgba(255,255,255,.18);
+          }
+          .icon-wrap i{font-size:2.2rem;}
+          .titles h2{
+            font-size:1.5rem;
+            margin:0 0 .15rem;
+            line-height:1.1;
+            font-weight:700;
+            letter-spacing:.5px;
+            text-shadow:0 2px 8px rgba(0,0,0,.25);
+          }
+          .titles p{
+            margin:0;
+            font-size:.75rem;
+            opacity:.9;
+            letter-spacing:.5px;
+            font-weight:500;
+            word-break:break-all;
+          }
+          .hdr-right{
+            display:flex;
+            flex-direction:column;
+            align-items:flex-end;
+            gap:.55rem;
+          }
+            .state-badge{
+            display:inline-flex;
+            align-items:center;
+            gap:.45rem;
+            font-size:.65rem;
+            letter-spacing:.5px;
+            font-weight:700;
+            padding:.45rem .75rem;
+            border-radius:40px;
+            background:#444;
+            text-transform:uppercase;
+            box-shadow:0 0 0 1px rgba(255,255,255,.2),0 4px 10px -2px rgba(0,0,0,.4);
+          }
+          .state-badge i{font-size:.9rem;}
+          .state-badge.status-green{background:#28a745;}
+          .state-badge.status-red{background:#dc3545;}
+          .state-badge.status-yellow{background:#ffc107;color:#222;}
+          .state-badge.status-gray{background:#6c757d;}
+          .cont-chip{
+            display:inline-flex;
+            align-items:center;
+            gap:.4rem;
+            background:rgba(255,255,255,.12);
+            padding:.4rem .75rem;
+            border-radius:10px;
+            font-size:.7rem;
+            font-weight:600;
+            letter-spacing:.5px;
+            box-shadow:0 0 0 1px rgba(255,255,255,.18);
+          }
+
+          .epic-body-scroll{
+            overflow:auto;
+            padding:1rem 1.25rem 1.2rem;
+            display:flex;
+            flex-direction:column;
+            gap:1rem;
+          }
+          .epic-body-scroll::-webkit-scrollbar{width:10px;}
+          .epic-body-scroll::-webkit-scrollbar-track{background:transparent;}
+          .epic-body-scroll::-webkit-scrollbar-thumb{
+            background:#c7ccd1;
+            border-radius:40px;
+            border:2px solid #f5f7fa;
+          }
+          .epic-body-scroll::-webkit-scrollbar-thumb:hover{background:#b0b6bc;}
+
+          .panel{
+            background:#ffffff;
+            border:1px solid #e1e5e9;
+            border-radius:18px;
+            padding:1.05rem 1.1rem 1.2rem;
+            position:relative;
+            box-shadow:0 4px 18px -8px rgba(0,0,0,.1);
+          }
+          .panel-highlight{
+            border:1px solid var(--rosa-principal,#E6007E);
+            box-shadow:0 4px 20px -6px rgba(230,0,126,.25);
+          }
+          .panel-warning{
+            background:linear-gradient(135deg,#fff 0%,#fff7f7 100%);
+            border:1px solid #f3d2d2;
+          }
+          .panel-title{
+            margin:0 0 .85rem;
+            font-size:.85rem;
+            font-weight:700;
+            letter-spacing:.75px;
+            text-transform:uppercase;
+            display:flex;
+            align-items:center;
+            gap:.4rem;
+            color:#34404c;
+          }
+          .panel-title i{
+            font-size:1rem;
+            color:var(--rosa-principal,#E6007E);
+          }
+
+          .quick-grid{
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+            gap:.7rem;
+            font-size:.65rem;
+          }
+          .summary-item-pro{
+            display:flex;
+            align-items:center;
+            gap:.6rem;
+            background:#f6f8fa;
+            border:1px solid #e2e6ea;
+            padding:.7rem .6rem;
+            border-radius:12px;
+            position:relative;
+            overflow:hidden;
+            min-height:60px;
+          }
+          .summary-item-pro i{
+            font-size:1.4rem;
+            color:var(--rosa-principal,#E6007E);
+            flex-shrink:0;
+          }
+          .summary-item-pro .label{
+            display:block;
+            font-size:.55rem;
+            font-weight:600;
+            letter-spacing:.5px;
+            text-transform:uppercase;
+            margin:0 0 2px;
+            color:#6c7680;
+            white-space:nowrap;
+          }
+          .summary-item-pro .value{
+            font-size:.95rem;
+            font-weight:700;
+            color:#222;
+            letter-spacing:.5px;
+            line-height:1.05;
+          }
+          .summary-item-pro .value.is-missing{color:#dc3545;}
+          .summary-item-pro .value.is-excess{color:#ff9800;}
+
+          .epic-textarea{
+            border-radius:14px;
+            background:#f8f9fb;
+            border:1px solid #e1e5e9;
+            font-size:.8rem;
+            resize:vertical;
+            min-height:70px;
+            line-height:1.3;
+          }
+          .epic-textarea:focus{
+            border-color:var(--rosa-principal,#E6007E);
+            box-shadow:0 0 0 3px rgba(230,0,126,.25);
+            outline:none;
+          }
+
+          .confirm-text{
+            font-size:.8rem;
+            margin:0;
+            color:#444d55;
+            line-height:1.35;
+          }
+
+          .epic-footer-hint{
+            background:#fff;
+            border-top:1px solid #e2e6ea;
+            padding:.6rem .9rem;
+            font-size:.65rem;
+            color:#6d7680;
+            display:flex;
+            align-items:center;
+            gap:.5rem;
+            letter-spacing:.3px;
+            font-weight:500;
+          }
+          .epic-footer-hint i{
+            color:var(--rosa-principal,#E6007E);
+            font-size:.9rem;
+          }
+
+          /* SweetAlert buttons area adjustments */
+          .epic-toggle-modal .swal2-actions{
+            padding: .9rem 1rem 1rem;
+            gap:.75rem;
+            flex-wrap:wrap;
+            background:#fff;
+            margin:0;
+            border-top:1px solid #e3e6e9;
+          }
+          .epic-toggle-modal .swal2-actions button{
+            border-radius:12px!important;
+            font-weight:600!important;
+            letter-spacing:.4px;
+            font-size:.8rem!important;
+            padding:.75rem 1.2rem!important;
+            flex:1 1 180px;
+          }
+          .epic-toggle-modal .swal2-actions button:focus-visible{
+            box-shadow:0 0 0 3px rgba(230,0,126,.35)!important;
+            outline:none!important;
+          }
+
+          @media (max-width:700px){
+            .epic-header{
+              flex-direction:column;
+              align-items:flex-start;
+              padding:1rem 1.05rem 1.1rem;
+              gap:.9rem;
+            }
+            .hdr-right{align-items:flex-start;}
+            .icon-wrap{width:54px;height:54px;}
+            .titles h2{font-size:1.25rem;}
+            .panel{padding:.9rem .85rem 1rem;}
+            .quick-grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.55rem;}
+            .summary-item-pro{padding:.55rem .5rem;}
+            .summary-item-pro .value{font-size:.8rem;}
+          }
+          @media (max-width:450px){
+            .titles h2{font-size:1.15rem;}
+            .cont-chip{font-size:.6rem;}
+            .state-badge{font-size:.55rem;}
+            .epic-toggle-modal .swal2-actions button{flex:1 1 120px;font-size:.7rem!important;padding:.6rem .7rem!important;}
+          }
+        </style>
+        `,
+                showCancelButton: true,
+                focusConfirm: false,
+                confirmButtonText: `Sí, ${actionTxt}`,
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: isClosed ? '#198754' : '#dc3545',
+                cancelButtonColor: '#6c757d',
+                showLoaderOnConfirm: true,
+                preConfirm: async () => {
+                try {
+                    toggleBusy = true;
+                    const note = (document.getElementById('containerToggleNote')?.value || '').trim();
+
+                    // Firestore no permite serverTimestamp() dentro de arrayUnion, usamos timestamp de cliente
+                    const logEntry = {
+                        contenedor: currentContenedor,
+                        cerrado: nextState,
+                        note: note || null,
+                        user: currentUser?.email || currentUser?.uid || 'desconocido',
+                        ts: Date.now() // o new Date().toISOString()
+                    };
+
+                    await db.collection('manifiestos').doc(currentFileName).update({
+                        [`closedContainers.${currentContenedor}`]: nextState,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        toggleLog: firebase.firestore.FieldValue.arrayUnion(logEntry)
+                    });
+
+                    manifestData.closedContainers = manifestData.closedContainers || {};
+                    manifestData.closedContainers[currentContenedor] = nextState;
+
+                    await updateManifestMetadata(currentFileName, currentUser.email || currentUser.uid);
+
+                    return { newClosedState: nextState };
+                } catch (e) {
+                    console.error(e);
+                    Swal.showValidationMessage('No se pudo actualizar: ' + (e.message || e));
+                    return false;
+                } finally {
+                    toggleBusy = false;
+                }
+                },
+                allowOutsideClick: () => !Swal.isLoading(),
+                didOpen: () => {
+                setTimeout(() => {
+                    const ta = document.getElementById('containerToggleNote');
+                    ta && ta.focus();
+                }, 60);
+                }
+            });
+
+            if (!isConfirmed || !value) return;
+
+            const { newClosedState } = value;
+
+            inputScanCode.disabled = newClosedState;
+            btnCerrarContenedor.querySelector('span').textContent = newClosedState ? 'Reabrir' : 'Cerrar';
+            btnCerrarContenedor.querySelector('i.material-icons').textContent = newClosedState ? 'lock_open' : 'lock';
+
+            mostrarDetallesContenedor(currentContainerRecords, newClosedState);
+
+            Swal.fire({
+                toast: true,
+                icon: 'success',
+                position: 'top-end',
+                title: `Contenedor ${newClosedState ? 'cerrado' : 'reabierto'} correctamente`,
                 timer: 2000,
                 showConfirmButton: false
             });
-        }
-    });
-});
-// --- CÓDIGO ACTUALIZADO PARA CERRAR/REABRIR CON BANNER DE ESTADO ---
-btnCerrarContenedor.addEventListener('click', async () => {
-    if (!currentContenedor || !currentFileName) {
-        return Swal.fire('Error', 'No hay un contenedor activo para esta acción.', 'error');
-    }
 
-    const manifestData = excelDataGlobal[currentFileName];
-    const isCurrentlyClosed = manifestData.closedContainers?.[currentContenedor];
-    const actionText = isCurrentlyClosed ? 'Reabrir' : 'Cerrar';
-    const modalIcon = isCurrentlyClosed ? 'lock_open' : 'lock';
-    const modalColorClass = isCurrentlyClosed ? 'bg-success' : 'bg-danger';
-    const modalQuestion = isCurrentlyClosed ? 'Al reabrirlo, podrás seguir registrando piezas.' : 'Una vez cerrado, no podrás hacer más registros en él.';
-
-    const status = getContainerStatus(currentContainerRecords); // Obtenemos el estado
-    const summaryHTML = getContainerSummaryGridHTML(currentContainerRecords);
-
-    const { isConfirmed } = await Swal.fire({
-        customClass: { popup: 'swal-modal-pro' },
-        html: `
-            <div class="modal-pro-header ${modalColorClass}">
-                <i class="material-icons">${modalIcon}</i>
-            </div>
-            <div class="modal-pro-content">
-                <h2 class="modal-pro-title">${actionText} Contenedor</h2>
-
-                <div class="modal-pro-status ${status.colorClass}">
-                    <i class="bi ${status.icon}"></i>
-                    <span>${status.text}</span>
-                </div>
-
-                <div class="modal-pro-summary">
-                    <h4>Resumen de <strong>${currentContenedor}</strong></h4>
-                    <div class="summary-grid-pro">${summaryHTML}</div>
-                </div>
-                <p class="modal-pro-question">${modalQuestion}<br>¿Deseas continuar?</p>
-            </div>`,
-        showCancelButton: true,
-        confirmButtonText: `Sí, ${actionText}`,
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: isCurrentlyClosed ? '#43A047' : '#e53935',
-        cancelButtonColor: '#6c757d',
-        showLoaderOnConfirm: true,
-        preConfirm: async () => {
-            try {
-                const newClosedState = !isCurrentlyClosed;
-                await db.collection('manifiestos').doc(currentFileName).update({
-                    [`closedContainers.${currentContenedor}`]: newClosedState,
-                    lastUser: currentUser.email,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                manifestData.closedContainers[currentContenedor] = newClosedState;
-                return { newClosedState: newClosedState };
-            } catch (error) {
-                Swal.showValidationMessage(`No se pudo actualizar. Error: ${error}`);
-                return false;
+            if (!newClosedState) {
+                setTimeout(() => inputScanCode.focus(), 400);
             }
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    });
+            }
 
-    if (isConfirmed && isConfirmed.value) {
-        const { newClosedState } = isConfirmed.value;
-        inputScanCode.disabled = newClosedState;
-        btnCerrarContenedor.querySelector('span').textContent = newClosedState ? 'Reabrir' : 'Cerrar';
-        btnCerrarContenedor.querySelector('i.material-icons').textContent = newClosedState ? 'lock_open' : 'lock';
-        mostrarDetallesContenedor(currentContainerRecords, newClosedState);
-        Swal.fire('¡Éxito!', `El contenedor ha sido ${actionText === 'cerrar' ? 'cerrado' : 'reabierto'}.`, 'success');
-    }
-});
-async function actualizarMetadatosManifiesto(fileName) {
-    if (!excelDataGlobal[fileName]) return;
+            btnCerrarContenedor.addEventListener('click', toggleContainerState);
+        })();
+
+        async function actualizarMetadatosManifiesto(fileName) {
+            if (!excelDataGlobal[fileName]) return;
 
             const datos = excelDataGlobal[fileName].data;
             if (!datos || datos.length === 0) return;
@@ -3458,7 +4152,6 @@ async function actualizarMetadatosManifiesto(fileName) {
             } else if (totalSAP > 0 && avance === 0) {
                 estado = "Faltantes Detectados";
             }
-
             const metadata = {
                 progreso: {
                     totalSAP,
@@ -3467,12 +4160,14 @@ async function actualizarMetadatosManifiesto(fileName) {
                     estado
                 },
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastUser: currentUser.email || currentUser.uid
+                // ❌ no seteamos lastUser aquí
+                lastUser: excelDataGlobal[fileName]?.lastUser || null // opcional: preservar si ya existe
             };
 
             await db.collection('manifiestos').doc(fileName).set(metadata, {
                 merge: true
             });
+
         }
 
         let containersMapGlobal = {};
@@ -3644,102 +4339,14 @@ async function actualizarMetadatosManifiesto(fileName) {
             const searchTerm = ref.trim().toUpperCase();
             if (!searchTerm) return;
 
-            // --- INICIO DEL NUEVO MODAL DE BÚSQUEDA ---
-            let loadingIntervalId = null; // Variable para controlar el intervalo de las frases
-            Swal.fire({
-                html: `
-            <div class="epic-loading-container">
-                <div class="radar-scanner">
-                    <div class="radar-icon-wrapper">
-                        <i class="bi bi-binoculars-fill"></i>
-                    </div>
-                </div>
-                <h2 class="epic-loading-title">Iniciando Protocolo de Búsqueda...</h2>
-                <p id="motivational-phrase" class="epic-loading-phrase"></p>
-                <div class="progress-bar-simulation">
-                    <div class="progress-bar-inner"></div>
-                </div>
-            </div>
-            <style>
-                .epic-loading-container {
-                    font-family: 'Poppins', sans-serif; padding: 2rem 1rem; text-align: center; overflow: hidden;
-                }
-                .radar-scanner {
-                    position: relative; width: 120px; height: 120px; margin: 0 auto 1.5rem; border-radius: 50%;
-                    background: radial-gradient(circle, rgba(230, 0, 126, 0.05) 0%, rgba(230, 0, 126, 0.15) 60%, transparent 70%);
-                    display: flex; align-items: center; justify-content: center;
-                }
-                .radar-scanner::before, .radar-scanner::after {
-                    content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 100%; border-radius: 50%;
-                    transform: translate(-50%, -50%);
-                }
-                .radar-scanner::before {
-                    background: conic-gradient(from 0deg, transparent 0%, var(--rosa-principal) 20%, transparent 25%);
-                    animation: radar-sweep 2.5s linear infinite;
-                }
-                .radar-scanner::after {
-                    border: 2px solid rgba(230, 0, 126, 0.2); width: calc(100% + 10px); height: calc(100% + 10px);
-                    animation: radar-pulse 2.5s ease-out infinite;
-                }
-                @keyframes radar-sweep {
-                    from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); }
-                }
-                @keyframes radar-pulse {
-                    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } 50% { opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
-                }
-                .radar-icon-wrapper {
-                    width: 80px; height: 80px; border-radius: 50%; background: var(--blanco);
-                    display: flex; align-items: center; justify-content: center;
-                    box-shadow: 0 5px 20px rgba(0,0,0,0.1); z-index: 2;
-                }
-                .radar-icon-wrapper .bi-binoculars-fill { font-size: 2.5rem; color: var(--rosa-principal); }
-                .epic-loading-title { font-size: 1.5rem; font-weight: 700; color: var(--texto-principal); margin-bottom: 0.5rem; }
-                .epic-loading-phrase {
-                    font-size: 1rem; color: #6c757d; height: 24px; display: flex; align-items: center; justify-content: center;
-                    transition: opacity 0.4s ease-in-out; opacity: 1;
-                }
-                .epic-loading-phrase.fade-out { opacity: 0; }
-                .progress-bar-simulation {
-                    width: 80%; max-width: 300px; height: 8px; background-color: #e9ecef; border-radius: 8px;
-                    margin: 1.5rem auto 0; overflow: hidden;
-                }
-                .progress-bar-inner {
-                    width: 100%; height: 100%; background: linear-gradient(90deg, transparent, var(--rosa-principal), transparent);
-                    background-size: 200% 100%; animation: progress-sim 2s linear infinite;
-                }
-                @keyframes progress-sim { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-            </style>
-        `,
-                showConfirmButton: false,
-                allowOutsideClick: false,
-                customClass: { popup: 'p-0 border-0 shadow-lg rounded-3' },
-                didOpen: () => {
-                    const phraseElement = document.getElementById('motivational-phrase');
-                    if (phraseElement) {
-                        let phraseIndex = 0;
-                        phraseElement.textContent = motivationalPhrases[phraseIndex];
-                        loadingIntervalId = setInterval(() => {
-                            phraseElement.classList.add('fade-out');
-                            setTimeout(() => {
-                                phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
-                                phraseElement.textContent = motivationalPhrases[phraseIndex];
-                                phraseElement.classList.remove('fade-out');
-                            }, 400);
-                        }, 2500);
-                    }
-                },
-                willClose: () => {
-                    clearInterval(loadingIntervalId); // Detenemos el cambio de frases al cerrar
-                }
-            });
-            // --- FIN DEL NUEVO MODAL DE BÚSQUEDA ---
+            // NO ABRIMOS modal aquí (lo lleva handleSearch)
 
             let candidates = await checkFileForReference(null, searchTerm);
             if (!candidates || candidates.length === 0) {
+                Swal.close();
                 return showNotFoundAlert("referencia");
             }
 
-            // El resto de la lógica para mostrar resultados permanece igual...
             const foundChoices = [];
             const uniqueCheck = new Set();
             candidates.forEach(candidate => {
@@ -3749,7 +4356,9 @@ async function actualizarMetadatosManifiesto(fileName) {
                     if (!containerName) return;
                     const choiceKey = `${containerName}|${fileName}`;
                     if (!uniqueCheck.has(choiceKey)) {
-                        const recordsForThisContainer = excelDataGlobal[fileName].data.filter(rec => String(rec.CONTENEDOR || "").trim().toUpperCase() === containerName);
+                        const recordsForThisContainer = excelDataGlobal[fileName].data.filter(
+                            rec => String(rec.CONTENEDOR || "").trim().toUpperCase() === containerName
+                        );
                         const totalSKUs = recordsForThisContainer.length;
                         const totalSAP = recordsForThisContainer.reduce((sum, rec) => sum + (Number(rec.SAP) || 0), 0);
                         foundChoices.push({ containerName, fileName, totalSKUs, totalSAP });
@@ -3759,6 +4368,7 @@ async function actualizarMetadatosManifiesto(fileName) {
             });
 
             if (foundChoices.length === 0) {
+                Swal.close();
                 return showNotFoundAlert("referencia en un contenedor válido");
             }
 
@@ -3772,24 +4382,25 @@ async function actualizarMetadatosManifiesto(fileName) {
             const choiceHTML = foundChoices.map(choice => {
                 const isClosed = excelDataGlobal[choice.fileName]?.closedContainers?.[choice.containerName];
                 return `
-            <div class="result-item-card">
-                <div class="item-info">
-                    <div class="item-title">
-                        <i class="material-icons text-primary">inventory_2</i>
-                        ${choice.containerName}
-                        ${isClosed ? `<span class="status-badge is-closed">CERRADO</span>` : ''}
-                    </div>
-                    <div class="item-meta">
-                        <span><strong>Archivo:</strong> ${choice.fileName}</span><br>
-                        <span><strong>SKUs:</strong> ${choice.totalSKUs} | <strong>Piezas SAP:</strong> ${choice.totalSAP}</span>
-                    </div>
-                </div>
-                <button class="btn btn-primary btn-sm btn-choose" onclick="window.openContainerFromFile('${choice.containerName}', '${choice.fileName}')">
-                    <i class="material-icons">touch_app</i> Elegir
-                </button>
-            </div>`;
+      <div class="result-item-card">
+        <div class="item-info">
+          <div class="item-title">
+            <i class="material-icons text-primary">inventory_2</i>
+            ${choice.containerName}
+            ${isClosed ? `<span class="status-badge is-closed">CERRADO</span>` : ''}
+          </div>
+          <div class="item-meta">
+            <span><strong>Archivo:</strong> ${choice.fileName}</span><br>
+            <span><strong>SKUs:</strong> ${choice.totalSKUs} | <strong>Piezas SAP:</strong> ${choice.totalSAP}</span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm btn-choose" onclick="window.openContainerFromFile('${choice.containerName}', '${choice.fileName}')">
+          <i class="material-icons">touch_app</i> Elegir
+        </button>
+      </div>`;
             }).join('');
 
+            Swal.close();
             Swal.fire({
                 title: "Múltiples Coincidencias Encontradas",
                 html: `<p>Se encontró "<strong>${searchTerm}</strong>" en los siguientes contenedores. Elige el correcto:</p><div class="results-list-container">${choiceHTML}</div>`,
@@ -3815,182 +4426,66 @@ async function actualizarMetadatosManifiesto(fileName) {
             }
         };
 
+        // BÚSQUEDA: muestra 1 modal y llama 1 sola vez a buscarReferencia
         const handleSearch = (value) => {
-            let val = value.trim().toUpperCase();
+            const val = value.trim().toUpperCase();
             if (val.length < 5) return;
 
-            // Ya no intentamos adivinar el tipo de código, simplemente llamamos a la búsqueda universal.
-            buscarReferencia(val);
+            let phrasesTimer = null;
 
             Swal.fire({
                 html: `
-                            <div class="epic-loading-container">
-                                <div class="radar-scanner">
-                                    <div class="radar-icon-wrapper">
-                                        <i class="bi bi-binoculars-fill"></i>
-                                    </div>
-                                </div>
-                                <h2 class="epic-loading-title">Iniciando Protocolo de Búsqueda...</h2>
-                                <p id="motivational-phrase" class="epic-loading-phrase"></p>
-                                <div class="progress-bar-simulation">
-                                    <div class="progress-bar-inner"></div>
-                                </div>
-                            </div>
-                            <style>
-                                .epic-loading-container {
-                                    font-family: 'Poppins', sans-serif;
-                                    padding: 2rem 1rem;
-                                    text-align: center;
-                                    overflow: hidden;
-                                }
-                                .radar-scanner {
-                                    position: relative;
-                                    width: 120px;
-                                    height: 120px;
-                                    margin: 0 auto 1.5rem;
-                                    border-radius: 50%;
-                                    background: radial-gradient(circle, rgba(230, 0, 126, 0.05) 0%, rgba(230, 0, 126, 0.15) 60%, transparent 70%);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                }
-                                .radar-scanner::before, .radar-scanner::after {
-                                    content: '';
-                                    position: absolute;
-                                    top: 50%;
-                                    left: 50%;
-                                    width: 100%;
-                                    height: 100%;
-                                    border-radius: 50%;
-                                    transform: translate(-50%, -50%);
-                                }
-                                .radar-scanner::before {
-                                    background: conic-gradient(from 0deg, transparent 0%, var(--rosa-principal) 20%, transparent 25%);
-                                    animation: radar-sweep 2.5s linear infinite;
-                                }
-                                .radar-scanner::after {
-                                    border: 2px solid rgba(230, 0, 126, 0.2);
-                                    width: calc(100% + 10px);
-                                    height: calc(100% + 10px);
-                                    animation: radar-pulse 2.5s ease-out infinite;
-                                }
-                                @keyframes radar-sweep {
-                                    from { transform: translate(-50%, -50%) rotate(0deg); }
-                                    to { transform: translate(-50%, -50%) rotate(360deg); }
-                                }
-                                @keyframes radar-pulse {
-                                    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-                                    50% { opacity: 1; }
-                                    100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0; }
-                                }
-                                .radar-icon-wrapper {
-                                    width: 80px;
-                                    height: 80px;
-                                    border-radius: 50%;
-                                    background: var(--blanco);
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-                                    z-index: 2;
-                                    animation: icon-pulse 2s infinite ease-in-out;
-                                }
-                                .radar-icon-wrapper .bi-binoculars-fill {
-                                    font-size: 2.5rem;
-                                    color: var(--rosa-principal);
-                                }
-                                @keyframes icon-pulse {
-                                    0% { transform: scale(1); }
-                                    50% { transform: scale(1.05); }
-                                    100% { transform: scale(1); }
-                                }
-                                .epic-loading-title {
-                                    font-size: 1.5rem;
-                                    font-weight: 700;
-                                    color: var(--texto-principal);
-                                    margin-bottom: 0.5rem;
-                                }
-                                .epic-loading-phrase {
-                                    font-size: 1rem;
-                                    color: #6c757d;
-                                    height: 24px; /* Prevent layout shift */
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    transition: opacity 0.4s ease-in-out;
-                                    opacity: 1;
-                                }
-                                .epic-loading-phrase.fade-out {
-                                    opacity: 0;
-                                }
-                                .progress-bar-simulation {
-                                    width: 80%;
-                                    max-width: 300px;
-                                    height: 8px;
-                                    background-color: #e9ecef;
-                                    border-radius: 8px;
-                                    margin: 1.5rem auto 0;
-                                    overflow: hidden;
-                                }
-                                .progress-bar-inner {
-                                    width: 100%;
-                                    height: 100%;
-                                    background: linear-gradient(90deg, transparent, var(--rosa-principal), transparent);
-                                    background-size: 200% 100%;
-                                    animation: progress-sim 2s linear infinite;
-                                }
-                                @keyframes progress-sim {
-                                    0% { background-position: 200% 0; }
-                                    100% { background-position: -200% 0; }
-                                }
-                            </style>
-                        `,
+      <div class="epic-loading-container">
+        <div class="radar-scanner">
+          <div class="radar-icon-wrapper">
+            <i class="bi bi-binoculars-fill"></i>
+          </div>
+        </div>
+        <h2 class="epic-loading-title">Iniciando Protocolo de Búsqueda...</h2>
+        <p id="motivational-phrase" class="epic-loading-phrase"></p>
+        <div class="progress-bar-simulation">
+          <div class="progress-bar-inner"></div>
+        </div>
+      </div>
+      <style>/* (mantén los estilos que ya tenías aquí) */</style>
+    `,
                 showConfirmButton: false,
                 allowOutsideClick: false,
-                customClass: {
-                    popup: 'p-0 border-0 shadow-lg rounded-3'
-                },
+                customClass: { popup: 'p-0 border-0 shadow-lg rounded-3' },
                 didOpen: () => {
                     const phraseElement = document.getElementById('motivational-phrase');
                     if (phraseElement) {
-                        let phraseIndex = 0;
-                        phraseElement.textContent = motivationalPhrases[phraseIndex];
-
-                        loadingIntervalId = setInterval(() => {
+                        let idx = 0;
+                        phraseElement.textContent = motivationalPhrases[idx];
+                        phrasesTimer = setInterval(() => {
                             phraseElement.classList.add('fade-out');
-
                             setTimeout(() => {
-                                phraseIndex = (phraseIndex + 1) % motivationalPhrases.length;
-                                phraseElement.textContent = motivationalPhrases[phraseIndex];
+                                idx = (idx + 1) % motivationalPhrases.length;
+                                phraseElement.textContent = motivationalPhrases[idx];
                                 phraseElement.classList.remove('fade-out');
-                            }, 400); // Match transition duration
-
-                        }, 2500); // Change phrase every 2.5 seconds
+                            }, 400);
+                        }, 2500);
                     }
                 },
                 willClose: () => {
-                    clearInterval(loadingIntervalId);
+                    if (phrasesTimer) clearInterval(phrasesTimer);
                 }
             });
 
-            // Ahora solo llama a nuestra única y potente función de búsqueda.
+            // Llamada única
             buscarReferencia(val);
         };
 
-        // CÓDIGO CORREGIDO (BÚSQUEDA)
+        // Listeners de búsqueda (Enter y paste)
         inputBusqueda.addEventListener("keyup", (event) => {
-            // Ahora solo se activa la búsqueda si la tecla presionada es 'Enter'
-            if (event.key === 'Enter') {
-                handleSearch(inputBusqueda.value);
-            }
+            if (event.key === 'Enter') handleSearch(inputBusqueda.value);
         });
 
         inputBusqueda.addEventListener("paste", (event) => {
             const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-            setTimeout(() => {
-                handleSearch(pastedText);
-            }, 10);
+            setTimeout(() => handleSearch(pastedText), 10);
         });
+
 
         window.selectContainer = function (cont) {
             Swal.close();
@@ -4017,6 +4512,7 @@ async function actualizarMetadatosManifiesto(fileName) {
             if (excelDataGlobal[fileName]) {
                 return;
             }
+            await reconstructManifestDataFromFirebase(fileName);
 
             try {
                 const url = await storage.ref(`Manifiestos/${fileInfo.folderName}/${fileName}`).getDownloadURL();
@@ -4079,13 +4575,6 @@ async function actualizarMetadatosManifiesto(fileName) {
             const foundCandidates = [];
             const searchCode = code.toUpperCase();
 
-            // Helper para buscar propiedades sin importar mayúsculas/minúsculas
-            const getPropCaseInsensitive = (obj, key) => {
-                if (!obj) return undefined;
-                const lowerKey = String(key).toLowerCase();
-                const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
-                return objKey ? obj[objKey] : undefined;
-            };
 
             for (const f of allFilesList) {
                 const fileName = f.ref.name;
@@ -4133,65 +4622,82 @@ async function actualizarMetadatosManifiesto(fileName) {
             realOpenFileManifiesto(currentFileName, cont);
         }
 
-        // ✅ CORRECCIÓN PARA LA PANTALLA DE ESCANEO
-        // Reemplaza tu función `realOpenFileManifiesto` con esta versión simplificada y correcta.
-        async function realOpenFileManifiesto(fileName, cont) {
-            Swal.fire({
-                title: 'Abriendo contenedor...',
-                html: `Sincronizando todos los escaneos para <strong>${fileName}</strong>.`,
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
+// Reemplaza por completo tu función existente con esta versión mejorada
+async function realOpenFileManifiesto(fileName, cont) {
+    Swal.fire({
+        title: 'Abriendo contenedor...',
+        html: `Sincronizando todos los escaneos para <strong>${fileName}</strong>.`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
 
-            try {
-                // 1. Llama a la única función motor para obtener los datos COMPLETOS y CORRECTOS del manifiesto.
-                const manifest = await reconstructManifestDataFromFirebase(fileName);
-                const allManifestData = manifest.data;
-
-                // 2. Simplemente filtra los registros para el contenedor que quieres ver.
-                // ¡Aquí ya vienen incluidos los artículos nuevos y excedentes!
-                currentContainerRecords = allManifestData.filter(r =>
-                    String(r.CONTENEDOR || "").trim().toUpperCase() === cont.toUpperCase()
-                );
-
-                // 3. Guarda el estado actual
-                currentContenedor = cont;
-                currentFileName = fileName;
-
-                // 4. Actualiza la interfaz de usuario con los datos correctos
-                const dataObj = excelDataGlobal[fileName];
-                const isClosed = dataObj.closedContainers?.[cont] || false;
-
-                document.getElementById("uploadAndSearchSection").style.display = "none";
-                document.getElementById("containerResultsSection").style.display = "block";
-                document.getElementById("scanEntrySection").style.display = "block";
-
-                document.getElementById("selectedFileToWork").textContent = fileName;
-                document.getElementById("lastUserUpdate").textContent = `Último cambio por: ${dataObj.lastUser || 'N/A'}`;
-                document.getElementById("containerHeader").querySelector('span').textContent = `Detalles de ${cont}`;
-
-                const btnCerrar = document.getElementById("btnCerrarContenedor");
-                btnCerrar.querySelector('span').textContent = isClosed ? 'Reabrir' : 'Cerrar';
-                btnCerrar.querySelector('i.material-icons').textContent = isClosed ? 'lock_open' : 'lock';
-
-                const inputScan = document.getElementById("inputScanCode");
-                inputScan.disabled = isClosed;
-
-                // 5. Dibuja las tarjetas en la pantalla. AHORA SÍ INCLUIRÁ TODO.
-                mostrarDetallesContenedor(currentContainerRecords, isClosed);
-
-                inputScan.focus();
-                Swal.close();
-
-            } catch (error) {
-                console.error("Error abriendo el manifiesto:", error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de Carga',
-                    text: `No se pudo cargar la información para el contenedor. ${error.message}`
-                });
-            }
+    try {
+        const manifest = await reconstructManifestDataFromFirebase(fileName);
+        if (!manifest || !manifest.data) {
+            throw new Error("No se pudieron reconstruir los datos del manifiesto.");
         }
+        const allManifestData = manifest.data;
+
+        currentContainerRecords = allManifestData.filter(r =>
+            String(getPropCaseInsensitive(r, 'CONTENEDOR') || "").trim().toUpperCase() === cont.toUpperCase()
+        );
+
+        currentContenedor = cont;
+        currentFileName = fileName;
+
+        const dataObj = excelDataGlobal[fileName];
+        const isClosed = dataObj.closedContainers?.[cont] || false;
+
+        // ✅ --- INICIO DE LA NUEVA LÓGICA INTELIGENTE ---
+        let lastUserInContainer = "Sin movimientos registrados";
+        let latestDate = null;
+
+        currentContainerRecords.forEach(record => {
+            const scanDateValue = getPropCaseInsensitive(record, 'FECHA_ESCANEO');
+            if (scanDateValue) {
+                const recordDate = new Date(scanDateValue);
+                if (!isNaN(recordDate.getTime())) {
+                    if (!latestDate || recordDate > latestDate) {
+                        latestDate = recordDate;
+                        lastUserInContainer = getPropCaseInsensitive(record, 'LAST_SCANNED_BY') || "Desconocido";
+                    }
+                }
+            }
+        });
+        // --- FIN DE LA NUEVA LÓGICA INTELIGENTE ---
+
+        // Actualización de la Interfaz
+        document.getElementById("uploadAndSearchSection").style.display = "none";
+        document.getElementById("containerResultsSection").style.display = "block";
+        document.getElementById("scanEntrySection").style.display = "block";
+
+        document.getElementById("selectedFileToWork").textContent = fileName;
+        document.getElementById("lastUserUpdate").textContent = dataObj.lastUser || 'N/A';
+        document.getElementById("containerLastUserUpdate").textContent = lastUserInContainer;
+        
+        document.getElementById("containerHeader").querySelector('span').textContent = `Detalles de ${cont}`;
+
+        const btnCerrar = document.getElementById("btnCerrarContenedor");
+        btnCerrar.querySelector('span').textContent = isClosed ? 'Reabrir' : 'Cerrar';
+        btnCerrar.querySelector('i.material-icons').textContent = isClosed ? 'lock_open' : 'lock';
+
+        const inputScan = document.getElementById("inputScanCode");
+        inputScan.disabled = isClosed;
+
+        mostrarDetallesContenedor(currentContainerRecords, isClosed);
+
+        inputScan.focus();
+        Swal.close();
+
+    } catch (error) {
+        console.error("Error abriendo el manifiesto:", error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Carga',
+            text: `No se pudo cargar la información para el contenedor. ${error.message}`
+        });
+    }
+}
 
         function showScanSuccessToast(sku, newCount) {
             Swal.fire({
@@ -4220,6 +4726,16 @@ async function actualizarMetadatosManifiesto(fileName) {
                     popup: 'scan-error-toast'
                 }
             });
+        }
+        // ——— Helpers para limpiar metadatos cuando SCAN llega a 0 ———
+        function clearRowScanMetadata(row) {
+            row.FECHA_ESCANEO = "";
+            row.LAST_SCANNED_BY = "";
+            row.ENTREGADO_A = "";
+        }
+
+        function containerHasAnyScan(records) {
+            return records.some(r => (Number(r.SCANNER) || 0) > 0);
         }
 
         function showAddItemConfirmation(code) {
@@ -4313,12 +4829,7 @@ async function actualizarMetadatosManifiesto(fileName) {
             const codeUpper = code.trim().toUpperCase();
             let targetRow = null;
 
-            const getPropCaseInsensitive = (obj, key) => {
-                if (!obj) return undefined;
-                const lowerKey = String(key).toLowerCase();
-                const objKey = Object.keys(obj).find(k => k.toLowerCase() === lowerKey);
-                return objKey ? obj[objKey] : undefined;
-            };
+
 
             // 1. Se busca una coincidencia en el contenedor actual
             const matchingRows = currentContainerRecords.filter(r => {
@@ -4411,56 +4922,53 @@ async function actualizarMetadatosManifiesto(fileName) {
             inputScanCode.value = "";
             inputScanCode.focus();
 
-            try {
-                await db.collection('manifiestos').doc(fn).collection('scans').add({
-                    sku: targetRow.SKU,
-                    type: 'add',
-                    quantity: 1,
-                    scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    employee: currentEmployeeNumber,
-                    user: currentUser.email,
-                    container: currentContenedor,
-                    description: targetRow.DESCRIPCION,
-                    section: targetRow.SECCION
-                });
+try {
+    await db.collection('manifiestos').doc(fn).collection('scans').add({
+        sku: targetRow.SKU,
+        type: 'add',
+        quantity: 1,
+        scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        employee: currentEmployeeNumber,
+        user: currentUser.email,
+        container: currentContenedor,
+        description: targetRow.DESCRIPCION,
+        section: targetRow.SECCION
+    });
 
-                await db.collection('manifiestos').doc(fn).set({
-                    lastUser: currentUser.email,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, {
-                    merge: true
-                });
-            } catch (error) {
-                console.error("Error guardando escaneo en Firestore:", error);
-                showScanErrorToast('Error de Red', 'El escaneo no se guardó. Reinténtalo.');
-                targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) - 1;
-                if (targetRow.SCANNER === 0 && targetRow.SAP === 0) {
-                    currentContainerRecords = currentContainerRecords.filter(r => r !== targetRow);
-                    dataObj.data = dataObj.data.filter(r => r !== targetRow);
-                }
-                mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
-            }
+    // Llamamos a nuestra nueva función centralizada para registrar el cambio
+    await updateManifestMetadata(fn, currentUser.email);
+
+} catch (error) {
+    console.error("Error guardando escaneo en Firestore:", error);
+    showScanErrorToast('Error de Red', 'El escaneo no se guardó. Reinténtalo.');
+    targetRow.SCANNER = (Number(targetRow.SCANNER) || 0) - 1;
+    if (targetRow.SCANNER === 0 && targetRow.SAP === 0) {
+        currentContainerRecords = currentContainerRecords.filter(r => r !== targetRow);
+        dataObj.data = dataObj.data.filter(r => r !== targetRow);
+    }
+    const isContainerClosed = excelDataGlobal[fn]?.closedContainers?.[currentContenedor] || false;
+    mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+}
         }
-        // --- FIN DE LA FUNCIÓN ACTUALIZADA ---
         function scanInputHandler() {
-            let val = inputScanCode.value.trim().toUpperCase();
-            // --- CAMBIO CLAVE ---
-            // Simplificamos la condición para aceptar cualquier código con 5 o más dígitos.
-            // Esto incluye SKUs, y códigos europeos de 10, 11, 12 o más.
-            if (val && val.length >= 5) {
+            let val = inputScanCode.value.replace(/\s|-/g, '').trim().toUpperCase();
+            if (val.length >= 5) {
                 handleScanCode(val);
                 inputScanCode.value = "";
             }
         }
 
-        inputScanCode.addEventListener("keypress", (e) => {
+        // Evitar listeners duplicados para Enter
+        inputScanCode.removeEventListener?.('keypress', inputScanCode.__enterHandler);
+        inputScanCode.__enterHandler = (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
-                clearTimeout(debounceTimerScan);
                 scanInputHandler();
             }
-        });
+        };
+        inputScanCode.addEventListener("keypress", inputScanCode.__enterHandler);
 
+        // Paste
         inputScanCode.addEventListener("paste", (e) => {
             e.preventDefault();
             const pastedText = (e.clipboardData || window.clipboardData).getData('text');
@@ -4468,12 +4976,6 @@ async function actualizarMetadatosManifiesto(fileName) {
             scanInputHandler();
         });
 
-        inputScanCode.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                scanInputHandler(); // Este ya hace lo que necesitamos
-            }
-        });
 
         function incrementRow(rowObj, code) {
             const now = new Date();
@@ -4510,11 +5012,14 @@ async function actualizarMetadatosManifiesto(fileName) {
                 containerDetailsEl.innerHTML = "";
                 return;
             }
-            // Ordena los registros para mostrar los nuevos (SAP=0) al final
-            registros.sort((a, b) => (a.SAP === 0) - (b.SAP === 0) || String(a.SKU || "").localeCompare(String(b.SKU || "")));
+
+            // Copia ordenada (no mutar el arreglo original)
+            const list = [...registros].sort(
+                (a, b) => (a.SAP === 0) - (b.SAP === 0) || String(a.SKU || "").localeCompare(String(b.SKU || ""))
+            );
 
             const cardsHTML = `<div class="details-list-container">
-        ${registros.map(r => {
+    ${list.map(r => {
                 const sku = String(r.SKU || "").toUpperCase();
                 const europeo = String(r.EUROPEO || "");
                 const SAP = Number(r.SAP) || 0;
@@ -4527,244 +5032,164 @@ async function actualizarMetadatosManifiesto(fileName) {
                 else { statusClass = 'is-excess'; diffText = `SOBRA ${SCANNER - SAP}`; }
 
                 let cardStatusClass = esNuevo ? 'is-new' : `status-${statusClass.substring(3)}`;
-
                 const disabledAttr = isClosed ? 'disabled' : '';
 
                 return `<div class="item-card ${cardStatusClass}" id="row-${sku}">
-                <div class="item-card-main">
-                    <div class="sku-container">
-                        <i class="bi bi-upc-scan sku-icon"></i>
-                        <div>
-                            <span class="sku">${sku}</span>
-                            ${europeo ? `<span class="europeo-code"><i class="bi bi-globe-europe-africa"></i> ${europeo}</span>` : ''}
-                        </div>
-                    </div>
-                    <span class="descripcion">${r.DESCRIPCION || "Sin descripción"}</span>
-                </div>
-                <div class="item-card-stats">
-                    <div class="stat-item"><div class="label">SAP</div><div class="value">${SAP}</div></div>
-                    <div class="stat-item"><div class="label">SCAN</div><div id="scanner-cell-${sku}" class="value">${SCANNER}</div></div>
-                    <div class="stat-item"><div class="label">DIF.</div><div id="diff-cell-${sku}"><span class="diff-badge ${statusClass}">${diffText}</span></div></div>
-                </div>
-                <div class="item-card-actions">
-                    <button class="btn-action btn-danio" data-sku="${sku}" title="Reportar daño" ${disabledAttr}><i class="bi bi-cone-striped"></i></button>
-                    ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-foto" data-url="${r.DANIO_FOTO_URL}" title="Ver foto"><i class="bi bi-image-fill"></i></button>` : ''}
-                    ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-eliminar-foto" data-sku="${sku}" data-url="${r.DANIO_FOTO_URL}" title="Eliminar foto de daño" ${disabledAttr}><i class="bi bi-trash2-fill"></i></button>` : ''}
-                    <button class="btn-action btn-restar" data-sku="${sku}" title="Restar 1 pieza" ${disabledAttr}><i class="bi bi-dash-circle-fill"></i></button>
-                    ${esNuevo ? `<button class="btn-action btn-eliminar" data-sku="${sku}" title="Eliminar artículo añadido" ${disabledAttr}><i class="bi bi-x-octagon-fill"></i></button>` : ''}
-                </div>
-                <div class="item-card-details">
-                    <div class="detail-item" title="Sección"><i class="bi bi-folder2-open" style="color: #6f42c1;"></i><span>${r.SECCION || 'N/A'}</span></div>
-                    <div class="detail-item" title="Manifiesto"><i class="bi bi-file-earmark-text" style="color: #fd7e14;"></i><span>${r.MANIFIESTO || 'N/A'}</span></div>
-                    <div class="detail-item" title="Fecha de Último Escaneo"><i class="bi bi-calendar-check" style="color: #0d6efd;"></i><span>${r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : 'Sin escanear'}</span></div>
-                    <div class="detail-item" title="Último escaneo por"><i class="bi bi-person-check-fill" style="color: #198754;"></i><span>${r.LAST_SCANNED_BY || 'N/A'}</span></div>
-                    <div class="detail-item" title="Entregado a empleado"><i class="bi bi-person-vcard" style="color: #E6007E;"></i><span>${r.ENTREGADO_A || 'N/A'}</span></div>
-                    <div class="detail-item" title="Piezas con condición"><i class="bi bi-tools" style="color: #ffc107;"></i><span>${r.DANIO_CANTIDAD || '0'}</span></div>
-                </div>
-            </div>`;
+        <div class="item-card-main">
+          <div class="sku-container">
+            <i class="bi bi-upc-scan sku-icon"></i>
+            <div>
+              <span class="sku">${sku}</span>
+              ${europeo ? `<span class="europeo-code"><i class="bi bi-globe-europe-africa"></i> ${europeo}</span>` : ''}
+            </div>
+          </div>
+          <span class="descripcion">${r.DESCRIPCION || "Sin descripción"}</span>
+        </div>
+        <div class="item-card-stats">
+          <div class="stat-item"><div class="label">SAP</div><div class="value">${SAP}</div></div>
+          <div class="stat-item"><div class="label">SCAN</div><div id="scanner-cell-${sku}" class="value">${SCANNER}</div></div>
+          <div class="stat-item"><div class="label">DIF.</div><div id="diff-cell-${sku}"><span class="diff-badge ${statusClass}">${diffText}</span></div></div>
+        </div>
+        <div class="item-card-actions">
+          <button class="btn-action btn-danio" data-sku="${sku}" title="Reportar daño" ${disabledAttr}><i class="bi bi-cone-striped"></i></button>
+          ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-foto" data-url="${r.DANIO_FOTO_URL}" title="Ver foto"><i class="bi bi-image-fill"></i></button>` : ''}
+          ${r.DANIO_FOTO_URL ? `<button class="btn-action btn-eliminar-foto" data-sku="${sku}" data-url="${r.DANIO_FOTO_URL}" title="Eliminar foto de daño" ${disabledAttr}><i class="bi bi-trash2-fill"></i></button>` : ''}
+          <button class="btn-action btn-restar" data-sku="${sku}" title="Restar 1 pieza" ${disabledAttr}><i class="bi bi-dash-circle-fill"></i></button>
+          ${esNuevo ? `<button class="btn-action btn-eliminar" data-sku="${sku}" title="Eliminar artículo añadido" ${disabledAttr}><i class="bi bi-x-octagon-fill"></i></button>` : ''}
+        </div>
+        <div class="item-card-details">
+          <div class="detail-item" title="Sección"><i class="bi bi-folder2-open" style="color: #6f42c1;"></i><span>${r.SECCION || 'N/A'}</span></div>
+          <div class="detail-item" title="Manifiesto"><i class="bi bi-file-earmark-text" style="color: #fd7e14;"></i><span>${r.MANIFIESTO || 'N/A'}</span></div>
+<div class="detail-item" title="Fecha de Último Escaneo"><i class="bi bi-calendar-check" style="color: #0d6efd;"></i><span>${SCANNER > 0 && r.FECHA_ESCANEO ? formatFecha(r.FECHA_ESCANEO) : 'Sin escanear'}</span></div>
+<div class="detail-item" title="Último escaneo por"><i class="bi bi-person-check-fill" style="color: #198754;"></i><span>${SCANNER > 0 ? (r.LAST_SCANNED_BY || 'N/A') : 'N/A'}</span></div>
+<div class="detail-item" title="Entregado a empleado"><i class="bi bi-person-vcard" style="color: #E6007E;"></i><span>${SCANNER > 0 ? (r.ENTREGADO_A || 'N/A') : 'N/A'}</span></div>
+
+          <div class="detail-item" title="Piezas con condición"><i class="bi bi-tools" style="color: #ffc107;"></i><span>${r.DANIO_CANTIDAD || '0'}</span></div>
+        </div>
+      </div>`;
             }).join('')}
-    </div>
-    <style>
-        .sku-container {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-        .sku-icon {
-            font-size: 1.5rem;
-            color: var(--rosa-principal);
-            opacity: 0.7;
-            margin-top: 0.2rem;
-        }
-        .item-card-main .sku {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--texto-principal);
-            letter-spacing: 0.5px;
-            display: block;
-            line-height: 1.2;
-        }
-        .europeo-code {
-            font-size: 0.9rem;
-            color: #6c757d;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .item-card-main .descripcion {
-            font-size: 0.9rem;
-            color: #6c757d;
-            font-style: italic;
-            padding-left: 2rem; /* Align with SKU text */
-        }
-        .details-list-container .btn-action i {
-            font-size: 1.2rem;
-        }
-        .details-list-container .btn-action.btn-eliminar-foto { background-color: #6c757d; }
-        .details-list-container .btn-action.btn-restar { background-color: #ff7f50; }
-        .details-list-container .btn-action.btn-eliminar { background-color: #dc3545; }
-        .item-card-details .bi { font-size: 1.1rem; }
-    </style>
-    `;
+  </div>
+  <style>
+    /* (mantén tus estilos; si quieres, copia los que ya tenías) */
+  </style>`;
 
             containerDetailsEl.innerHTML = cardsHTML;
 
-            // Limpia el manejador de eventos anterior para evitar duplicados
+            // Evitar duplicar listeners
             if (containerDetailsEl.eventHandler) {
                 containerDetailsEl.removeEventListener('click', containerDetailsEl.eventHandler);
             }
 
-            // Define y adjunta el nuevo manejador de eventos
-            const eventHandler = async (event) => {
-                const target = event.target.closest('button');
-                if (!target) return;
+            // === REEMPLAZA DESDE AQUÍ ===
+const eventHandler = async (event) => {
+    const target = event.target.closest('button');
+    if (!target) return;
 
-                const sku = target.dataset.sku;
-                const fn = currentFileName;
+    const sku = target.dataset.sku || '';
+    const fn = currentFileName;
 
-                if (target.classList.contains('btn-restar')) {
-                    const rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === sku);
-                    if (!rowObj || (rowObj.SCANNER || 0) <= 0) return;
+    const clearRowScanMeta = (row) => {
+        row.FECHA_ESCANEO = "";
+        row.LAST_SCANNED_BY = "";
+        row.ENTREGADO_A = "";
+    };
 
-                    rowObj.SCANNER--;
-                    mostrarDetallesContenedor(currentContainerRecords, isClosed);
+    const isContainerClosed = !!(excelDataGlobal[fn]?.closedContainers?.[currentContenedor]);
 
-                    try {
-                        await db.collection('manifiestos').doc(fn).collection('scans').add({
-                            sku: rowObj.SKU,
-                            type: 'subtract',
-                            scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                            employee: currentEmployeeNumber,
-                            user: currentUser.email,
-                            container: currentContenedor
-                        });
-                    } catch (error) {
-                        showScanErrorToast('Error de Red', 'No se pudo guardar la resta.');
-                        rowObj.SCANNER++; // Revertir el cambio si falla
-                        mostrarDetallesContenedor(currentContainerRecords, isClosed);
-                    }
-                } else if (target.classList.contains('btn-eliminar')) {
-                    const { isConfirmed } = await Swal.fire({
-                        title: '¿Estás seguro?',
-                        html: `Se eliminará permanentemente el artículo <strong>${sku}</strong> de este contenedor.`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonText: 'Cancelar',
-                        confirmButtonText: 'Sí, ¡Eliminar!'
-                    });
-
-                    if (isConfirmed) {
-                        // --- INICIO DE LA CORRECCIÓN ---
-                        const rowToRemove = currentContainerRecords.find(r =>
-                            String(r.SKU || "").toUpperCase() === sku && (Number(r.SAP) || 0) === 0
-                        );
-
-                        if (!rowToRemove) return;
-
-                        const originalGlobalData = [...excelDataGlobal[fn].data];
-                        const originalContainerRecords = [...currentContainerRecords];
-
-                        currentContainerRecords = currentContainerRecords.filter(r => r !== rowToRemove);
-                        excelDataGlobal[fn].data = excelDataGlobal[fn].data.filter(r => r !== rowToRemove);
-
-                        mostrarDetallesContenedor(currentContainerRecords, isClosed);
-
-                        try {
-                            await db.collection('manifiestos').doc(fn).collection('scans').add({
-                                sku: sku,
-                                type: 'delete',
-                                scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                employee: currentEmployeeNumber,
-                                user: currentUser.email,
-                                container: currentContenedor
-                            });
-                            Swal.fire('¡Eliminado!', `El artículo ${sku} ha sido marcado para eliminación.`, 'success');
-                        } catch (error) {
-                            console.error("Error al eliminar en Firestore:", error);
-                            showScanErrorToast('Error de Red', 'No se pudo eliminar. Se restauró el artículo.');
-
-                            excelDataGlobal[fn].data = originalGlobalData;
-                            currentContainerRecords = originalContainerRecords;
-
-                            mostrarDetallesContenedor(currentContainerRecords, isClosed);
-                        }
-                        // --- FIN DE LA CORRECCIÓN ---
-                    }
-                } else if (target.classList.contains('btn-danio')) {
-                    currentDanioSKU = sku;
-                    danioCantidadInput.value = "1";
-                    danioFotoInput.value = "";
-                    modalDanios.show();
-                } else if (target.classList.contains('btn-foto')) {
-                    window.open(target.dataset.url, "_blank");
-                } else if (target.classList.contains('btn-eliminar-foto')) {
-                    const photoUrl = target.dataset.url;
-                    const { isConfirmed } = await Swal.fire({
-                        title: '¿Eliminar Foto?',
-                        text: "Esta acción eliminará la foto de la nube permanentemente. No se puede deshacer.",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#dc3545',
-                        confirmButtonText: 'Sí, eliminarla',
-                        cancelButtonText: 'Cancelar'
-                    });
-
-                    if (isConfirmed) {
-                        Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-                        try {
-                            const photoRef = storage.refFromURL(photoUrl);
-                            await photoRef.delete();
-
-                            const rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === sku);
-                            if (rowObj) {
-                                rowObj.DANIO_FOTO_URL = "";
-                                await db.collection('manifiestos').doc(fn).collection('scans').add({
-                                    sku: sku,
-                                    type: 'delete_photo',
-                                    scannedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                                    user: currentUser.email,
-                                    container: currentContenedor
-                                });
-                            }
-
-                            mostrarDetallesContenedor(currentContainerRecords, isClosed);
-                            Swal.fire('¡Eliminada!', 'La foto ha sido eliminada con éxito.', 'success');
-                        } catch (error) {
-                            console.error("Error al eliminar la foto:", error);
-                            Swal.fire('Error', 'No se pudo eliminar la foto. Es posible que ya no exista o haya un problema de red.', 'error');
-                        }
-                    }
+    if (target.classList.contains('btn-restar')) {
+        const rowObj = currentContainerRecords.find(r => String(getPropCaseInsensitive(r, 'SKU') || "").toUpperCase() === sku);
+        if (!rowObj || (Number(getPropCaseInsensitive(r, 'SCANNER')) || 0) <= 0) return;
+        const prev = { SCANNER: Number(rowObj.SCANNER) || 0, FECHA_ESCANEO: rowObj.FECHA_ESCANEO, LAST_SCANNED_BY: rowObj.LAST_SCANNED_BY, ENTREGADO_A: rowObj.ENTREGADO_A };
+        rowObj.SCANNER = prev.SCANNER - 1;
+        if (rowObj.SCANNER <= 0) {
+            rowObj.SCANNER = 0;
+            clearRowScanMeta(rowObj);
+        }
+        mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+        try {
+            await db.collection('manifiestos').doc(fn).collection('scans').add({ sku: rowObj.SKU, type: 'subtract', scannedAt: firebase.firestore.FieldValue.serverTimestamp(), employee: currentEmployeeNumber, user: currentUser.email, container: currentContenedor });
+            await updateManifestMetadata(fn, currentUser.email);
+        } catch (error) {
+            showScanErrorToast('Error de Red', 'No se pudo guardar la resta.');
+            rowObj.SCANNER = prev.SCANNER;
+            rowObj.FECHA_ESCANEO = prev.FECHA_ESCANEO;
+            rowObj.LAST_SCANNED_BY = prev.LAST_SCANNED_BY;
+            rowObj.ENTREGADO_A = prev.ENTREGADO_A;
+            mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+        }
+    } else if (target.classList.contains('btn-eliminar')) {
+        const { isConfirmed } = await Swal.fire({ title: '¿Estás seguro?', html: `Se eliminará permanentemente el artículo <strong>${sku}</strong> de este contenedor.`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonText: 'Cancelar', confirmButtonText: 'Sí, ¡Eliminar!' });
+        if (isConfirmed) {
+            const rowToRemove = currentContainerRecords.find(r => String(getPropCaseInsensitive(r, 'SKU') || "").toUpperCase() === sku && (Number(getPropCaseInsensitive(r, 'SAP')) || 0) === 0);
+            if (!rowToRemove) return;
+            const originalGlobalData = [...excelDataGlobal[fn].data];
+            const originalContainerRecords = [...currentContainerRecords];
+            currentContainerRecords = currentContainerRecords.filter(r => r !== rowToRemove);
+            excelDataGlobal[fn].data = excelDataGlobal[fn].data.filter(r => r !== rowToRemove);
+            mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+            try {
+                await db.collection('manifiestos').doc(fn).collection('scans').add({ sku: sku, type: 'delete', scannedAt: firebase.firestore.FieldValue.serverTimestamp(), employee: currentEmployeeNumber, user: currentUser.email, container: currentContenedor });
+                await updateManifestMetadata(fn, currentUser.email);
+                Swal.fire('¡Eliminado!', `El artículo ${sku} ha sido marcado para eliminación.`, 'success');
+            } catch (error) {
+                console.error("Error al eliminar en Firestore:", error);
+                showScanErrorToast('Error de Red', 'No se pudo eliminar. Se restauró el artículo.');
+                excelDataGlobal[fn].data = originalGlobalData;
+                currentContainerRecords = originalContainerRecords;
+                mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+            }
+        }
+    } else if (target.classList.contains('btn-danio')) {
+        currentDanioSKU = sku;
+        danioCantidadInput.value = "1";
+        danioFotoInput.value = "";
+        modalDanios.show();
+    } else if (target.classList.contains('btn-foto')) {
+        window.open(target.dataset.url, "_blank");
+    } else if (target.classList.contains('btn-eliminar-foto')) {
+        const photoUrl = target.dataset.url;
+        const { isConfirmed } = await Swal.fire({ title: '¿Eliminar Foto?', text: "Esta acción eliminará la foto de la nube permanentemente.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc3545', confirmButtonText: 'Sí, eliminarla', cancelButtonText: 'Cancelar' });
+        if (isConfirmed) {
+            Swal.fire({ title: 'Eliminando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                const photoRef = storage.refFromURL(photoUrl);
+                await photoRef.delete();
+                const rowObj = currentContainerRecords.find(r => String(getPropCaseInsensitive(r, 'SKU') || "").toUpperCase() === sku);
+                if (rowObj) {
+                    rowObj.DANIO_FOTO_URL = "";
+                    await db.collection('manifiestos').doc(fn).collection('scans').add({ sku: sku, type: 'delete_photo', scannedAt: firebase.firestore.FieldValue.serverTimestamp(), user: currentUser.email, container: currentContenedor });
+                    await updateManifestMetadata(fn, currentUser.email);
                 }
-            };
-
+                mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
+                Swal.fire('¡Eliminada!', 'La foto ha sido eliminada con éxito.', 'success');
+            } catch (error) {
+                console.error("Error al eliminar la foto:", error);
+                Swal.fire('Error', 'No se pudo eliminar la foto.', 'error');
+            }
+        }
+    }
+};
+            // Evitar listeners duplicados
+            if (containerDetailsEl.eventHandler) {
+                containerDetailsEl.removeEventListener('click', containerDetailsEl.eventHandler);
+            }
             containerDetailsEl.eventHandler = eventHandler;
             containerDetailsEl.addEventListener('click', containerDetailsEl.eventHandler);
         }
+        // === HASTA AQUÍ ===
         /***********************************************************
          * MODAL DE CONDICIONES DE LA MCIA
          ***********************************************************/
         btnGuardarDanio.addEventListener("click", async () => {
             let cant = parseInt(danioCantidadInput.value) || 0;
             if (!cant || cant < 1) {
-                return Swal.fire({
-                    icon: "info",
-                    title: "Cantidad inválida",
-                    html: `<i class="material-icons" style="color:#2196F3;">info</i> Ingrese una cantidad válida.`
-                });
+                return Swal.fire({ icon: "info", title: "Cantidad inválida", html: `<i class="material-icons" style="color:#2196F3;">info</i> Ingrese una cantidad válida.` });
             }
             if (!currentDanioSKU) {
-                return Swal.fire({
-                    icon: "info",
-                    title: "Error interno",
-                    html: `<i class="material-icons" style="color:#2196F3;">info</i> No se puede guardar condiciones sin SKU.`
-                });
+                return Swal.fire({ icon: "info", title: "Error interno", html: `<i class="material-icons" style="color:#2196F3;">info</i> No se puede guardar condiciones sin SKU.` });
             }
             let fn = currentFileName;
             let rowObj = currentContainerRecords.find(r => String(r.SKU || "").toUpperCase() === currentDanioSKU);
-
             if (!rowObj) {
                 return Swal.fire({ icon: "info", title: "No encontrado", text: "No se encontró el SKU en el contenedor." });
             }
@@ -4796,12 +5221,10 @@ async function actualizarMetadatosManifiesto(fileName) {
                     container: currentContenedor
                 });
 
-                // --- INICIO DE LA CORRECCIÓN ---
-                // Obtiene el estado actual del contenedor desde el objeto global.
+                await updateManifestMetadata(fn, currentUser.email); // ✅ CORRECCIÓN
+
                 const isContainerClosed = excelDataGlobal[fn]?.closedContainers?.[currentContenedor] || false;
-                // Pasa el estado correcto a la función.
                 mostrarDetallesContenedor(currentContainerRecords, isContainerClosed);
-                // --- FIN DE LA CORRECCIÓN ---
 
                 Swal.fire({ icon: "success", title: "Condiciones registradas", text: "Se guardó la información." });
                 modalDanios.hide();
@@ -4811,8 +5234,6 @@ async function actualizarMetadatosManifiesto(fileName) {
                 Swal.fire({ icon: "error", title: "Error", text: "No se pudo guardar la información de condiciones." });
             }
         });
-
-
 
 
         function getContainerAnalysis(records, closedContainers) {
@@ -5018,34 +5439,33 @@ async function actualizarMetadatosManifiesto(fileName) {
             return "INCOMPLETO";
         }
 
+        // Úsala cuando solo quieras dd/mm/aaaa de un Date válido
+        function formatFechaCorta(d) {
+            if (!(d instanceof Date) || isNaN(d)) return '';
+            const dd = String(d.getDate()).padStart(2, "0");
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const yy = d.getFullYear();
+            return `${dd}/${mm}/${yy}`;
+        }
+
+        // Única robusta para Date | string | número (Excel)
         function formatFecha(fecha) {
             if (fecha instanceof Date && !isNaN(fecha.getTime())) {
-                const dia = fecha.getDate().toString().padStart(2, "0");
-                const mes = (fecha.getMonth() + 1).toString().padStart(2, "0");
-                const anio = fecha.getFullYear();
-                return `${dia}/${mes}/${anio}`;
+                return formatFechaCorta(fecha);
             }
             if (typeof fecha === "string") {
-                let d = new Date(fecha);
-                if (!isNaN(d.getTime())) {
-                    let c = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-                    let dd = c.getDate().toString().padStart(2, "0");
-                    let mm = (c.getMonth() + 1).toString().padStart(2, "0");
-                    let yy = c.getFullYear();
-                    return `${dd}/${mm}/${yy}`;
-                }
+                const d = new Date(fecha);
+                if (!isNaN(d.getTime())) return formatFechaCorta(d);
                 return fecha;
             }
             if (typeof fecha === "number") {
-                let d = new Date(Math.round((fecha - 25569) * 86400 * 1000));
-                let c = new Date(d.getTime() + d.getTimezoneOffset() * 60000);
-                let dd = c.getDate().toString().padStart(2, "0");
-                let mm = (c.getMonth() + 1).toString().padStart(2, "0");
-                let yy = c.getFullYear();
-                return `${dd}/${mm}/${yy}`;
+                // Excel serial -> JS Date (UTC)
+                const d = new Date(Math.round((fecha - 25569) * 86400 * 1000));
+                if (!isNaN(d.getTime())) return formatFechaCorta(d);
             }
             return "";
         }
+
 
         async function reuploadFileWithScannerChanges(fileName) {
             let dataObj = excelDataGlobal[fileName];

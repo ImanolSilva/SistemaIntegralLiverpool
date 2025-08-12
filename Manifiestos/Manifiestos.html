@@ -172,14 +172,17 @@
             <div id="containerResultsSection" style="display:none;" class="mb-4">
                 <div class="card shadow-lg" style="border: none; border-radius: 16px; overflow: hidden;">
                     <div class="results-header">
-                        <div class="header-info">
-                            <h2 class="header-title" id="containerHeader">
-                                <i class="material-icons">inventory_2</i>
-                                <span>Detalles del Contenedor</span>
-                            </h2>
-                            <p id="selectedFileToWork" class="header-subtitle"></p>
-                            <p id="lastUserUpdate" class="header-meta"></p>
-                        </div>
+<div class="header-info">
+    <h2 class="header-title" id="containerHeader">
+        <i class="material-icons">inventory_2</i>
+        <span>Detalles del Contenedor</span>
+    </h2>
+    <p class="header-subtitle">MANIFIESTO: <strong id="selectedFileToWork"></strong></p>
+    
+    <p class="header-meta">Último cambio (Manifiesto): <strong id="lastUserUpdate"></strong></p>
+    
+    <p class="header-meta">Último cambio (Contenedor): <strong id="containerLastUserUpdate"></strong></p>
+</div>
                         <div class="header-actions">
                             <button id="btnCambiarContenedor" class="btn-custom btn-cambiar"
                                 title="Cambiar de contenedor" aria-label="Cambiar de contenedor">
