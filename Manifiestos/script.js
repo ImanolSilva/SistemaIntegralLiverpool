@@ -2445,155 +2445,207 @@
          * ✅ SOLUCIÓN FINAL (V.5.3) - ASUNTO CON FECHA DE SUBIDA
          * Integra el mensaje específico del usuario, un resumen claro y añade la fecha al asunto del correo.
          */
+        // Versión optimizada: genera Excel, PDF, captura imagen y abre el correo (sin duplicados)
+        // - Elimina doble llamada a generatePdfReport
+        // - Abre el cliente de correo de forma más confiable
+        // - Copia cuerpo completo al portapapeles si excede límites del mailto
         window.generarReportesYCorreo = async (folder, name) => {
+            const startClickTime = Date.now();
             Swal.fire({
-                title: 'Generando Reporte de Alta Calidad...',
-                html: 'Este proceso puede tardar un momento. Por favor, espera.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading(),
+            title: 'Generando reportes...',
+            html: 'Procesando manifiesto, por favor espera.',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
             });
 
             try {
-                // --- Lógica inicial para obtener datos y generar archivos ---
-                // reconstruimos el manifiesto para obtener los datos actualizados y el objeto completo
-                const manifest = await reconstructManifestDataFromFirebase(name);
-                const stats = calculateProStatistics(manifest.data); // calculateProStatistics ya espera un array de datos
+            // 1. Reconstruir datos más recientes
+            const manifest = await reconstructManifestDataFromFirebase(name);
+            if (!manifest || !manifest.data) throw new Error('No se pudo reconstruir el manifiesto.');
+            const stats = calculateProStatistics(manifest.data);
 
-                // Obtenemos y formateamos la fecha de carga del manifiesto
-                const uploadDate = manifest.createdAt ? new Date(manifest.createdAt.toDate()) : new Date();
-                const formattedDate = uploadDate.toLocaleDateString('es-MX', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                });
+            // 2. Excel
+            await window.downloadFile(folder, name);
 
-                // Generamos el archivo Excel
-                await window.downloadFile(folder, name);
+            // 3. PDF (una sola vez)
+            await window.generatePdfReport(manifest, folder, name);
 
-                // ✅ LÍNEA CORREGIDA: Pasa el objeto 'manifest' completo a generatePdfReport
-                await window.generatePdfReport(manifest, folder, name); // Aquí pasamos 'manifest' directamente
+            // 4. Abrir dashboard (para captura)
+            await window.verDashboardArchivo(folder, name);
+            // Esperar a que el DOM del dashboard se pinte
+            await new Promise(r => setTimeout(r, 1200));
 
-                Swal.close();
-                await window.verDashboardArchivo(folder, name); // Esto vuelve a abrir el modal del dashboard
+            const dashboardModal = document.querySelector('.swal2-popup.dashboard-modal');
+            const contentToCapture = dashboardModal?.querySelector('.analisis-dashboard-pro');
+            let imageURL = null;
 
-                // Damos un pequeño respiro para que el DOM se actualice antes de la captura
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                const dashboardModal = document.querySelector('.swal2-popup.dashboard-modal');
-                if (!dashboardModal) throw new Error("No se pudo encontrar el modal del dashboard para la captura.");
-
-                const contentToCapture = dashboardModal.querySelector('.analisis-dashboard-pro');
-                if (!contentToCapture) throw new Error("No se pudo encontrar el contenido del dashboard para la captura.");
-
-                // --- Lógica de captura de imagen (sin cambios importantes) ---
+            if (contentToCapture) {
+                // Forzar estilos simples para captura
                 const statCards = contentToCapture.querySelectorAll('.stat-card');
-                const originalCardStyles = new Map();
-                const solidColors = {
-                    total: '#E6007E',
-                    expected: '#6f42c1',
-                    scanned: '#198754',
-                    missing: '#dc3545',
-                    excess: '#ffc107'
-                };
-                statCards.forEach(card => {
-                    originalCardStyles.set(card, {
-                        card: card.style.cssText,
-                        value: card.querySelector('.stat-value')?.style.cssText || '',
-                        title: card.querySelector('.stat-title')?.style.cssText || ''
-                    });
-                    const classList = Array.from(card.classList);
-                    const colorClass = ['total', 'expected', 'scanned', 'missing', 'excess'].find(c => classList.includes(c));
-                    const solidColor = solidColors[colorClass] || '#dddddd';
-                    card.style.cssText += `background:#fdfdfd!important;box-shadow:none!important;animation:none!important;transition:none!important;`;
-                    const valueEl = card.querySelector('.stat-value');
-                    if (valueEl) valueEl.style.cssText += `color:#212529!important;`;
-                    const titleEl = card.querySelector('.stat-title');
-                    if (titleEl) titleEl.style.cssText += `color:${solidColor}!important;`;
+                const original = [];
+                statCards.forEach(c => {
+                original.push({
+                    card: c,
+                    css: c.style.cssText,
+                    val: c.querySelector('.stat-value')?.style.cssText || '',
+                    ttl: c.querySelector('.stat-title')?.style.cssText || ''
+                });
+                c.style.animation = 'none';
+                c.style.transition = 'none';
+                c.style.boxShadow = 'none';
+                c.style.background = '#ffffff';
                 });
                 const canvas = await html2canvas(contentToCapture, {
-                    scale: 3,
-                    backgroundColor: '#FFFFFF',
-                    useCORS: true,
-                    logging: false,
-                    scrollX: 0,
-                    scrollY: -window.scrollY
+                scale: 2,
+                backgroundColor: '#FFFFFF',
+                useCORS: true,
+                logging: false
                 });
-                statCards.forEach(card => {
-                    const original = originalCardStyles.get(card);
-                    if (original) {
-                        card.style.cssText = original.card;
-                        const valueEl = card.querySelector('.stat-value');
-                        if (valueEl) valueEl.style.cssText = original.value;
-                        const titleEl = card.querySelector('.stat-title');
-                        if (titleEl) titleEl.style.cssText = original.title;
-                    }
+                original.forEach(o => {
+                o.card.style.cssText = o.css;
+                const v = o.card.querySelector('.stat-value'); if (v) v.style.cssText = o.val;
+                const t = o.card.querySelector('.stat-title'); if (t) t.style.cssText = o.ttl;
                 });
-                const imageURL = canvas.toDataURL('image/jpeg', 0.95);
-                const link = document.createElement('a');
-                link.href = imageURL;
-                link.download = `Dashboard_${name.replace(/\.xlsx$/i, '')}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                imageURL = canvas.toDataURL('image/jpeg', 0.92);
+                // Descargar imagen
+                const aImg = document.createElement('a');
+                aImg.href = imageURL;
+                aImg.download = `Dashboard_${name.replace(/\.xlsx$/i, '')}.jpg`;
+                document.body.appendChild(aImg);
+                aImg.click();
+                aImg.remove();
+            }
 
-                Swal.close(); // Cierra el modal del dashboard después de la captura
+            // Cerrar dashboard antes de abrir correo
+            Swal.close();
 
-                // --- INICIO DE SECCIÓN DE CORREO ACTUALIZADA ---
-                const nombreBaseArchivo = name.replace(/\.xlsx$/i, '');
+            // 5. Preparar correo
+            const baseName = name.replace(/\.xlsx$/i, '');
+            const ts = manifest.createdAt;
+            let upDate;
+            try {
+                if (ts && typeof ts.toDate === 'function') upDate = ts.toDate();
+                else if (ts instanceof Date) upDate = ts;
+                else upDate = new Date();
+            } catch { upDate = new Date(); }
 
-                const correos = [
-                    'bplopezr@liverpool.com.mx', 'eirojas@liverpool.com.mx', 'babanuelosr@liverpool.com.mx',
-                    'amoralesp@liverpool.com.mx', 'agavila@liverpool.com.mx', 'jjmendozaa@liverpool.com.mx',
-                    'jfdominguezb@liverpool.com.mx', 'yymatasm@liverpool.com.mx', 'mireyesb@liverpool.com.mx',
-                    'lcastillor@liverpool.com.mx', 'oamuedanov@liverpool.com.mx', 'ecoronadoh@liverpool.com.mx',
-                    'edcastilloj@liverpool.com.mx', 'jgonzalezs14@liverpool.com.mx', 'ygtiripitig@liverpool.com.mx'
-                ].join(',');
+            const formattedDate = upDate.toLocaleDateString('es-MX', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
 
-                // Asunto actualizado para incluir la fecha de subida
-                const asunto = `Análisis de Manifiesto: ${nombreBaseArchivo} - ${formattedDate}`;
+            const correos = [
+                'bplopezr@liverpool.com.mx',
+                'eirojas@liverpool.com.mx',
+                'babanuelosr@liverpool.com.mx',
+                'amoralesp@liverpool.com.mx',
+                'agavila@liverpool.com.mx',
+                'jjmendozaa@liverpool.com.mx',
+                'jfdominguezb@liverpool.com.mx',
+                'yymatasm@liverpool.com.mx',
+                'mireyesb@liverpool.com.mx',
+                'lcastillor@liverpool.com.mx',
+                'oamuedanov@liverpool.com.mx',
+                'ecoronadoh@liverpool.com.mx',
+                'jgonzalezs14@liverpool.com.mx',
+                'edcastilloj@liverpool.com.mx',
+                'ygtiripitig@liverpool.com.mx',
+                'pgrochag@liverpool.com.mx',
+                'rlizcanoc@liverpool.com.mx',
+                'mavallesa@liverpool.com.mx',
+                'aaprietor@liverpool.com.mx',
+                'xespindolap@liverpool.com.mx',
+                'aklopezl@liverpool.com.mx',
+                'aevazquezn@liverpool.com.mx',
+                'ajramosh@liverpool.com.mx'
+            ].join(',');
 
-                // Cuerpo del correo
-                const cuerpo = `
-Buenas tardes, jefes:
+            // Mensaje estratégico
+            let mensajeAvance;
+            if (stats.avance >= 100) {
+                mensajeAvance = `100% alcanzado${stats.excedentes ? ' (con excedentes a validar)' : ''}. Proceder a validación final.`;
+            } else if (stats.avance >= 95) mensajeAvance = `≥95%: remate final, enfocar ${stats.faltantes} faltantes.`;
+            else if (stats.avance >= 85) mensajeAvance = `≥85%: consolidar avance, priorizar faltantes críticos.`;
+            else if (stats.avance >= 70) mensajeAvance = `≥70%: buen ritmo, redistribuir a zonas rezagadas.`;
+            else if (stats.avance >= 50) mensajeAvance = `≥50%: impulso necesario; vigilar disciplina de captura.`;
+            else mensajeAvance = `<50%: reforzar supervisión y foco en alto volumen.`;
 
-Les comparto el manifiesto ${nombreBaseArchivo} para su análisis y acción correspondiente.
-En el archivo PDF adjunto podrán encontrar el detalle de las secciones y contenedores con faltantes, todo debidamente señalado.
-Asimismo, en el archivo Excel se incluyen todos los datos para su revisión.
+            const saludo = (() => {
+                const h = new Date().getHours();
+                if (h < 12) return 'Buenos días';
+                if (h < 19) return 'Buenas tardes';
+                return 'Buenas noches';
+            })();
 
-Quedo atento a cualquier comentario o indicación.
-Saludos.
+            const cuerpoCompleto =
+    `${saludo} equipo:
 
---------------------------------------------------
-RESUMEN DE CIFRAS
---------------------------------------------------
-- Avance del Proceso: ${stats.avance}%
-- Artículos Esperados: ${stats.totalSAP}
-- Artículos Escaneados: ${stats.totalSCAN}
-- Faltantes: ${stats.faltantes}
-- Excedentes: ${stats.excedentes}
---------------------------------------------------
-`;
+    Análisis actualizado del manifiesto: ${baseName} (${formattedDate})
+    ${mensajeAvance}
 
-                const mailtoLink = `mailto:${correos}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+    Resumen:
+    - Avance: ${stats.avance}%
+    - SAP: ${stats.totalSAP.toLocaleString('es-MX')}
+    - Escaneado: ${stats.totalSCAN.toLocaleString('es-MX')}
+    - Diferencia: ${(stats.totalSCAN - stats.totalSAP).toLocaleString('es-MX')}
+    - Faltantes: ${stats.faltantes.toLocaleString('es-MX')}
+    - Excedentes: ${stats.excedentes.toLocaleString('es-MX')}
 
-                setTimeout(() => {
-                    window.location.href = mailtoLink;
-                }, 500);
+    Acciones:
+    ${stats.faltantes ? `• Recuperar ${stats.faltantes.toLocaleString('es-MX')} faltantes.\n` : '• Sin faltantes.\n'}${stats.excedentes ? `• Auditar ${stats.excedentes.toLocaleString('es-MX')} excedentes.\n` : '• Sin excedentes.\n'}• Validar contenedores críticos.
+    • Asegurar evidencia en discrepancias.
 
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Proceso completado!',
-                    html: `Se han descargado los 3 reportes.<br><b>Por favor, adjúntalos manualmente al correo que se acaba de abrir.</b>`,
-                    confirmButtonText: '¡Excelente!'
-                });
+    Adjuntar manualmente:
+    1. Excel detalle
+    2. PDF Ejecutivo
+    3. Captura dashboard
 
-                // 2. ✅ LÍNEA CORREGIDA: Pasa el objeto 'manifest' completo a generatePdfReport
-                await window.generatePdfReport(manifest, folder, name); // ¡Aquí le pasamos 'manifest' directamente!
+    Atento a indicaciones.
 
+    Sistema Integral de Gestión Liverpool`;
 
-            } catch (error) {
-                console.error("Error en el proceso de reporte y correo:", error);
-                Swal.fire('¡Error!', 'Ocurrió un problema durante el proceso. Revisa la consola para más detalles.', 'error');
+            const subject = `Manifiesto ${baseName} - ${formattedDate} (${stats.avance}% Avance)`;
+
+            // mailto (acortado si es largo)
+            let bodyParaMailto = cuerpoCompleto;
+            const MAILTO_LIMIT = 1800;
+            let cuerpoCopiado = false;
+            if (bodyParaMailto.length > MAILTO_LIMIT) {
+                bodyParaMailto = cuerpoCompleto.slice(0, MAILTO_LIMIT - 120) + '\n[...] (Texto completo copiado al portapapeles)';
+                try {
+                await navigator.clipboard.writeText(cuerpoCompleto);
+                cuerpoCopiado = true;
+                } catch { cuerpoCopiado = false; }
+            }
+
+            const mailto = `mailto:${encodeURIComponent(correos)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyParaMailto)}`;
+
+            // Pequeño delay para garantizar cierre de Swal
+            await new Promise(r => setTimeout(r, 150));
+
+            // Abrir correo (ancla invisible mejora compatibilidad)
+            const a = document.createElement('a');
+            a.href = mailto;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => a.remove(), 1000);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Reportes listos',
+                html: `Se generaron Excel, PDF y captura.<br>${cuerpoCopiado ? 'El cuerpo completo se copió al portapapeles.' : 'Si el cuerpo es muy largo y no aparece completo, pegar manualmente.'}`,
+                confirmButtonText: 'OK'
+            });
+
+            } catch (err) {
+            console.error(err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: err.message || 'Fallo en la generación de reportes.'
+            });
             }
         };
         /**
@@ -5080,7 +5132,8 @@ try {
                 containerDetailsEl.removeEventListener('click', containerDetailsEl.eventHandler);
             }
 
-            // === REEMPLAZA DESDE AQUÍ ===
+// Reemplaza por completo la constante eventHandler que está dentro de mostrarDetallesContenedor
+
 const eventHandler = async (event) => {
     const target = event.target.closest('button');
     if (!target) return;
@@ -5098,7 +5151,10 @@ const eventHandler = async (event) => {
 
     if (target.classList.contains('btn-restar')) {
         const rowObj = currentContainerRecords.find(r => String(getPropCaseInsensitive(r, 'SKU') || "").toUpperCase() === sku);
-        if (!rowObj || (Number(getPropCaseInsensitive(r, 'SCANNER')) || 0) <= 0) return;
+        
+        // ✅ AQUÍ ESTABA EL ERROR: Se cambió 'r' por 'rowObj' para usar el objeto correcto.
+        if (!rowObj || (Number(getPropCaseInsensitive(rowObj, 'SCANNER')) || 0) <= 0) return;
+
         const prev = { SCANNER: Number(rowObj.SCANNER) || 0, FECHA_ESCANEO: rowObj.FECHA_ESCANEO, LAST_SCANNED_BY: rowObj.LAST_SCANNED_BY, ENTREGADO_A: rowObj.ENTREGADO_A };
         rowObj.SCANNER = prev.SCANNER - 1;
         if (rowObj.SCANNER <= 0) {
@@ -5164,7 +5220,7 @@ const eventHandler = async (event) => {
                 Swal.fire('¡Eliminada!', 'La foto ha sido eliminada con éxito.', 'success');
             } catch (error) {
                 console.error("Error al eliminar la foto:", error);
-                Swal.fire('Error', 'No se pudo eliminar la foto.', 'error');
+                Swal.fire('Error', 'No se pudo eliminar la foto. Es posible que ya no exista o haya un problema de red.', 'error');
             }
         }
     }
